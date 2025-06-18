@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, render_template_string
 import json
 from datetime import datetime
 from collections import defaultdict
@@ -79,6 +79,175 @@ SUN_BELT_TEAMS = [
     'Texas State', 'Troy'
 ]
 
+# ESPN Team ID mapping for logos
+TEAM_LOGOS = {
+   # ACC
+    'Boston College': '103',
+    'California': '25', 
+    'Clemson': '228',
+    'Duke': '150',
+    'Florida State': '52',
+    'Georgia Tech': '59',
+    'Louisville': '97',
+    'Miami': '2390',
+    'NC State': '152',
+    'North Carolina': '153',
+    'Pittsburgh': '221',
+    'SMU': '2567',
+    'Stanford': '24',
+    'Syracuse': '183',
+    'Virginia': '258',
+    'Virginia Tech': '259',
+    'Wake Forest': '154',
+    
+    # Big Ten
+    'Illinois': '356',
+    'Indiana': '84',
+    'Iowa': '2294',
+    'Maryland': '120',
+    'Michigan': '130',
+    'Michigan State': '127',
+    'Minnesota': '135',
+    'Nebraska': '158',
+    'Northwestern': '77',
+    'Ohio State': '194',
+    'Oregon': '2483',
+    'Penn State': '213',
+    'Purdue': '2509',
+    'Rutgers': '164',
+    'UCLA': '26',
+    'USC': '30',
+    'Washington': '264',
+    'Wisconsin': '275',
+    
+    # Big XII
+    'Arizona': '12',
+    'Arizona State': '9',
+    'Baylor': '239',
+    'BYU': '252',
+    'Cincinnati': '2132',
+    'Colorado': '38',
+    'Houston': '248',
+    'Iowa State': '66',
+    'Kansas': '2305',
+    'Kansas State': '2306',
+    'Oklahoma State': '197',
+    'TCU': '2628',
+    'Texas Tech': '2641',
+    'UCF': '2116',
+    'Utah': '254',
+    'West Virginia': '277',
+    
+    # SEC
+    'Alabama': '333',
+    'Arkansas': '8',
+    'Auburn': '2',
+    'Florida': '57',
+    'Georgia': '61',
+    'Kentucky': '96',
+    'LSU': '99',
+    'Mississippi State': '344',
+    'Missouri': '142',
+    'Oklahoma': '201',
+    'Ole Miss': '145',
+    'South Carolina': '2579',
+    'Tennessee': '2633',
+    'Texas': '251',
+    'Texas A&M': '245',
+    'Vanderbilt': '238',
+    
+    # Pac 12
+    'Oregon State': '204',
+    'Washington State': '265',
+    
+    # American
+    'Army': '349',
+    'Charlotte': '2429',
+    'East Carolina': '151',
+    'Florida Atlantic': '2226',
+    'Memphis': '235',
+    'Navy': '2426',
+    'North Texas': '249',
+    'Rice': '242',
+    'South Florida': '58',
+    'Temple': '218',
+    'Tulane': '2655',
+    'Tulsa': '202',
+    'UAB': '2429',
+    'UTSA': '2902',
+    
+    # Conference USA
+    'Delaware': '48',
+    'Florida Intl': '2229',
+    'Jacksonville State': '55',
+    'Kennesaw State': '2390',
+    'LA Tech': '2348',
+    'Liberty': '2335',
+    'Middle Tennessee': '2393',
+    'Missouri State': '2623',
+    'New Mexico St': '166',
+    'Sam Houston': '2534',
+    'UTEP': '2638',
+    'Western Kentucky': '98',
+    
+    # MAC
+    'Akron': '2006',
+    'Ball State': '2050',
+    'Bowling Green': '189',
+    'Buffalo': '2084',
+    'Central Michigan': '2117',
+    'Eastern Michigan': '2199',
+    'Kent State': '2309',
+    'UMass': '113',
+    'Miami (OH)': '193',
+    'Northern Illinois': '2459',
+    'Ohio': '195',
+    'Toledo': '2649',
+    'Western Michigan': '2711',
+    
+    # Mountain West
+    'Air Force': '2005',
+    'Boise State': '68',
+    'Colorado State': '36',
+    'Fresno State': '278',
+    'Hawaii': '62',
+    'Nevada': '2440',
+    'New Mexico': '167',
+    'San Diego State': '21',
+    'San Jose State': '23',
+    'UNLV': '2439',
+    'Utah State': '328',
+    'Wyoming': '2751',
+    
+    # Sun Belt
+    'Appalachian St': '2026',
+    'Arkansas State': '2032',
+    'Coastal Carolina': '324',
+    'Georgia Southern': '290',
+    'Georgia State': '2247',
+    'James Madison': '256',
+    'UL Monroe': '2433',
+    'Louisiana': '309',
+    'Marshall': '276',
+    'Old Dominion': '295',
+    'South Alabama': '6',
+    'Southern Miss': '2572',
+    'Texas State': '326',
+    'Troy': '2653',
+    
+    # Independent
+    'Connecticut': '41',
+    'Notre Dame': '87',
+
+}
+
+def get_team_logo_url(team_name):
+    """Get ESPN logo URL for a team"""
+    team_id = TEAM_LOGOS.get(team_name)
+    if team_id:
+        return f"https://a.espncdn.com/i/teamlogos/ncaa/500/{team_id}.png"
+    return None
+
 # All conferences organized
 CONFERENCES = {
     'ACC': ACC_TEAMS,
@@ -158,6 +327,10 @@ def is_admin():
 @app.context_processor
 def inject_user():
     return dict(is_admin=is_admin)
+
+@app.context_processor
+def inject_logo_function():
+    return dict(get_team_logo_url=get_team_logo_url)
 
 def login_required(f):
     """Decorator to require admin login for routes"""
@@ -351,6 +524,25 @@ def update_team_stats(team, opponent, team_score, opp_score, team_game_type, is_
         'result': 'W' if team_score > opp_score else 'L',
         'home_away': location
     })
+
+@app.route('/test-template')
+def test_template():
+    return render_template_string("""
+    <h1>Logo Test</h1>
+    {% set logo_url = get_team_logo_url('Alabama') %}
+    {% if logo_url %}
+        <img src="{{ logo_url }}" alt="Alabama" style="width: 50px; height: 50px;">
+        <p>Logo URL: {{ logo_url }}</p>
+    {% else %}
+        <p>No logo function available</p>
+    {% endif %}
+    """)
+
+
+@app.route('/test-logo')
+def test_logo():
+    alabama_logo = get_team_logo_url('Alabama')
+    return f"Alabama logo URL: {alabama_logo}"
 
 @app.route('/admin')
 @login_required
@@ -761,9 +953,11 @@ def create_templates():
                     <tr>
                         <td>{{ loop.index }}</td>
                         <td style="white-space: nowrap; min-width: 120px;">
-                            <a href="{{ url_for('team_detail', team_name=team.team) }}">
-                                {{ team.team }}
-                            </a>
+                           {% set logo_url = get_team_logo_url(team.team) %}
+{% if logo_url %}
+    <img src="{{ logo_url }}" alt="{{ team.team }}" style="width: 20px; height: 20px; margin-right: 8px;">
+{% endif %}
+<a href="{{ url_for('team_detail', team_name=team.team) }}">{{ team.team }}</a>
                         </td>
                         <td>
                             {% set badge_class = {
@@ -1476,7 +1670,13 @@ public_html = """{% extends "base.html" %}
                     {% for team in comprehensive_stats[:25] %}
                     <tr>
                         <td>{{ loop.index }}</td>
-                        <td style="white-space: nowrap; min-width: 120px;">{{ team.team }}</td>
+                        <td style="white-space: nowrap; min-width: 120px;">
+                            {% set logo_url = get_team_logo_url(team.team) %}
+                            {% if logo_url %}
+                                <img src="{{ logo_url }}" alt="{{ team.team }}" style="width: 20px; height: 20px; margin-right: 8px; vertical-align: middle;">
+                            {% endif %}
+                            {{ team.team }}
+                        </td>
                         <td>
                             {% set badge_class = {
                                 'ACC': 'primary', 'Big Ten': 'success', 'Big XII': 'warning text-dark',
@@ -1544,8 +1744,12 @@ admin_html = """{% extends "base.html" %}
                     <tr>
                         <td>{{ loop.index }}</td>
                         <td style="white-space: nowrap; min-width: 120px;">
-                            <a href="{{ url_for('team_detail', team_name=team.team) }}">{{ team.team }}</a>
-                        </td>
+    {% set logo_url = get_team_logo_url(team.team) %}
+    {% if logo_url %}
+        <img src="{{ logo_url }}" alt="{{ team.team }}" style="width: 20px; height: 20px; margin-right: 8px; vertical-align: middle;">
+    {% endif %}
+    <a href="{{ url_for('team_detail', team_name=team.team) }}">{{ team.team }}</a>
+</td>
                         <td>
                             {% set badge_class = {
                                 'ACC': 'primary', 'Big Ten': 'success', 'Big XII': 'warning text-dark',
