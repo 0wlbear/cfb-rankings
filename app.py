@@ -528,7 +528,7 @@ def create_templates():
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">CFB Rankings</a>
+            <a class="navbar-brand" href="{{ url_for('index') }}">2025 CFB Rankings</a>
             <div class="navbar-nav">
                 <a class="nav-link" href="{{ url_for('index') }}">Rankings</a>
                 <a class="nav-link" href="{{ url_for('add_game') }}">Add Game</a>
