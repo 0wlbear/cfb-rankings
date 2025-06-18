@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 import json
 from datetime import datetime
 from collections import defaultdict
+from functools import wraps
 import os
 
 
@@ -145,6 +146,23 @@ def get_auto_game_type(team_name):
         return 'G5'
     else:
         return 'None'
+
+# Admin password (you can change this)
+ADMIN_PASSWORD = "cfb2025admin"
+
+def is_admin():
+    """Check if user is logged in as admin"""
+    return session.get('admin_logged_in', False)
+
+def login_required(f):
+    """Decorator to require admin login for routes"""
+    from functools import wraps
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not is_admin():
+            return redirect(url_for('login', next=request.url))
+        return f(*args, **kwargs)
+    return decorated_function        
 
 # Data persistence functions
 def save_data():
@@ -477,6 +495,26 @@ def team_detail(team_name):
 def health_check():
     """Health check endpoint for load balancers"""
     return {'status': 'healthy'}, 200
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        password = request.form['password']
+        if password == ADMIN_PASSWORD:
+            session['admin_logged_in'] = True
+            session.permanent = True
+            next_page = request.args.get('next')
+            return redirect(next_page or url_for('index'))
+        else:
+            flash('Invalid password!', 'error')
+    
+    return render_template('login.html', next=request.args.get('next'))
+
+@app.route('/logout')
+def logout():
+    session.pop('admin_logged_in', None)
+    flash('Logged out successfully!', 'success')
+    return redirect(url_for('public_rankings'))    
 
 def create_templates():
     """Create all HTML template files"""
