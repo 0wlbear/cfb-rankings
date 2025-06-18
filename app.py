@@ -1350,37 +1350,7 @@ function changeWeek() {
     window.location.href = "{{ url_for('weekly_results') }}/" + selectedWeek;
 }
 </script>
-{% endblock %}
-
-# Login template
-login_html = """{% extends "base.html" %}
-
-{% block title %}Admin Login - College Football Rankings{% endblock %}
-
-{% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h4 class="mb-0">Admin Login</h4>
-            </div>
-            <div class="card-body">
-                <form method="POST">
-                    <div class="mb-3">
-                        <label for="password" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="password" name="password" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Login</button>
-                    <a href="{{ url_for('index') }}" class="btn btn-secondary">Back to Rankings</a>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}"""
-
-with open('templates/login.html', 'w') as f:
-    f.write(login_html)"""
 
     # Write all template files
     with open('templates/base.html', 'w') as f:
