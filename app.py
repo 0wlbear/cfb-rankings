@@ -348,6 +348,45 @@ def update_team_stats(team, opponent, team_score, opp_score, team_game_type, is_
         'home_away': location
     })
 
+@app.route('/admin')
+@login_required
+def admin():
+    # Create comprehensive stats table for all teams (full data)
+    comprehensive_stats = []
+    
+    # Add all teams from all conferences
+    for conf_name, teams in CONFERENCES.items():
+        for team in teams:
+            stats = calculate_comprehensive_stats(team)
+            stats['team'] = team
+            stats['conference'] = conf_name
+            comprehensive_stats.append(stats)
+    
+    # Sort by Adjusted Total (highest first)
+    comprehensive_stats.sort(key=lambda x: x['adjusted_total'], reverse=True)
+    
+    return render_template('admin.html', comprehensive_stats=comprehensive_stats, recent_games=games_data[-10:])
+
+
+@app.route('/public')
+@app.route('/')
+def public_rankings():
+    # Create comprehensive stats table for all teams (same as index)
+    comprehensive_stats = []
+    
+    # Add all teams from all conferences
+    for conf_name, teams in CONFERENCES.items():
+        for team in teams:
+            stats = calculate_comprehensive_stats(team)
+            stats['team'] = team
+            stats['conference'] = conf_name
+            comprehensive_stats.append(stats)
+    
+    # Sort by Adjusted Total (highest first)
+    comprehensive_stats.sort(key=lambda x: x['adjusted_total'], reverse=True)
+    
+    return render_template('public.html', comprehensive_stats=comprehensive_stats)   
+
 @app.route('/')
 def index():
     # Create comprehensive stats table for all teams
@@ -367,6 +406,7 @@ def index():
     return render_template('index.html', comprehensive_stats=comprehensive_stats, recent_games=games_data[-10:])
 
 @app.route('/add_game', methods=['GET', 'POST'])
+@login_required
 def add_game():
     if request.method == 'POST':
         try:
@@ -452,6 +492,7 @@ def weekly_results(week=None):
                          all_weeks=WEEKS)
 
 @app.route('/reset_data', methods=['POST'])
+@login_required
 def reset_data():
     """Reset all data - useful for testing or starting over"""
     global games_data, team_stats
@@ -1398,6 +1439,154 @@ function changeWeek() {
 
     with open('templates/login.html', 'w') as f:
         f.write(login_html)
+
+    # Public template (add this with the other templates)
+public_html = """{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2 class="text-center mb-4">2025 CFB Rankings</h2>
+        <p class="text-center text-muted">Updated automatically • View-only rankings</p>
+        
+        <div class="table-responsive">
+            <table class="table table-striped table-sm" id="statsTable">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Team</th>
+                        <th>Conf</th>
+                        <th>Record</th>
+                        <th>Adj Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for team in comprehensive_stats[:25] %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td style="white-space: nowrap; min-width: 120px;">{{ team.team }}</td>
+                        <td>
+                            {% set badge_class = {
+                                'ACC': 'primary', 'Big Ten': 'success', 'Big XII': 'warning text-dark',
+                                'Pac 12': 'info', 'SEC': 'danger', 'Independent': 'secondary',
+                                'American': 'dark', 'Conference USA': 'light text-dark',
+                                'MAC': 'primary', 'Mountain West': 'success', 'Sun Belt': 'warning text-dark'
+                            }.get(team.conference, 'secondary') %}
+                            <span class="badge bg-{{ badge_class }}">{{ team.conference }}</span>
+                        </td>
+                        <td>{{ team.total_wins }}-{{ team.total_losses }}</td>
+                        <td class="text-primary"><strong>{{ team.adjusted_total }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="text-center mt-4">
+            <small class="text-muted">
+                Ranking system by <a href="/admin">CFB Rankings</a>
+            </small>
+        </div>
+    </div>
+</div>
+{% endblock %}"""
+
+with open('templates/public.html', 'w') as f:
+    f.write(public_html)
+
+# Admin template (full detailed table)
+admin_html = """{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-10">
+        <h2>Admin Panel - Comprehensive Team Statistics</h2>
+        <p class="text-muted">Click column headers to sort • <a href="/add_game" class="btn btn-sm btn-primary">Add Game</a></p>
+        <div class="table-responsive">
+            <table class="table table-striped table-sm" id="statsTable">
+                <thead>
+                    <tr>
+                        <th class="sortable-header" onclick="sortTable(0, true)">Rank<span class="sort-indicator"></span></th>
+                        <th class="sortable-header" onclick="sortTable(1)">Team<span class="sort-indicator"></span></th>
+                        <th class="sortable-header" onclick="sortTable(2)">Conf<span class="sort-indicator"></span></th>
+                        <th class="sortable-header" onclick="sortTable(3, true)">PF<span class="sort-indicator"></span></th>
+                        <th class="sortable-header" onclick="sortTable(4, true)">PA<span class="sort-indicator"></span></th>
+                        <th class="sortable-header" onclick="sortTable(5, true)">MoV<span class="sort-indicator"></span></th>
+                        <th class="sortable-header" onclick="sortTable(6, true)">PD<span class="sort-indicator"></span></th>
+                        <th class="sortable-header" onclick="sortTable(7, true)">HW<span class="sort-indicator"></span></th>
+                        <th class="sortable-header" onclick="sortTable(8, true)">RW<span class="sort-indicator"></span></th>
+                        <th class="sortable-header" onclick="sortTable(9, true)">P4W<span class="sort-indicator"></span></th>
+                        <th class="sortable-header" onclick="sortTable(10, true)">G5W<span class="sort-indicator"></span></th>
+                        <th class="sortable-header" onclick="sortTable(11, true)">Opp W<span class="sort-indicator"></span></th>
+                        <th class="sortable-header" onclick="sortTable(12, true)">Opp L<span class="sort-indicator"></span></th>
+                        <th class="sortable-header" onclick="sortTable(13, true)">SoS<span class="sort-indicator"></span></th>
+                        <th class="sortable-header" onclick="sortTable(14, true)">Opp W/L Diff<span class="sort-indicator"></span></th>
+                        <th class="sortable-header" onclick="sortTable(15, true)">Totals<span class="sort-indicator"></span></th>
+                        <th class="sortable-header" onclick="sortTable(16, true)">Total W<span class="sort-indicator"></span></th>
+                        <th class="sortable-header" onclick="sortTable(17, true)">Total L<span class="sort-indicator"></span></th>
+                        <th class="sortable-header" onclick="sortTable(18, true)">Adj Total<span class="sort-indicator">↓</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for team in comprehensive_stats %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td style="white-space: nowrap; min-width: 120px;">
+                            <a href="{{ url_for('team_detail', team_name=team.team) }}">{{ team.team }}</a>
+                        </td>
+                        <td>
+                            {% set badge_class = {
+                                'ACC': 'primary', 'Big Ten': 'success', 'Big XII': 'warning text-dark',
+                                'Pac 12': 'info', 'SEC': 'danger', 'Independent': 'secondary',
+                                'American': 'dark', 'Conference USA': 'light text-dark',
+                                'MAC': 'primary', 'Mountain West': 'success', 'Sun Belt': 'warning text-dark'
+                            }.get(team.conference, 'secondary') %}
+                            <span class="badge bg-{{ badge_class }}">{{ team.conference }}</span>
+                        </td>
+                        <td>{{ team.points_fielded }}</td>
+                        <td>{{ team.points_allowed }}</td>
+                        <td>{{ team.margin_of_victory }}</td>
+                        <td>{{ team.point_differential }}</td>
+                        <td>{{ team.home_wins }}</td>
+                        <td>{{ team.road_wins }}</td>
+                        <td>{{ team.p4_wins }}</td>
+                        <td>{{ team.g5_wins }}</td>
+                        <td>{{ team.opp_w }}</td>
+                        <td>{{ team.opp_l }}</td>
+                        <td>{{ team.strength_of_schedule }}</td>
+                        <td>{{ team.opp_wl_differential }}</td>
+                        <td><strong>{{ team.totals }}</strong></td>
+                        <td>{{ team.total_wins }}</td>
+                        <td>{{ team.total_losses }}</td>
+                        <td class="text-primary"><strong>{{ team.adjusted_total }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div class="col-md-2">
+        <h6>Recent Games</h6>
+        {% if recent_games %}
+            <div class="list-group">
+                {% for game in recent_games[:5] %}
+                <div class="list-group-item p-2">
+                    <small class="text-muted">Week {{ game.week }}</small><br>
+                    <small class="fw-bold">{{ game.home_team }} {{ game.home_score }}-{{ game.away_score }} {{ game.away_team }}</small>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-muted small">No games yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}"""
+
+with open('templates/admin.html', 'w') as f:
+    f.write(admin_html)
+
 
 if __name__ == '__main__':
     # Create templates directory and files
