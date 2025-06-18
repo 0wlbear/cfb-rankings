@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 import json
 from datetime import datetime
 from collections import defaultdict
@@ -6,7 +6,7 @@ import os
 
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-here')
+app.permanent_session_lifetime = 86400  # Session lasts 24 hours
 
 # Data directory for persistence
 DATA_DIR = os.environ.get('DATA_DIR', './data')
