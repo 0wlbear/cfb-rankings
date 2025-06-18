@@ -155,6 +155,10 @@ def is_admin():
     """Check if user is logged in as admin"""
     return session.get('admin_logged_in', False)
 
+@app.context_processor
+def inject_user():
+    return dict(is_admin=is_admin)
+
 def login_required(f):
     """Decorator to require admin login for routes"""
     from functools import wraps
@@ -610,13 +614,21 @@ def create_templates():
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('index') }}">2025 CFB Rankings</a>
             <div class="navbar-nav">
-                <a class="nav-link" href="{{ url_for('index') }}">Rankings</a>
-                <a class="nav-link" href="{{ url_for('add_game') }}">Add Game</a>
-                <a class="nav-link" href="{{ url_for('weekly_results') }}">Weekly Results</a>
-            </div>
-            <div class="navbar-nav ms-auto">
-                <button class="btn btn-outline-light btn-sm" onclick="confirmReset()">Reset Data</button>
-            </div>
+    <a class="nav-link" href="{{ url_for('public_rankings') }}">Rankings</a>
+    {% if is_admin() %}
+        <a class="nav-link" href="{{ url_for('add_game') }}">Add Game</a>
+        <a class="nav-link" href="{{ url_for('weekly_results') }}">Weekly Results</a>
+        <a class="nav-link" href="{{ url_for('admin') }}">Admin Panel</a>
+    {% endif %}
+</div>
+<div class="navbar-nav ms-auto">
+    {% if is_admin() %}
+        <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+        <button class="btn btn-outline-light btn-sm" onclick="confirmReset()">Reset Data</button>
+    {% else %}
+        <a class="nav-link" href="{{ url_for('login') }}">Admin Login</a>
+    {% endif %}
+</div>
         </div>
     </nav>
     
