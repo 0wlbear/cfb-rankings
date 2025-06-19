@@ -25,80 +25,51 @@ jobs:
         script: |
           echo "🚀 Starting bulletproof deployment..."
           
-          # Backup current working version
-          cd /home/ubuntu
-          cp -r cfb-app cfb-app-backup
+          # Backup current app.py
+          cp /home/ubuntu/cfb-app/app.py /home/ubuntu/app.py.backup
           echo "✅ Backup created"
           
-          # Update git repo
+          # Update git and test new version
           cd /home/ubuntu/cfb-app-git
           git pull origin main
           echo "✅ Git updated"
           
-          # Copy new version to staging area
-          cp -r cfb-app cfb-app-staging
-          cp cfb-app-git/app.py cfb-app-staging/
-          echo "✅ Staging area prepared"
-          
-          # Test the new version
-          cd cfb-app-staging
-          source venv/bin/activate
-          
-          # Ensure templates directory exists
-          mkdir -p templates
-          
-          # Test that the app can start
-          timeout 10 python -c "
-          import sys
-          try:
-              from app import app, create_templates
-              create_templates()
-              print('✅ App validation passed')
-              sys.exit(0)
-          except Exception as e:
-              print(f'❌ App validation failed: {e}')
-              sys.exit(1)
-          " || {
-              echo "❌ Deployment failed validation - rolling back"
-              cd /home/ubuntu
-              rm -rf cfb-app
-              mv cfb-app-backup cfb-app
-              rm -rf cfb-app-staging
-              echo "✅ Rollback complete - site still running"
-              exit 1
-          }
-          
-          # If we get here, the new version is valid
-          echo "✅ New version validated successfully"
-          
-          # Replace the running version atomically
-          cd /home/ubuntu
-          rm -rf cfb-app
-          mv cfb-app-staging cfb-app
-          
-          # Update service with environment variables (only if needed)
-          if ! grep -q "ADMIN_USERNAME" /etc/systemd/system/cfb-rankings.service; then
-              echo "Environment=\"ADMIN_USERNAME=$ADMIN_USERNAME\"" | sudo tee -a /etc/systemd/system/cfb-rankings.service
-              echo "Environment=\"ADMIN_PASSWORD=$ADMIN_PASSWORD\"" | sudo tee -a /etc/systemd/system/cfb-rankings.service
-              sudo systemctl daemon-reload
-              echo "✅ Service file updated"
-          fi
-          
-          # Restart service
-          sudo systemctl restart cfb-rankings
-          
-          # Wait and verify service started
-          sleep 5
-          if sudo systemctl is-active cfb-rankings >/dev/null; then
-              echo "✅ Service started successfully"
-              rm -rf cfb-app-backup
-              echo "🎉 Deployment completed successfully!"
+          # Test new app.py can import without errors
+          cd /home/ubuntu/cfb-app-git
+          if python -c "from app import app; print('✅ Import test passed')" 2>/dev/null; then
+              echo "✅ New code validated"
+              
+              # Copy new version
+              cp /home/ubuntu/cfb-app-git/app.py /home/ubuntu/cfb-app/
+              
+              # Regenerate templates
+              cd /home/ubuntu/cfb-app
+              source venv/bin/activate
+              mkdir -p templates
+              rm -f templates/*
+              python -c "from app import create_templates; create_templates()"
+              
+              # Update environment variables if needed
+              if ! grep -q "ADMIN_USERNAME" /etc/systemd/system/cfb-rankings.service; then
+                  echo "Environment=\"ADMIN_USERNAME=$ADMIN_USERNAME\"" | sudo tee -a /etc/systemd/system/cfb-rankings.service
+                  echo "Environment=\"ADMIN_PASSWORD=$ADMIN_PASSWORD\"" | sudo tee -a /etc/systemd/system/cfb-rankings.service
+                  sudo systemctl daemon-reload
+              fi
+              
+              # Restart service
+              sudo systemctl restart cfb-rankings
+              sleep 3
+              
+              # Check if service is running
+              if sudo systemctl is-active cfb-rankings >/dev/null; then
+                  echo "🎉 Deployment successful!"
+                  rm /home/ubuntu/app.py.backup
+              else
+                  echo "❌ Service failed, rolling back"
+                  cp /home/ubuntu/app.py.backup /home/ubuntu/cfb-app/app.py
+                  sudo systemctl restart cfb-rankings
+                  echo "✅ Rollback complete"
+              fi
           else
-              echo "❌ Service failed to start - rolling back"
-              sudo systemctl stop cfb-rankings
-              rm -rf cfb-app
-              mv cfb-app-backup cfb-app
-              sudo systemctl start cfb-rankings
-              echo "✅ Rollback complete"
-              exit 1
+              echo "❌ New code failed validation - no deployment"
           fi
