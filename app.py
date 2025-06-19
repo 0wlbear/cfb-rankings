@@ -413,7 +413,7 @@ def get_conference_champions():
     champions = {}
     
     for conf_name, teams in CONFERENCES.items():
-        if conf_name == 'Independent':  # Skip independents
+        if conf_name in ['Independent', 'Pac 12']:  # Skip independents and Pac 12
             continue
             
         # Get all teams in conference with their stats
@@ -443,42 +443,54 @@ def generate_cfp_bracket():
             stats['conference'] = conf_name
             all_teams.append(stats)
     
-    # Sort by adjusted total
+    # Sort by adjusted total (highest first)
     all_teams.sort(key=lambda x: x['adjusted_total'], reverse=True)
     
-    # Get conference champions
+    # Get conference champions (excluding Pac 12 and Independent)
     champions = get_conference_champions()
     
-    # Get 5 highest-ranked conference champions (automatic qualifiers)
-    auto_qualifiers = []
-    champion_teams = set()
-    
+    # Step 1: Get the top 5 ranked conference champions (automatic qualifiers)
+    automatic_qualifiers = []
     for team in all_teams:
         if team['conference'] in champions and champions[team['conference']]['team'] == team['team']:
-            auto_qualifiers.append({**team, 'bid_type': 'Conference Champion'})
-            champion_teams.add(team['team'])
-            if len(auto_qualifiers) == 5:
+            automatic_qualifiers.append(team)
+            if len(automatic_qualifiers) == 5:
                 break
     
-    # Get 7 at-large bids (highest ranked teams not already in)
-    at_large = []
-    for team in all_teams:
-        if team['team'] not in champion_teams:
-            at_large.append({**team, 'bid_type': 'At-Large'})
-            if len(at_large) == 7:
+    # Step 2: Get the top 12 teams overall (this will include some/all auto-qualifiers)
+    top_12_teams = all_teams[:12].copy()
+    
+    # Step 3: Ensure all 5 auto-qualifiers are in the playoff
+    # If any auto-qualifier is not in top 12, replace the lowest-ranked non-auto-qualifier
+    auto_qualifier_names = {team['team'] for team in automatic_qualifiers}
+    
+    # Find auto-qualifiers not in top 12
+    missing_auto_qualifiers = [team for team in automatic_qualifiers if team['team'] not in [t['team'] for t in top_12_teams]]
+    
+    # Replace lowest-ranked non-auto-qualifiers with missing auto-qualifiers
+    for missing_team in missing_auto_qualifiers:
+        # Find the lowest-ranked team in top_12 that's not an auto-qualifier
+        for i in range(11, -1, -1):  # Start from bottom of top 12
+            if top_12_teams[i]['team'] not in auto_qualifier_names:
+                top_12_teams[i] = missing_team
                 break
     
-    # Combine and re-sort by ranking for final seeding
-    playoff_teams = auto_qualifiers + at_large
+    # Step 4: Sort the final 12 teams and assign seeds 1-12
+    playoff_teams = top_12_teams
     playoff_teams.sort(key=lambda x: x['adjusted_total'], reverse=True)
     
-    # Add seeds
     for i, team in enumerate(playoff_teams):
         team['seed'] = i + 1
     
+    # Step 5: First Round Byes go to TOP 4 TEAMS (seeds 1-4)
+    first_round_byes = playoff_teams[:4]
+    
+    # At-Large Display: Seeds 5-12
+    at_large_display = playoff_teams[4:]
+    
     # Generate bracket structure
     bracket = {
-        'first_round_byes': playoff_teams[:4],
+        'first_round_byes': first_round_byes,  # TOP 4 TEAMS OVERALL (regardless of champion status)
         'first_round_games': [
             {'higher_seed': playoff_teams[4], 'lower_seed': playoff_teams[11], 'game_num': 1},  # 5 vs 12
             {'higher_seed': playoff_teams[5], 'lower_seed': playoff_teams[10], 'game_num': 2},  # 6 vs 11
@@ -486,6 +498,8 @@ def generate_cfp_bracket():
             {'higher_seed': playoff_teams[7], 'lower_seed': playoff_teams[8], 'game_num': 4},   # 8 vs 9
         ],
         'all_teams': playoff_teams,
+        'automatic_qualifiers': automatic_qualifiers,  # Top 5 ranked conference champions
+        'at_large_display': at_large_display,          # Seeds 5-12
         'conference_champions': champions
     }
     
@@ -1017,18 +1031,22 @@ def create_templates():
             border-color: #dc3545;
             box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
         }
+    body {
+    padding-top: 70px; /* Add space so content doesn't hide behind fixed navbar */
+        }
+
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('index') }}">CFB Rankings</a>
             <div class="navbar-nav">
     <a class="nav-link" href="{{ url_for('public_rankings') }}">Rankings</a>
+    <a class="nav-link" href="{{ url_for('cfp_bracket') }}">CFP Bracket</a>
+    <a class="nav-link" href="{{ url_for('weekly_results') }}">Weekly Results</a>
     {% if is_admin() %}
         <a class="nav-link" href="{{ url_for('add_game') }}">Add Game</a>
-        <a class="nav-link" href="{{ url_for('weekly_results') }}">Weekly Results</a>
-        <a class="nav-link" href="{{ url_for('cfp_bracket') }}">CFP Bracket</a>
         <a class="nav-link" href="{{ url_for('admin') }}">Admin Panel</a>
         <a class="nav-link" href="{{ url_for('historical_rankings') }}">Historical</a>
     {% endif %}
@@ -2049,7 +2067,7 @@ public_html = """{% extends "base.html" %}
 with open('templates/public.html', 'w') as f:
     f.write(public_html)
 
-# CFP Bracket template - Adding Conference Champions
+# CFP Bracket template - Adding logos
 cfp_bracket_html = """{% extends "base.html" %}
 
 {% block title %}CFP Bracket Projection - College Football Rankings{% endblock %}
@@ -2070,10 +2088,14 @@ cfp_bracket_html = """{% extends "base.html" %}
                         <h5 class="mb-0">Automatic Qualifiers</h5>
                     </div>
                     <div class="card-body">
-                        {% for team in bracket.all_teams if team.bid_type == 'Conference Champion' %}
+                        {% for team in bracket.automatic_qualifiers %}
                             <div class="d-flex justify-content-between align-items-center py-2">
                                 <div>
                                     <span class="badge bg-primary me-2">#{{ team.seed }}</span>
+                                    {% set logo_url = get_team_logo_url(team.team) %}
+                                    {% if logo_url %}
+                                        <img src="{{ logo_url }}" alt="{{ team.team }}" style="width: 20px; height: 20px; margin-right: 8px;">
+                                    {% endif %}
                                     <strong>{{ team.team }}</strong>
                                     <small class="text-muted">({{ team.conference }})</small>
                                 </div>
@@ -2092,10 +2114,14 @@ cfp_bracket_html = """{% extends "base.html" %}
                         <h5 class="mb-0">At-Large Bids</h5>
                     </div>
                     <div class="card-body">
-                        {% for team in bracket.all_teams if team.bid_type == 'At-Large' %}
+                        {% for team in bracket.at_large_display %}
                             <div class="d-flex justify-content-between align-items-center py-2">
                                 <div>
                                     <span class="badge bg-primary me-2">#{{ team.seed }}</span>
+                                    {% set logo_url = get_team_logo_url(team.team) %}
+                                    {% if logo_url %}
+                                        <img src="{{ logo_url }}" alt="{{ team.team }}" style="width: 20px; height: 20px; margin-right: 8px;">
+                                    {% endif %}
                                     <strong>{{ team.team }}</strong>
                                     <small class="text-muted">({{ team.conference }})</small>
                                 </div>
@@ -2120,6 +2146,12 @@ cfp_bracket_html = """{% extends "base.html" %}
                             <div class="d-flex align-items-center py-3">
                                 <div class="me-3">
                                     <span class="badge bg-success fs-6">#{{ team.seed }}</span>
+                                </div>
+                                <div class="me-3">
+                                    {% set logo_url = get_team_logo_url(team.team) %}
+                                    {% if logo_url %}
+                                        <img src="{{ logo_url }}" alt="{{ team.team }}" style="width: 30px; height: 30px;">
+                                    {% endif %}
                                 </div>
                                 <div class="flex-grow-1">
                                     <div class="fw-bold">{{ team.team }}</div>
@@ -2148,8 +2180,12 @@ cfp_bracket_html = """{% extends "base.html" %}
                                     </div>
                                     
                                     <div class="d-flex align-items-center justify-content-between py-2 bg-light rounded">
-                                        <div>
+                                        <div class="d-flex align-items-center">
                                             <span class="badge bg-success me-2">#{{ game.higher_seed.seed }}</span>
+                                            {% set logo_url = get_team_logo_url(game.higher_seed.team) %}
+                                            {% if logo_url %}
+                                                <img src="{{ logo_url }}" alt="{{ game.higher_seed.team }}" style="width: 20px; height: 20px; margin-right: 8px;">
+                                            {% endif %}
                                             <strong>{{ game.higher_seed.team }}</strong>
                                             <small class="text-success ms-2">(HOST)</small>
                                         </div>
@@ -2161,8 +2197,12 @@ cfp_bracket_html = """{% extends "base.html" %}
                                     </div>
                                     
                                     <div class="d-flex align-items-center justify-content-between py-2">
-                                        <div>
+                                        <div class="d-flex align-items-center">
                                             <span class="badge bg-primary me-2">#{{ game.lower_seed.seed }}</span>
+                                            {% set logo_url = get_team_logo_url(game.lower_seed.team) %}
+                                            {% if logo_url %}
+                                                <img src="{{ logo_url }}" alt="{{ game.lower_seed.team }}" style="width: 20px; height: 20px; margin-right: 8px;">
+                                            {% endif %}
                                             <strong>{{ game.lower_seed.team }}</strong>
                                         </div>
                                         <small>{{ game.lower_seed.total_wins }}-{{ game.lower_seed.total_losses }}</small>
@@ -2190,9 +2230,15 @@ cfp_bracket_html = """{% extends "base.html" %}
                                         <div class="me-3">
                                             <span class="badge bg-primary">{{ conf_name }}</span>
                                         </div>
-                                        <div>
-                                            <strong>{{ champion.team }}</strong>
-                                            <small class="text-muted">({{ champion.total_wins }}-{{ champion.total_losses }})</small>
+                                        <div class="d-flex align-items-center">
+                                            {% set logo_url = get_team_logo_url(champion.team) %}
+                                            {% if logo_url %}
+                                                <img src="{{ logo_url }}" alt="{{ champion.team }}" style="width: 20px; height: 20px; margin-right: 8px;">
+                                            {% endif %}
+                                            <div>
+                                                <strong>{{ champion.team }}</strong>
+                                                <small class="text-muted">({{ champion.total_wins }}-{{ champion.total_losses }})</small>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
