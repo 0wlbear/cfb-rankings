@@ -317,8 +317,9 @@ def get_auto_game_type(team_name):
     else:
         return 'None'
 
-# Admin password (you can change this)
-ADMIN_PASSWORD = "cfb2025admin"
+# Admin credentials from environment variables
+ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'changeme')
 
 def is_admin():
     """Check if user is logged in as admin"""
@@ -737,14 +738,15 @@ def health_check():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
+        username = request.form['username']
         password = request.form['password']
-        if password == ADMIN_PASSWORD:
+        if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
             session['admin_logged_in'] = True
             session.permanent = True
             next_page = request.args.get('next')
-            return redirect(next_page or url_for('index'))
+            return redirect(next_page or url_for('public_rankings'))
         else:
-            flash('Invalid password!', 'error')
+            flash('Invalid credentials!', 'error')
     
     return render_template('login.html', next=request.args.get('next'))
 
@@ -1630,6 +1632,10 @@ function changeWeek() {
             </div>
             <div class="card-body">
                 <form method="POST">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" required>
+                    </div>
                     <div class="mb-3">
                         <label for="password" class="form-label">Password</label>
                         <input type="password" class="form-control" id="password" name="password" required>
