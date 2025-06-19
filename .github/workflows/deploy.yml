@@ -42,21 +42,32 @@ jobs:
               # Copy new version
               cp /home/ubuntu/cfb-app-git/app.py /home/ubuntu/cfb-app/
               
+              # Create environment file with GitHub secrets
+              echo "ADMIN_USERNAME=$ADMIN_USERNAME" | sudo tee /home/ubuntu/cfb-app/.env
+              echo "ADMIN_PASSWORD=$ADMIN_PASSWORD" | sudo tee -a /home/ubuntu/cfb-app/.env
+              echo "DATA_DIR=/home/ubuntu/cfb-app/data" | sudo tee -a /home/ubuntu/cfb-app/.env
+              echo "✅ Environment file created with GitHub secrets"
+              
+              # Clean up service file and add environment file
+              sudo sed -i '/Environment="ADMIN_USERNAME/d' /etc/systemd/system/cfb-rankings.service
+              sudo sed -i '/Environment="ADMIN_PASSWORD/d' /etc/systemd/system/cfb-rankings.service
+              
+              # Add EnvironmentFile line if not already present
+              if ! grep -q "EnvironmentFile" /etc/systemd/system/cfb-rankings.service; then
+                  sudo sed -i '/Environment="DATA_DIR/a EnvironmentFile=/home/ubuntu/cfb-app/.env' /etc/systemd/system/cfb-rankings.service
+                  echo "✅ Service updated to use environment file"
+              fi
+              
               # Regenerate templates
               cd /home/ubuntu/cfb-app
               source venv/bin/activate
               mkdir -p templates
               rm -f templates/*
               python -c "from app import create_templates; create_templates()"
-              
-              # Update environment variables if needed
-              if ! grep -q "ADMIN_USERNAME" /etc/systemd/system/cfb-rankings.service; then
-                  echo "Environment=\"ADMIN_USERNAME=$ADMIN_USERNAME\"" | sudo tee -a /etc/systemd/system/cfb-rankings.service
-                  echo "Environment=\"ADMIN_PASSWORD=$ADMIN_PASSWORD\"" | sudo tee -a /etc/systemd/system/cfb-rankings.service
-                  sudo systemctl daemon-reload
-              fi
+              echo "✅ Templates regenerated"
               
               # Restart service
+              sudo systemctl daemon-reload
               sudo systemctl restart cfb-rankings
               sleep 3
               
