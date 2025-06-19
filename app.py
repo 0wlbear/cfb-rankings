@@ -1222,8 +1222,46 @@ def create_templates():
                     </div>
                 </div>
             </div>
-            
+
             <div class="row">
+            <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0" id="away_team_header">Away Team</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="away_team" class="form-label">Team</label>
+                                <input type="text" class="form-control" id="away_team" name="away_team" 
+                                       list="team_list" placeholder="Type to search or click to browse..." 
+                                       onchange="updateGameTypes()" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="away_score" class="form-label">Score</label>
+                                <input type="number" class="form-control" id="away_score" name="away_score" min="0" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Game Type for Away Team</label>
+                                <div id="away_game_type_display" class="mb-2">
+                                    <span class="badge bg-secondary">Select both teams first</span>
+                                </div>
+                                <div>
+                                    {% for game_type in game_types %}
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="away_game_type" id="away_{{ game_type }}" value="{{ game_type }}" required>
+                                        <label class="form-check-label" for="away_{{ game_type }}">
+                                            {{ game_type }}
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        
                 <div class="col-md-6">
                     <div class="card">
                         <div class="card-header bg-success text-white">
@@ -1270,45 +1308,9 @@ def create_templates():
                         </div>
                     </div>
                 </div>
-                
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0" id="away_team_header">Away Team</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="mb-3">
-                                <label for="away_team" class="form-label">Team</label>
-                                <input type="text" class="form-control" id="away_team" name="away_team" 
-                                       list="team_list" placeholder="Type to search or click to browse..." 
-                                       onchange="updateGameTypes()" required>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label for="away_score" class="form-label">Score</label>
-                                <input type="number" class="form-control" id="away_score" name="away_score" min="0" required>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">Game Type for Away Team</label>
-                                <div id="away_game_type_display" class="mb-2">
-                                    <span class="badge bg-secondary">Select both teams first</span>
-                                </div>
-                                <div>
-                                    {% for game_type in game_types %}
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="away_game_type" id="away_{{ game_type }}" value="{{ game_type }}" required>
-                                        <label class="form-check-label" for="away_{{ game_type }}">
-                                            {{ game_type }}
-                                        </label>
-                                    </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
+                
+            
             
             <div class="mt-4 text-center">
                 <button type="submit" class="btn btn-primary btn-lg">Add Game</button>
