@@ -399,6 +399,9 @@ def load_data():
             print(f"Loaded stats for {len(saved_stats)} teams")
         except FileNotFoundError:
             print("No saved team stats found, starting fresh")
+
+        # Load historical data
+        load_historical_data()    
             
     except Exception as e:
         print(f"Error loading data: {e}")
@@ -526,24 +529,17 @@ def update_team_stats(team, opponent, team_score, opp_score, team_game_type, is_
         'home_away': location
     })
 
-@app.route('/test-template')
-def test_template():
-    return render_template_string("""
-    <h1>Logo Test</h1>
-    {% set logo_url = get_team_logo_url('Alabama') %}
-    {% if logo_url %}
-        <img src="{{ logo_url }}" alt="Alabama" style="width: 50px; height: 50px;">
-        <p>Logo URL: {{ logo_url }}</p>
-    {% else %}
-        <p>No logo function available</p>
-    {% endif %}
-    """)
-
-
-@app.route('/test-logo')
-def test_logo():
-    alabama_logo = get_team_logo_url('Alabama')
-    return f"Alabama logo URL: {alabama_logo}"
+@app.route('/create_snapshot', methods=['POST'])
+@login_required
+def create_snapshot():
+    try:
+        week_name = request.form.get('week_name', f"Week_{len(historical_rankings) + 1}")
+        save_weekly_snapshot(week_name)
+        flash(f'Snapshot "{week_name}" created successfully!', 'success')
+    except Exception as e:
+        flash(f'Error creating snapshot: {e}', 'error')
+    
+    return redirect(url_for('admin'))
 
 @app.route('/admin')
 @login_required
@@ -563,6 +559,20 @@ def admin():
     comprehensive_stats.sort(key=lambda x: x['adjusted_total'], reverse=True)
     
     return render_template('admin.html', comprehensive_stats=comprehensive_stats, recent_games=games_data[-10:])
+
+@app.route('/team/<team_name>')
+def team_detail(team_name):
+    if team_name not in team_stats:
+        flash('Team not found!', 'error')
+        return redirect(url_for('public_rankings'))
+    
+    stats = team_stats[team_name]
+    comprehensive_stats = calculate_comprehensive_stats(team_name)
+    
+    return render_template('team_detail.html', 
+                         team_name=team_name, 
+                         stats=stats, 
+                         adjusted_total=comprehensive_stats['adjusted_total'])   
 
 
 @app.route('/public')
@@ -661,6 +671,61 @@ def add_game():
     selected_week = request.args.get('selected_week', '')
     return render_template('add_game.html', conferences=CONFERENCES, weeks=WEEKS, game_types=GAME_TYPES, team_classifications=team_classifications, recent_games=games_data[-10:], selected_week=selected_week)
 
+@app.route('/historical')
+@login_required
+def historical_rankings():
+    if len(historical_rankings) < 2:
+        flash('Need at least 2 weekly snapshots to show movement', 'info')
+        return redirect(url_for('admin'))
+    
+    # Get the two most recent snapshots
+    current_week = historical_rankings[-1]
+    previous_week = historical_rankings[-2]
+    
+    # Calculate movement for each team
+    movement_data = []
+    
+    # Create lookup for previous week rankings
+    prev_rankings = {team['team']: team['rank'] for team in previous_week['rankings']}
+    
+    for team in current_week['rankings']:
+        team_name = team['team']
+        current_rank = team['rank']
+        previous_rank = prev_rankings.get(team_name, None)
+        
+        if previous_rank:
+            movement = previous_rank - current_rank  # Positive = moved up
+            movement_data.append({
+                'team': team_name,
+                'conference': team['conference'],
+                'current_rank': current_rank,
+                'previous_rank': previous_rank,
+                'movement': movement,
+                'wins': team['wins'],
+                'losses': team['losses'],
+                'adjusted_total': team['adjusted_total']
+            })
+        else:
+            # New team in rankings
+            movement_data.append({
+                'team': team_name,
+                'conference': team['conference'],
+                'current_rank': current_rank,
+                'previous_rank': None,
+                'movement': None,
+                'wins': team['wins'],
+                'losses': team['losses'],
+                'adjusted_total': team['adjusted_total']
+            })
+    
+    # Sort by current rank
+    movement_data.sort(key=lambda x: x['current_rank'])
+    
+    return render_template('historical.html', 
+                         movement_data=movement_data,
+                         current_week=current_week,
+                         previous_week=previous_week)
+
 @app.route('/weekly_results')
 @app.route('/weekly_results/<week>')
 def weekly_results(week=None):
@@ -692,7 +757,7 @@ def weekly_results(week=None):
 @login_required
 def reset_data():
     """Reset all data - useful for testing or starting over"""
-    global games_data, team_stats
+    global games_data, team_stats, historical_rankings
     games_data = []
     team_stats = defaultdict(lambda: {
         'wins': 0, 'losses': 0, 'points_for': 0, 'points_against': 0,
@@ -700,36 +765,93 @@ def reset_data():
         'home_wins': 0, 'road_wins': 0, 'margin_of_victory_total': 0,
         'games': []
     })
+    historical_rankings = []
     
     # Delete saved files
-    import os
     try:
         games_file = os.path.join(DATA_DIR, 'games_data.json')
         stats_file = os.path.join(DATA_DIR, 'team_stats.json')
-
+        historical_file = os.path.join(DATA_DIR, 'historical_rankings.json')
+        
         if os.path.exists(games_file):
             os.remove(games_file)
         if os.path.exists(stats_file):
             os.remove(stats_file)
+        if os.path.exists(historical_file):
+            os.remove(historical_file)
         flash('All data has been reset!', 'success')
     except Exception as e:
         flash(f'Error resetting data: {e}', 'error')
     
-    return redirect(url_for('index'))
+    return redirect(url_for('admin'))
 
-@app.route('/team/<team_name>')
-def team_detail(team_name):
-    if team_name not in team_stats:
-        flash('Team not found!', 'error')
-        return redirect(url_for('index'))
+    # Historical rankings storage
+historical_rankings = []
+
+def save_weekly_snapshot(week_number):
+    """Save current rankings as a weekly snapshot"""
+    # Create comprehensive stats table
+    comprehensive_stats = []
     
-    stats = team_stats[team_name]
-    comprehensive_stats = calculate_comprehensive_stats(team_name)
+    for conf_name, teams in CONFERENCES.items():
+        for team in teams:
+            stats = calculate_comprehensive_stats(team)
+            stats['team'] = team
+            stats['conference'] = conf_name
+            comprehensive_stats.append(stats)
     
-    return render_template('team_detail.html', 
-                         team_name=team_name, 
-                         stats=stats, 
-                         adjusted_total=comprehensive_stats['adjusted_total'])
+    # Sort by Adjusted Total (highest first)
+    comprehensive_stats.sort(key=lambda x: x['adjusted_total'], reverse=True)
+    
+    # Create snapshot with rankings
+    snapshot = {
+        'week': week_number,
+        'date': datetime.now().strftime('%Y-%m-%d'),
+        'rankings': []
+    }
+    
+    for rank, team_data in enumerate(comprehensive_stats, 1):
+        snapshot['rankings'].append({
+            'rank': rank,
+            'team': team_data['team'],
+            'conference': team_data['conference'],
+            'wins': team_data['total_wins'],
+            'losses': team_data['total_losses'],
+            'adjusted_total': team_data['adjusted_total']
+        })
+    
+    # Add to historical data
+    historical_rankings.append(snapshot)
+    
+    # Save to file
+    save_historical_data()
+    print(f"📸 Weekly snapshot saved for Week {week_number}")
+
+def save_historical_data():
+    """Save historical rankings to JSON file"""
+    try:
+        historical_file = os.path.join(DATA_DIR, 'historical_rankings.json')
+        with open(historical_file, 'w') as f:
+            json.dump(historical_rankings, f, indent=2)
+    except Exception as e:
+        print(f"Error saving historical data: {e}")
+
+def load_historical_data():
+    """Load historical rankings from JSON file"""
+    global historical_rankings
+    try:
+        historical_file = os.path.join(DATA_DIR, 'historical_rankings.json')
+        with open(historical_file, 'r') as f:
+            historical_rankings = json.load(f)
+        print(f"Loaded {len(historical_rankings)} historical snapshots")
+    except FileNotFoundError:
+        print("No historical data found, starting fresh")
+        historical_rankings = []
+    except Exception as e:
+        print(f"Error loading historical data: {e}")
+        historical_rankings = []
+
+
 @app.route('/health')
 def health_check():
     """Health check endpoint for load balancers"""
@@ -806,13 +928,14 @@ def create_templates():
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">2025 CFB Rankings</a>
+            <a class="navbar-brand" href="{{ url_for('index') }}">CFB Rankings</a>
             <div class="navbar-nav">
     <a class="nav-link" href="{{ url_for('public_rankings') }}">Rankings</a>
     {% if is_admin() %}
         <a class="nav-link" href="{{ url_for('add_game') }}">Add Game</a>
         <a class="nav-link" href="{{ url_for('weekly_results') }}">Weekly Results</a>
         <a class="nav-link" href="{{ url_for('admin') }}">Admin Panel</a>
+        <a class="nav-link" href="{{ url_for('historical_rankings') }}">Historical</a>
     {% endif %}
 </div>
 <div class="navbar-nav ms-auto">
@@ -1602,6 +1725,7 @@ function changeWeek() {
 </script>
 {% endblock %}"""
 
+
     # Write all template files
     with open('templates/base.html', 'w') as f:
         f.write(base_html)
@@ -1617,6 +1741,7 @@ function changeWeek() {
     
     with open('templates/weekly_results.html', 'w') as f:
         f.write(weekly_results_html)
+ 
 
     # Login template
     login_html = """{% extends "base.html" %}
@@ -1651,6 +1776,102 @@ function changeWeek() {
 
     with open('templates/login.html', 'w') as f:
         f.write(login_html)
+
+     # Historical template
+    historical_html = """{% extends "base.html" %}
+
+{% block title %}Historical Rankings - College Football Rankings{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2>Weekly Rankings Movement</h2>
+        <p class="text-muted">{{ previous_week.week }} → {{ current_week.week }} • Changes from last week</p>
+        
+        <div class="table-responsive">
+            <table class="table table-striped table-sm">
+                <thead>
+                    <tr>
+                        <th>Current Rank</th>
+                        <th>Team</th>
+                        <th>Conference</th>
+                        <th>Record</th>
+                        <th>Previous Rank</th>
+                        <th>Movement</th>
+                        <th>Adj Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for team in movement_data %}
+                    <tr>
+                        <td><strong>{{ team.current_rank }}</strong></td>
+                        <td style="white-space: nowrap;">
+                            {% set logo_url = get_team_logo_url(team.team) %}
+                            {% if logo_url %}
+                                <img src="{{ logo_url }}" alt="{{ team.team }}" style="width: 20px; height: 20px; margin-right: 8px; vertical-align: middle;">
+                            {% endif %}
+                            {{ team.team }}
+                        </td>
+                        <td>
+                            {% set badge_class = {
+                                'ACC': 'primary', 'Big Ten': 'success', 'Big XII': 'warning text-dark',
+                                'Pac 12': 'info', 'SEC': 'danger', 'Independent': 'secondary',
+                                'American': 'dark', 'Conference USA': 'light text-dark',
+                                'MAC': 'primary', 'Mountain West': 'success', 'Sun Belt': 'warning text-dark'
+                            }.get(team.conference, 'secondary') %}
+                            <span class="badge bg-{{ badge_class }}">{{ team.conference }}</span>
+                        </td>
+                        <td>{{ team.wins }}-{{ team.losses }}</td>
+                        <td>
+                            {% if team.previous_rank %}
+                                {{ team.previous_rank }}
+                            {% else %}
+                                <span class="text-muted">NR</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if team.movement is none %}
+                                <span class="badge bg-info">NEW</span>
+                            {% elif team.movement > 0 %}
+                                <span class="text-success">↑{{ team.movement }}</span>
+                            {% elif team.movement < 0 %}
+                                <span class="text-danger">↓{{ team.movement|abs }}</span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-primary"><strong>{{ team.adjusted_total }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="mt-4">
+            <h5>Biggest Movers</h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="text-success">⬆️ Biggest Gainers</h6>
+                    {% set gainers = movement_data|selectattr('movement', 'greaterthan', 0)|sort(attribute='movement', reverse=true) %}
+                    {% for team in gainers[:5] %}
+                        <div>{{ team.team }} (+{{ team.movement }})</div>
+                    {% endfor %}
+                </div>
+                <div class="col-md-6">
+                    <h6 class="text-danger">⬇️ Biggest Drops</h6>
+                    {% set droppers = movement_data|selectattr('movement', 'lessthan', 0)|sort(attribute='movement') %}
+                    {% for team in droppers[:5] %}
+                        <div>{{ team.team }} ({{ team.movement }})</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}"""
+
+    with open('templates/historical.html', 'w') as f:
+        f.write(historical_html)   
 
     # Public template (add this with the other templates)
 public_html = """{% extends "base.html" %}
@@ -1719,7 +1940,14 @@ admin_html = """{% extends "base.html" %}
 <div class="row">
     <div class="col-md-10">
         <h2>Admin Panel - Comprehensive Team Statistics</h2>
-        <p class="text-muted">Click column headers to sort • <a href="/add_game" class="btn btn-sm btn-primary">Add Game</a></p>
+        <p class="text-muted">Click column headers to sort</p>
+            <div class="mb-3">
+                <a href="/add_game" class="btn btn-sm btn-primary">Add Game</a>
+                <button class="btn btn-sm btn-success ms-2" data-bs-toggle="modal" data-bs-target="#snapshotModal">📸 Create Snapshot</button>
+                {% if historical_rankings|length >= 2 %}
+                    <a href="{{ url_for('historical_rankings') }}" class="btn btn-sm btn-info ms-2">📈 View Historical</a>
+                {% endif %}
+            </div>
         <div class="table-responsive">
             <table class="table table-striped table-sm" id="statsTable">
                 <thead>
@@ -1804,6 +2032,36 @@ admin_html = """{% extends "base.html" %}
         {% endif %}
     </div>
 </div>
+<!-- Snapshot Modal -->
+<div class="modal fade" id="snapshotModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create Weekly Snapshot</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('create_snapshot') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="week_name" class="form-label">Snapshot Name</label>
+                        <input type="text" class="form-control" id="week_name" name="week_name" 
+                               value="Week {{ historical_rankings|length + 1 }}" required>
+                        <div class="form-text">Give this snapshot a descriptive name (e.g., "Week 3", "After Bowl Games")</div>
+                    </div>
+                    <div class="alert alert-info">
+                        <small>This will save the current rankings so you can track changes over time.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">📸 Create Snapshot</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
 {% endblock %}"""
 
 with open('templates/admin.html', 'w') as f:
