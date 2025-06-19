@@ -407,6 +407,90 @@ def load_data():
         print(f"Error loading data: {e}")
         print("Starting with fresh data")
 
+
+def get_conference_champions():
+    """Determine conference champions based on current standings"""
+    champions = {}
+    
+    for conf_name, teams in CONFERENCES.items():
+        if conf_name == 'Independent':  # Skip independents
+            continue
+            
+        # Get all teams in conference with their stats
+        conf_teams = []
+        for team in teams:
+            stats = calculate_comprehensive_stats(team)
+            stats['team'] = team
+            stats['conference'] = conf_name
+            conf_teams.append(stats)
+        
+        # Sort by adjusted total (highest first)
+        conf_teams.sort(key=lambda x: x['adjusted_total'], reverse=True)
+        
+        if conf_teams:
+            champions[conf_name] = conf_teams[0]
+    
+    return champions
+
+def generate_cfp_bracket():
+    """Generate 12-team CFP bracket based on current rankings"""
+    # Get all teams ranked by adjusted total
+    all_teams = []
+    for conf_name, teams in CONFERENCES.items():
+        for team in teams:
+            stats = calculate_comprehensive_stats(team)
+            stats['team'] = team
+            stats['conference'] = conf_name
+            all_teams.append(stats)
+    
+    # Sort by adjusted total
+    all_teams.sort(key=lambda x: x['adjusted_total'], reverse=True)
+    
+    # Get conference champions
+    champions = get_conference_champions()
+    
+    # Get 5 highest-ranked conference champions (automatic qualifiers)
+    auto_qualifiers = []
+    champion_teams = set()
+    
+    for team in all_teams:
+        if team['conference'] in champions and champions[team['conference']]['team'] == team['team']:
+            auto_qualifiers.append({**team, 'bid_type': 'Conference Champion'})
+            champion_teams.add(team['team'])
+            if len(auto_qualifiers) == 5:
+                break
+    
+    # Get 7 at-large bids (highest ranked teams not already in)
+    at_large = []
+    for team in all_teams:
+        if team['team'] not in champion_teams:
+            at_large.append({**team, 'bid_type': 'At-Large'})
+            if len(at_large) == 7:
+                break
+    
+    # Combine and re-sort by ranking for final seeding
+    playoff_teams = auto_qualifiers + at_large
+    playoff_teams.sort(key=lambda x: x['adjusted_total'], reverse=True)
+    
+    # Add seeds
+    for i, team in enumerate(playoff_teams):
+        team['seed'] = i + 1
+    
+    # Generate bracket structure
+    bracket = {
+        'first_round_byes': playoff_teams[:4],
+        'first_round_games': [
+            {'higher_seed': playoff_teams[4], 'lower_seed': playoff_teams[11], 'game_num': 1},  # 5 vs 12
+            {'higher_seed': playoff_teams[5], 'lower_seed': playoff_teams[10], 'game_num': 2},  # 6 vs 11
+            {'higher_seed': playoff_teams[6], 'lower_seed': playoff_teams[9], 'game_num': 3},   # 7 vs 10
+            {'higher_seed': playoff_teams[7], 'lower_seed': playoff_teams[8], 'game_num': 4},   # 8 vs 9
+        ],
+        'all_teams': playoff_teams,
+        'conference_champions': champions
+    }
+    
+    return bracket
+
 def calculate_comprehensive_stats(team_name):
     """Calculate all comprehensive statistics for a team"""
     stats = team_stats[team_name]
@@ -572,7 +656,14 @@ def team_detail(team_name):
     return render_template('team_detail.html', 
                          team_name=team_name, 
                          stats=stats, 
-                         adjusted_total=comprehensive_stats['adjusted_total'])   
+                         adjusted_total=comprehensive_stats['adjusted_total'])
+
+
+@app.route('/cfp_bracket')
+def cfp_bracket():
+    """Display current CFP bracket projection"""
+    bracket = generate_cfp_bracket()
+    return render_template('cfp_bracket.html', bracket=bracket)   
 
 
 @app.route('/public')
@@ -937,6 +1028,7 @@ def create_templates():
     {% if is_admin() %}
         <a class="nav-link" href="{{ url_for('add_game') }}">Add Game</a>
         <a class="nav-link" href="{{ url_for('weekly_results') }}">Weekly Results</a>
+        <a class="nav-link" href="{{ url_for('cfp_bracket') }}">CFP Bracket</a>
         <a class="nav-link" href="{{ url_for('admin') }}">Admin Panel</a>
         <a class="nav-link" href="{{ url_for('historical_rankings') }}">Historical</a>
     {% endif %}
@@ -1887,7 +1979,7 @@ function changeWeek() {
 {% endblock %}"""
 
     with open('templates/historical.html', 'w') as f:
-        f.write(historical_html)   
+        f.write(historical_html)  
 
     # Public template (add this with the other templates)
 public_html = """{% extends "base.html" %}
