@@ -1,20 +1,4 @@
-script: |
-          cd /home/ubuntu/cfb-app-git
-          git pull origin main
-          cp app.py /home/ubuntu/cfb-app/
-          cd /home/ubuntu/cfb-app
-          source venv/bin/activate
-          # ALWAYS ensure templates directory exists before anything else
-          mkdir -p templates
-          # Remove old templates and regenerate
-          rm -f templates/*
-          python -c "from app import create_templates; create_templates()" || echo "Template creation failed but continuing..."
-          # Restart service
-          sudo systemctl restart cfb-rankings
-          # Wait a moment for startup
-          sleep 5
-          # Check if service is actually running
-          sudo systemctl is-active cfb-rankingsname: Deploy to Lightsail
+name: Deploy to Lightsail
 
 on:
   push:
@@ -30,11 +14,15 @@ jobs:
     
     - name: Deploy to server
       uses: appleboy/ssh-action@v0.1.5
+      env:
+        ADMIN_USERNAME: ${{ secrets.ADMIN_USERNAME }}
+        ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
       with:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SERVER_SSH_KEY }}
-	script: |
+        envs: ADMIN_USERNAME,ADMIN_PASSWORD
+        script: |
           cd /home/ubuntu/cfb-app-git
           git pull origin main
           cp app.py /home/ubuntu/cfb-app/
@@ -42,8 +30,8 @@ jobs:
           source venv/bin/activate
           rm -rf templates/
           python -c "from app import create_templates; create_templates()"
-          # Update systemd service with environment variables
-          sudo sed -i '/Environment="PATH/a Environment="ADMIN_USERNAME=${{ secrets.ADMIN_USERNAME }}"\nEnvironment="ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}"' /etc/systemd/system/cfb-rankings.service
+          echo "Environment=\"ADMIN_USERNAME=$ADMIN_USERNAME\"" | sudo tee -a /etc/systemd/system/cfb-rankings.service
+          echo "Environment=\"ADMIN_PASSWORD=$ADMIN_PASSWORD\"" | sudo tee -a /etc/systemd/system/cfb-rankings.service
           sudo systemctl daemon-reload
-	  sudo systemctl restart cfb-rankings
+          sudo systemctl restart cfb-rankings
           echo "✅ Deployment complete!"
