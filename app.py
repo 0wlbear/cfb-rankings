@@ -1854,6 +1854,9 @@ function changeWeek() {
     
     with open('templates/weekly_results.html', 'w') as f:
         f.write(weekly_results_html)
+
+    with open('templates/cfp_bracket.html', 'w') as f:
+        f.write(cfp_bracket_html)
  
 
     # Login template
@@ -2214,7 +2217,7 @@ cfp_bracket_html = """{% extends "base.html" %}
     </div>
 </div>
 {% endblock %}"""
-    
+
 
 # Admin template (full detailed table)
 admin_html = """{% extends "base.html" %}
