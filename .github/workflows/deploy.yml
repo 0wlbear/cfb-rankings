@@ -36,7 +36,8 @@ jobs:
           
           # Test new app.py can import without errors
           cd /home/ubuntu/cfb-app-git
-          if python3 -c "from app import app; print('✅ Import test passed')" 2>/dev/null; then
+	  source /home/ubuntu/cfb-app/venv/bin/activate 
+          if python -c "from app import app; print('✅ Import test passed')" 2>/dev/null; then
               echo "✅ New code validated"
               
               # Copy new version
