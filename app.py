@@ -627,6 +627,291 @@ def update_team_stats(team, opponent, team_score, opp_score, team_game_type, is_
         'home_away': location
     })
 
+def analyze_common_opponents(team1_name, team2_name):
+    """Analyze how both teams performed against common opponents"""
+    team1_games = team_stats[team1_name]['games']
+    team2_games = team_stats[team2_name]['games']
+    
+    # Find common opponents
+    team1_opponents = {game['opponent'] for game in team1_games}
+    team2_opponents = {game['opponent'] for game in team2_games}
+    common_opponents = team1_opponents.intersection(team2_opponents)
+    
+    if not common_opponents:
+        return {
+            'has_common': False,
+            'comparison': [],
+            'advantage': 0,
+            'summary': "No common opponents"
+        }
+    
+    comparisons = []
+    total_advantage = 0
+    
+    for opponent in common_opponents:
+        # Find team1's game against this opponent
+        team1_game = next((g for g in team1_games if g['opponent'] == opponent), None)
+        team2_game = next((g for g in team2_games if g['opponent'] == opponent), None)
+        
+        if team1_game and team2_game:
+            # Calculate point differential for each team
+            team1_diff = team1_game['team_score'] - team1_game['opp_score']
+            team2_diff = team2_game['team_score'] - team2_game['opp_score']
+            
+            advantage = team1_diff - team2_diff
+            total_advantage += advantage
+            
+            comparisons.append({
+                'opponent': opponent,
+                'team1_result': f"{team1_game['result']} {team1_game['team_score']}-{team1_game['opp_score']}",
+                'team2_result': f"{team2_game['result']} {team2_game['team_score']}-{team2_game['opp_score']}",
+                'team1_diff': team1_diff,
+                'team2_diff': team2_diff,
+                'advantage': advantage
+            })
+    
+    avg_advantage = total_advantage / len(comparisons) if comparisons else 0
+    
+    return {
+        'has_common': True,
+        'comparison': comparisons,
+        'advantage': round(avg_advantage, 1),
+        'summary': f"Common opponents favor {'Team 1' if avg_advantage > 0 else 'Team 2'} by {abs(avg_advantage):.1f} points per game"
+    }
+
+def calculate_recent_form(team_name, games_back=4):
+    """Calculate recent form over last N games"""
+    games = team_stats[team_name]['games']
+    if len(games) < games_back:
+        games_back = len(games)
+    
+    if games_back == 0:
+        return {
+            'record': '0-0',
+            'avg_margin': 0,
+            'trending': 'neutral',
+            'last_games': []
+        }
+    
+    recent_games = games[-games_back:]
+    wins = sum(1 for g in recent_games if g['result'] == 'W')
+    losses = len(recent_games) - wins
+    
+    # Calculate average margin (positive = winning by, negative = losing by)
+    total_margin = sum((g['team_score'] - g['opp_score']) for g in recent_games)
+    avg_margin = total_margin / len(recent_games)
+    
+    # Determine trend (are margins improving or declining?)
+    if len(recent_games) >= 2:
+        first_half = recent_games[:len(recent_games)//2]
+        second_half = recent_games[len(recent_games)//2:]
+        
+        first_avg = sum((g['team_score'] - g['opp_score']) for g in first_half) / len(first_half)
+        second_avg = sum((g['team_score'] - g['opp_score']) for g in second_half) / len(second_half)
+        
+        if second_avg > first_avg + 3:
+            trending = 'up'
+        elif second_avg < first_avg - 3:
+            trending = 'down'
+        else:
+            trending = 'neutral'
+    else:
+        trending = 'neutral'
+    
+    return {
+        'record': f"{wins}-{losses}",
+        'avg_margin': round(avg_margin, 1),
+        'trending': trending,
+        'last_games': recent_games[-3:]  # Show last 3 games
+    }
+
+def analyze_style_matchup(team1_name, team2_name):
+    """Analyze offensive vs defensive matchups"""
+    team1_stats = calculate_comprehensive_stats(team1_name)
+    team2_stats = calculate_comprehensive_stats(team2_name)
+    
+    # Calculate per-game averages
+    team1_games = team1_stats['total_wins'] + team1_stats['total_losses']
+    team2_games = team2_stats['total_wins'] + team2_stats['total_losses']
+    
+    if team1_games == 0 or team2_games == 0:
+        return {
+            'team1_offense': 0,
+            'team1_defense': 0,
+            'team2_offense': 0,
+            'team2_defense': 0,
+            'analysis': "Insufficient data for style analysis"
+        }
+    
+    team1_ppg = team1_stats['points_fielded'] / team1_games
+    team1_papg = team1_stats['points_allowed'] / team1_games
+    team2_ppg = team2_stats['points_fielded'] / team2_games
+    team2_papg = team2_stats['points_allowed'] / team2_games
+    
+    # Simple matchup analysis
+    matchup_analysis = []
+    
+    if team1_ppg > team2_papg + 5:
+        matchup_analysis.append(f"{team1_name}'s offense vs {team2_name}'s defense favors {team1_name}")
+    elif team2_papg > team1_ppg + 5:
+        matchup_analysis.append(f"{team1_name}'s offense vs {team2_name}'s defense favors {team2_name}")
+    
+    if team2_ppg > team1_papg + 5:
+        matchup_analysis.append(f"{team2_name}'s offense vs {team1_name}'s defense favors {team2_name}")
+    elif team1_papg > team2_ppg + 5:
+        matchup_analysis.append(f"{team2_name}'s offense vs {team1_name}'s defense favors {team1_name}")
+    
+    if not matchup_analysis:
+        matchup_analysis.append("Evenly matched on both sides of the ball")
+    
+    return {
+        'team1_offense': round(team1_ppg, 1),
+        'team1_defense': round(team1_papg, 1),
+        'team2_offense': round(team2_ppg, 1),
+        'team2_defense': round(team2_papg, 1),
+        'analysis': "; ".join(matchup_analysis)
+    }
+
+def head_to_head_history(team1_name, team2_name):
+    """Check if teams have played each other recently"""
+    team1_games = team_stats[team1_name]['games']
+    
+    # Look for games against each other
+    h2h_games = [g for g in team1_games if g['opponent'] == team2_name]
+    
+    if not h2h_games:
+        return {
+            'has_history': False,
+            'summary': "Teams have not played each other"
+        }
+    
+    # Get most recent game
+    recent_game = h2h_games[-1]
+    team1_wins = sum(1 for g in h2h_games if g['result'] == 'W')
+    team1_losses = len(h2h_games) - team1_wins
+    
+    return {
+        'has_history': True,
+        'record': f"{team1_name} leads {team1_wins}-{team1_losses}",
+        'last_game': recent_game,
+        'summary': f"Last meeting: {team1_name} {recent_game['result']} {recent_game['team_score']}-{recent_game['opp_score']}"
+    }
+
+def predict_matchup(team1_name, team2_name, location='neutral'):
+    """Comprehensive matchup prediction"""
+    team1_stats = calculate_comprehensive_stats(team1_name)
+    team2_stats = calculate_comprehensive_stats(team2_name)
+    
+    # Base prediction from adjusted totals
+    base_diff = team1_stats['adjusted_total'] - team2_stats['adjusted_total']
+    predicted_margin = base_diff * 2.5  # Scale factor to convert to points
+    
+    # Factor adjustments
+    adjustments = {}
+    total_adjustment = 0
+    
+    # 1. Common opponents
+    common_analysis = analyze_common_opponents(team1_name, team2_name)
+    if common_analysis['has_common']:
+        common_adj = common_analysis['advantage'] * 0.3  # Weight common opponents
+        adjustments['Common Opponents'] = round(common_adj, 1)
+        total_adjustment += common_adj
+    
+    # 2. Recent form
+    team1_form = calculate_recent_form(team1_name)
+    team2_form = calculate_recent_form(team2_name)
+    form_diff = team1_form['avg_margin'] - team2_form['avg_margin']
+    form_adj = form_diff * 0.2  # Weight recent form
+    adjustments['Recent Form'] = round(form_adj, 1)
+    total_adjustment += form_adj
+    
+    # 3. Conference context (P4 vs G5 adjustment)
+    team1_conf = get_team_conference(team1_name)
+    team2_conf = get_team_conference(team2_name)
+    
+    conf_adj = 0
+    if team1_conf in P4_CONFERENCES and team2_conf in G5_CONFERENCES:
+        conf_adj = 3  # P4 team gets 3-point boost vs G5
+        adjustments['Conference Level'] = 3.0
+    elif team2_conf in P4_CONFERENCES and team1_conf in G5_CONFERENCES:
+        conf_adj = -3  # G5 team penalized 3 points vs P4
+        adjustments['Conference Level'] = -3.0
+    
+    total_adjustment += conf_adj
+    
+    # 4. Home field advantage
+    if location == 'team1_home':
+        hfa_adj = 3.0
+        adjustments['Home Field'] = 3.0
+        total_adjustment += hfa_adj
+    elif location == 'team2_home':
+        hfa_adj = -3.0
+        adjustments['Home Field'] = -3.0
+        total_adjustment += hfa_adj
+    
+    # Final prediction
+    final_margin = predicted_margin + total_adjustment
+    
+    # Calculate win probability (rough approximation)
+    win_prob = 50 + (final_margin * 2.5)  # Each point = ~2.5% win prob
+    win_prob = max(5, min(95, win_prob))  # Cap between 5-95%
+    
+    return {
+        'base_margin': round(predicted_margin, 1),
+        'adjustments': adjustments,
+        'final_margin': round(final_margin, 1),
+        'win_probability': round(win_prob, 1),
+        'winner': team1_name if final_margin > 0 else team2_name,
+        'confidence': 'High' if abs(final_margin) > 10 else 'Medium' if abs(final_margin) > 4 else 'Low'
+    }
+
+@app.route('/compare')
+def team_compare():
+    """Team comparison page"""
+    return render_template('team_compare.html', conferences=CONFERENCES)
+
+@app.route('/compare_teams', methods=['POST'])
+def compare_teams():
+    """Process team comparison"""
+    team1 = request.form['team1']
+    team2 = request.form['team2']
+    location = request.form.get('location', 'neutral')
+    
+    if team1 == team2:
+        flash('Please select two different teams!', 'error')
+        return redirect(url_for('team_compare'))
+    
+    # Get comprehensive stats
+    team1_stats = calculate_comprehensive_stats(team1)
+    team2_stats = calculate_comprehensive_stats(team2)
+    
+    # Run all analyses
+    prediction = predict_matchup(team1, team2, location)
+    common_opponents = analyze_common_opponents(team1, team2)
+    team1_form = calculate_recent_form(team1)
+    team2_form = calculate_recent_form(team2)
+    style_matchup = analyze_style_matchup(team1, team2)
+    h2h_history = head_to_head_history(team1, team2)
+    
+    comparison_data = {
+        'team1': team1,
+        'team2': team2,
+        'team1_stats': team1_stats,
+        'team2_stats': team2_stats,
+        'prediction': prediction,
+        'common_opponents': common_opponents,
+        'team1_form': team1_form,
+        'team2_form': team2_form,
+        'style_matchup': style_matchup,
+        'h2h_history': h2h_history,
+        'location': location
+    }
+    
+    return render_template('comparison_results.html', **comparison_data)
+
+
+
+
 @app.route('/create_snapshot', methods=['POST'])
 @login_required
 def create_snapshot():
@@ -988,6 +1273,7 @@ def logout():
 
 def create_templates():
     """Create all HTML template files"""
+    print("Function started")
     import os
     os.makedirs('templates', exist_ok=True)
     
@@ -1031,10 +1317,10 @@ def create_templates():
             border-color: #dc3545;
             box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
         }
-    body {
-    padding-top: 70px; /* Add space so content doesn't hide behind fixed navbar */
-        }
 
+        body {
+            padding-top: 70px; /* Add space so content doesn't hide behind fixed navbar */
+        }
     </style>
 </head>
 <body>
@@ -1042,23 +1328,24 @@ def create_templates():
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('index') }}">CFB Rankings</a>
             <div class="navbar-nav">
-    <a class="nav-link" href="{{ url_for('public_rankings') }}">Rankings</a>
-    <a class="nav-link" href="{{ url_for('cfp_bracket') }}">CFP Bracket</a>
-    <a class="nav-link" href="{{ url_for('weekly_results') }}">Weekly Results</a>
-    {% if is_admin() %}
-        <a class="nav-link" href="{{ url_for('add_game') }}">Add Game</a>
-        <a class="nav-link" href="{{ url_for('admin') }}">Admin Panel</a>
-        <a class="nav-link" href="{{ url_for('historical_rankings') }}">Historical</a>
-    {% endif %}
-</div>
-<div class="navbar-nav ms-auto">
-    {% if is_admin() %}
-        <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
-        <button class="btn btn-outline-light btn-sm" onclick="confirmReset()">Reset Data</button>
-    {% else %}
-        <a class="nav-link" href="{{ url_for('login') }}">Admin Login</a>
-    {% endif %}
-</div>
+                <a class="nav-link" href="{{ url_for('public_rankings') }}">Rankings</a>
+                <a class="nav-link" href="{{ url_for('cfp_bracket') }}">CFP Bracket</a>
+                <a class="nav-link" href="{{ url_for('weekly_results') }}">Weekly Results</a>
+                {% if is_admin() %}
+                    <a class="nav-link" href="{{ url_for('add_game') }}">Add Game</a>
+                    <a class="nav-link" href="{{ url_for('team_compare') }}">Compare Teams</a>
+                    <a class="nav-link" href="{{ url_for('historical_rankings') }}">Historical</a>
+                    <a class="nav-link" href="{{ url_for('admin') }}">Admin Panel</a>
+                {% endif %}
+            </div>
+            <div class="navbar-nav ms-auto">
+                {% if is_admin() %}
+                    <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+                    <button class="btn btn-outline-light btn-sm" onclick="confirmReset()">Reset Data</button>
+                {% else %}
+                    <a class="nav-link" href="{{ url_for('login') }}">Admin Login</a>
+                {% endif %}
+            </div>
         </div>
     </nav>
     
@@ -1586,110 +1873,107 @@ document.addEventListener('DOMContentLoaded', function() {
 
 {% block content %}
 <div class="row">
-    <div class="col-md-8">
-        <div class="d-flex align-items-center mb-3">
-    {% set logo_url = get_team_logo_url(team_name) %}
-    {% if logo_url %}
-        <img src="{{ logo_url }}" alt="{{ team_name }}" style="width: 80px; height: 80px; margin-right: 15px;">
-    {% endif %}
-    <h2 class="mb-0">{{ team_name }}</h2>
-</div>
+     <div class="col-md-8">
+         <div class="d-flex align-items-center mb-3">
+     {% set logo_url = get_team_logo_url(team_name) %}
+     {% if logo_url %}
+         <img src="{{ logo_url }}" alt="{{ team_name }}" style="width: 80px; height: 80px; margin-right: 15px;">
+     {% endif %}
+     <h2 class="mb-0">{{ team_name }}</h2>
+ </div>
         
-        <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h5 class="card-title">Adj Total</h5>
-                        <h3 class="text-primary">{{ adjusted_total }}</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h5 class="card-title">Overall Record</h5>
-                        <h4>{{ stats.wins }}-{{ stats.losses }}</h4>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h5 class="card-title">P4 Record</h5>
-                        <h4>{{ stats.p4_wins }}-{{ stats.p4_losses }}</h4>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h5 class="card-title">G5 Record</h5>
-                        <h4>{{ stats.g5_wins }}-{{ stats.g5_losses }}</h4>
-                    </div>
-                </div>
-            </div>
-        </div>
+         <div class="row mb-4">
+             <div class="col-md-3">
+                 <div class="card text-center">
+                     <div class="card-body">
+                         <h5 class="card-title">Adj Total</h5>
+                         <h3 class="text-primary">{{ adjusted_total }}</h3>
+                     </div>
+                 </div>
+             </div>
+             <div class="col-md-3">
+                 <div class="card text-center">
+                     <div class="card-body">
+                         <h5 class="card-title">Overall Record</h5>
+                         <h4>{{ stats.wins }}-{{ stats.losses }}</h4>
+                     </div>
+                 </div>
+             </div>
+             <div class="col-md-3">
+                 <div class="card text-center">
+                     <div class="card-body">
+                         <h5 class="card-title">P4 Record</h5>
+                         <h4>{{ stats.p4_wins }}-{{ stats.p4_losses }}</h4>
+                     </div>
+                 </div>
+             </div>
+             <div class="col-md-3">
+                 <div class="card text-center">
+                     <div class="card-body">
+                         <h5 class="card-title">G5 Record</h5>
+                         <h4>{{ stats.g5_wins }}-{{ stats.g5_losses }}</h4>
+                     </div>
+                 </div>
+             </div>
+         </div>
         
-        <h3>Game History</h3>
-        {% if stats.games %}
-            <div class="table-responsive">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Result</th>
-                            <th>Opponent</th>
-                            <th>Score</th>
-                            <th>Type</th>
-                            <th>Location</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for game in stats.games %}
-                        <tr>
-                            <td>
-                                <span class="badge bg-{{ 'success' if game.result == 'W' else 'danger' }}">
-                                    {{ game.result }}
-                                </span>
-                            </td>
-                            <td>{{ game.opponent }}</td>
-                            <td>{{ game.team_score }}-{{ game.opp_score }}</td>
-                            <td>{{ game.game_type }}</td>
-                            <td>{{ game.home_away }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% else %}
-            <p class="text-muted">No games recorded yet.</p>
-        {% endif %}
-    </div>
+         <h3>Game History</h3>
+         {% if stats.games %}
+             <div class="table-responsive">
+                 <table class="table table-striped">
+                     <thead>
+                         <tr>
+                             <th>Result</th>
+                             <th>Opponent</th>
+                             <th>Score</th>
+                             <th>Type</th>
+                             <th>Location</th>
+                         </tr>
+                     </thead>
+                     <tbody>
+                         {% for game in stats.games %}
+                         <tr>
+                             <td>
+                                 <span class="badge bg-{{ 'success' if game.result == 'W' else 'danger' }}">
+                                     {{ game.result }}
+                                 </span>
+                             </td>
+                             <td>{{ game.opponent }}</td>
+                             <td>{{ game.team_score }}-{{ game.opp_score }}</td>
+                             <td>{{ game.game_type }}</td>
+                             <td>{{ game.home_away }}</td>
+                         </tr>
+                         {% endfor %}
+                     </tbody>
+                 </table>
+             </div>
+         {% else %}
+             <p class="text-muted">No games recorded yet.</p>
+         {% endif %}
+     </div>
     
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5>Statistics</h5>
-            </div>
-            <div class="card-body">
+     <div class="col-md-4">
+         <div class="card">
+             <div class="card-header">
+                 <h5>Statistics</h5>
+             </div>
+             <div class="card-body">
                 <p><strong>Total Points For:</strong> {{ stats.points_for }}</p>
-                <p><strong>Total Points Against:</strong> {{ stats.points_against }}</p>
-                <p><strong>Point Differential:</strong> {{ stats.points_for - stats.points_against }}</p>
-                {% if stats.wins + stats.losses > 0 %}
+                 <p><strong>Total Points Against:</strong> {{ stats.points_against }}</p>
+                 <p><strong>Point Differential:</strong> {{ stats.points_for - stats.points_against }}</p>
+                 {% if stats.wins + stats.losses > 0 %}
                     <p><strong>Avg Points Per Game:</strong> {{ "%.1f"|format(stats.points_for / (stats.wins + stats.losses)) }}</p>
                     <p><strong>Avg Points Allowed:</strong> {{ "%.1f"|format(stats.points_against / (stats.wins + stats.losses)) }}</p>
                 {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
+             </div>
+         </div>
+     </div>
+ </div>
 
-<div class="mt-3">
-    <a href="{{ url_for('index') }}" class="btn btn-primary">Back to Rankings</a>
+ <div class="mt-3">
+     <a href="{{ url_for('index') }}" class="btn btn-primary">Back to Rankings</a>
 </div>
 {% endblock %}"""
-
-
-
 
     # Weekly results template
     weekly_results_html = """{% extends "base.html" %}
@@ -1854,221 +2138,8 @@ function changeWeek() {
 </script>
 {% endblock %}"""
 
-
-
-
-    # Write all template files
-    with open('templates/base.html', 'w') as f:
-        f.write(base_html)
-    
-    with open('templates/index.html', 'w') as f:
-        f.write(index_html)
-    
-    with open('templates/add_game.html', 'w') as f:
-        f.write(add_game_html)
-    
-    with open('templates/team_detail.html', 'w') as f:
-        f.write(team_detail_html)
-    
-    with open('templates/weekly_results.html', 'w') as f:
-        f.write(weekly_results_html)
-
-    with open('templates/cfp_bracket.html', 'w') as f:
-        f.write(cfp_bracket_html)
- 
-
-    # Login template
-    login_html = """{% extends "base.html" %}
-
-{% block title %}Admin Login - College Football Rankings{% endblock %}
-
-{% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h4 class="mb-0">Admin Login</h4>
-            </div>
-            <div class="card-body">
-                <form method="POST">
-                    <div class="mb-3">
-                        <label for="username" class="form-label">Username</label>
-                        <input type="text" class="form-control" id="username" name="username" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="password" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="password" name="password" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Login</button>
-                    <a href="{{ url_for('index') }}" class="btn btn-secondary">Back to Rankings</a>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}"""
-
-    with open('templates/login.html', 'w') as f:
-        f.write(login_html)
-
-     # Historical template
-    historical_html = """{% extends "base.html" %}
-
-{% block title %}Historical Rankings - College Football Rankings{% endblock %}
-
-{% block content %}
-<div class="row">
-    <div class="col-md-12">
-        <h2>Weekly Rankings Movement</h2>
-        <p class="text-muted">{{ previous_week.week }} → {{ current_week.week }} • Changes from last week</p>
-        
-        <div class="table-responsive">
-            <table class="table table-striped table-sm">
-                <thead>
-                    <tr>
-                        <th>Current Rank</th>
-                        <th>Team</th>
-                        <th>Conference</th>
-                        <th>Record</th>
-                        <th>Previous Rank</th>
-                        <th>Movement</th>
-                        <th>Adj Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for team in movement_data %}
-                    <tr>
-                        <td><strong>{{ team.current_rank }}</strong></td>
-                        <td style="white-space: nowrap;">
-                            {% set logo_url = get_team_logo_url(team.team) %}
-                            {% if logo_url %}
-                                <img src="{{ logo_url }}" alt="{{ team.team }}" style="width: 20px; height: 20px; margin-right: 8px; vertical-align: middle;">
-                            {% endif %}
-                            {{ team.team }}
-                        </td>
-                        <td>
-                            {% set badge_class = {
-                                'ACC': 'primary', 'Big Ten': 'success', 'Big XII': 'warning text-dark',
-                                'Pac 12': 'info', 'SEC': 'danger', 'Independent': 'secondary',
-                                'American': 'dark', 'Conference USA': 'light text-dark',
-                                'MAC': 'primary', 'Mountain West': 'success', 'Sun Belt': 'warning text-dark'
-                            }.get(team.conference, 'secondary') %}
-                            <span class="badge bg-{{ badge_class }}">{{ team.conference }}</span>
-                        </td>
-                        <td>{{ team.wins }}-{{ team.losses }}</td>
-                        <td>
-                            {% if team.previous_rank %}
-                                {{ team.previous_rank }}
-                            {% else %}
-                                <span class="text-muted">NR</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if team.movement is none %}
-                                <span class="badge bg-info">NEW</span>
-                            {% elif team.movement > 0 %}
-                                <span class="text-success">↑{{ team.movement }}</span>
-                            {% elif team.movement < 0 %}
-                                <span class="text-danger">↓{{ team.movement|abs }}</span>
-                            {% else %}
-                                <span class="text-muted">—</span>
-                            {% endif %}
-                        </td>
-                        <td class="text-primary"><strong>{{ team.adjusted_total }}</strong></td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        
-        <div class="mt-4">
-            <h5>Biggest Movers</h5>
-            <div class="row">
-                <div class="col-md-6">
-                    <h6 class="text-success">⬆️ Biggest Gainers</h6>
-                    {% set gainers = movement_data|selectattr('movement', 'greaterthan', 0)|sort(attribute='movement', reverse=true) %}
-                    {% for team in gainers[:5] %}
-                        <div>{{ team.team }} (+{{ team.movement }})</div>
-                    {% endfor %}
-                </div>
-                <div class="col-md-6">
-                    <h6 class="text-danger">⬇️ Biggest Drops</h6>
-                    {% set droppers = movement_data|selectattr('movement', 'lessthan', 0)|sort(attribute='movement') %}
-                    {% for team in droppers[:5] %}
-                        <div>{{ team.team }} ({{ team.movement }})</div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}"""
-
-    with open('templates/historical.html', 'w') as f:
-        f.write(historical_html)  
-
-    # Public template (add this with the other templates)
-public_html = """{% extends "base.html" %}
-
-{% block content %}
-<div class="row">
-    <div class="col-md-12">
-        <h2 class="text-center mb-4">2025 CFB Rankings</h2>
-        <p class="text-center text-muted">Updated automatically • View-only rankings</p>
-        
-        <div class="table-responsive">
-            <table class="table table-striped table-sm" id="statsTable">
-                <thead>
-                    <tr>
-                        <th>Rank</th>
-                        <th>Team</th>
-                        <th>Conf</th>
-                        <th>Record</th>
-                        <th>Adj Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for team in comprehensive_stats[:25] %}
-                    <tr>
-                        <td>{{ loop.index }}</td>
-                        <td style="white-space: nowrap; min-width: 120px;">
-                            {% set logo_url = get_team_logo_url(team.team) %}
-                            {% if logo_url %}
-                                <img src="{{ logo_url }}" alt="{{ team.team }}" style="width: 20px; height: 20px; margin-right: 8px; vertical-align: middle;">
-                            {% endif %}
-                            {{ team.team }}
-                        </td>
-                        <td>
-                            {% set badge_class = {
-                                'ACC': 'primary', 'Big Ten': 'success', 'Big XII': 'warning text-dark',
-                                'Pac 12': 'info', 'SEC': 'danger', 'Independent': 'secondary',
-                                'American': 'dark', 'Conference USA': 'light text-dark',
-                                'MAC': 'primary', 'Mountain West': 'success', 'Sun Belt': 'warning text-dark'
-                            }.get(team.conference, 'secondary') %}
-                            <span class="badge bg-{{ badge_class }}">{{ team.conference }}</span>
-                        </td>
-                        <td>{{ team.total_wins }}-{{ team.total_losses }}</td>
-                        <td class="text-primary"><strong>{{ team.adjusted_total }}</strong></td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        
-        <div class="text-center mt-4">
-            <small class="text-muted">
-                Ranking system by <a href="/admin">CFB Rankings</a>
-            </small>
-        </div>
-    </div>
-</div>
-{% endblock %}"""
-
-with open('templates/public.html', 'w') as f:
-    f.write(public_html)
-
-# CFP Bracket template - Adding logos
-cfp_bracket_html = """{% extends "base.html" %}
+    # CFP Bracket template (moved inside function)
+    cfp_bracket_html = """{% extends "base.html" %}
 
 {% block title %}CFP Bracket Projection - College Football Rankings{% endblock %}
 
@@ -2264,9 +2335,189 @@ cfp_bracket_html = """{% extends "base.html" %}
 </div>
 {% endblock %}"""
 
+    # Login template
+    login_html = """{% extends "base.html" %}
 
-# Admin template (full detailed table)
-admin_html = """{% extends "base.html" %}
+{% block title %}Admin Login - College Football Rankings{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">Admin Login</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Login</button>
+                    <a href="{{ url_for('index') }}" class="btn btn-secondary">Back to Rankings</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}"""
+
+    # Historical template
+    historical_html = """{% extends "base.html" %}
+
+{% block title %}Historical Rankings - College Football Rankings{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2>Weekly Rankings Movement</h2>
+        <p class="text-muted">{{ previous_week.week }} → {{ current_week.week }} • Changes from last week</p>
+        
+        <div class="table-responsive">
+            <table class="table table-striped table-sm">
+                <thead>
+                    <tr>
+                        <th>Current Rank</th>
+                        <th>Team</th>
+                        <th>Conference</th>
+                        <th>Record</th>
+                        <th>Previous Rank</th>
+                        <th>Movement</th>
+                        <th>Adj Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for team in movement_data %}
+                    <tr>
+                        <td><strong>{{ team.current_rank }}</strong></td>
+                        <td style="white-space: nowrap;">
+                            {% set logo_url = get_team_logo_url(team.team) %}
+                            {% if logo_url %}
+                                <img src="{{ logo_url }}" alt="{{ team.team }}" style="width: 20px; height: 20px; margin-right: 8px; vertical-align: middle;">
+                            {% endif %}
+                            {{ team.team }}
+                        </td>
+                        <td>
+                            {% set badge_class = {
+                                'ACC': 'primary', 'Big Ten': 'success', 'Big XII': 'warning text-dark',
+                                'Pac 12': 'info', 'SEC': 'danger', 'Independent': 'secondary',
+                                'American': 'dark', 'Conference USA': 'light text-dark',
+                                'MAC': 'primary', 'Mountain West': 'success', 'Sun Belt': 'warning text-dark'
+                            }.get(team.conference, 'secondary') %}
+                            <span class="badge bg-{{ badge_class }}">{{ team.conference }}</span>
+                        </td>
+                        <td>{{ team.wins }}-{{ team.losses }}</td>
+                        <td>
+                            {% if team.previous_rank %}
+                                {{ team.previous_rank }}
+                            {% else %}
+                                <span class="text-muted">NR</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if team.movement is none %}
+                                <span class="badge bg-info">NEW</span>
+                            {% elif team.movement > 0 %}
+                                <span class="text-success">↑{{ team.movement }}</span>
+                            {% elif team.movement < 0 %}
+                                <span class="text-danger">↓{{ team.movement|abs }}</span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-primary"><strong>{{ team.adjusted_total }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="mt-4">
+            <h5>Biggest Movers</h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="text-success">⬆️ Biggest Gainers</h6>
+                    {% set gainers = movement_data|selectattr('movement', 'greaterthan', 0)|sort(attribute='movement', reverse=true) %}
+                    {% for team in gainers[:5] %}
+                        <div>{{ team.team }} (+{{ team.movement }})</div>
+                    {% endfor %}
+                </div>
+                <div class="col-md-6">
+                    <h6 class="text-danger">⬇️ Biggest Drops</h6>
+                    {% set droppers = movement_data|selectattr('movement', 'lessthan', 0)|sort(attribute='movement') %}
+                    {% for team in droppers[:5] %}
+                        <div>{{ team.team }} ({{ team.movement }})</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}"""
+
+    # Public template
+    public_html = """{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2 class="text-center mb-4">2025 CFB Rankings</h2>
+        <p class="text-center text-muted">Updated automatically • View-only rankings</p>
+        
+        <div class="table-responsive">
+            <table class="table table-striped table-sm" id="statsTable">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Team</th>
+                        <th>Conf</th>
+                        <th>Record</th>
+                        <th>Adj Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for team in comprehensive_stats[:25] %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td style="white-space: nowrap; min-width: 120px;">
+                            {% set logo_url = get_team_logo_url(team.team) %}
+                            {% if logo_url %}
+                                <img src="{{ logo_url }}" alt="{{ team.team }}" style="width: 20px; height: 20px; margin-right: 8px; vertical-align: middle;">
+                            {% endif %}
+                            {{ team.team }}
+                        </td>
+                        <td>
+                            {% set badge_class = {
+                                'ACC': 'primary', 'Big Ten': 'success', 'Big XII': 'warning text-dark',
+                                'Pac 12': 'info', 'SEC': 'danger', 'Independent': 'secondary',
+                                'American': 'dark', 'Conference USA': 'light text-dark',
+                                'MAC': 'primary', 'Mountain West': 'success', 'Sun Belt': 'warning text-dark'
+                            }.get(team.conference, 'secondary') %}
+                            <span class="badge bg-{{ badge_class }}">{{ team.conference }}</span>
+                        </td>
+                        <td>{{ team.total_wins }}-{{ team.total_losses }}</td>
+                        <td class="text-primary"><strong>{{ team.adjusted_total }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="text-center mt-4">
+            <small class="text-muted">
+                Ranking system by <a href="/admin">CFB Rankings</a>
+            </small>
+        </div>
+    </div>
+</div>
+{% endblock %}"""
+
+    # Admin template
+    admin_html = """{% extends "base.html" %}
 
 {% block content %}
 <div class="row">
@@ -2393,11 +2644,321 @@ admin_html = """{% extends "base.html" %}
     </div>
 </div>
 
-
 {% endblock %}"""
 
-with open('templates/admin.html', 'w') as f:
-    f.write(admin_html)
+    # Team comparison templates (these were missing)
+    team_compare_html = """{% extends "base.html" %}
+
+{% block title %}Team Comparison - College Football Rankings{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <h2>Team Comparison Tool</h2>
+        <p class="text-muted">Compare two teams head-to-head with comprehensive analysis</p>
+        
+        <form method="POST" action="{{ url_for('compare_teams') }}">
+            <div class="row">
+                <div class="col-md-5">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">Team 1</h5>
+                        </div>
+                        <div class="card-body">
+                            <label for="team1" class="form-label">Select Team</label>
+                            <select class="form-select" id="team1" name="team1" required>
+                                <option value="">Choose Team 1</option>
+                                {% for conf_name, teams in conferences.items() %}
+                                    <optgroup label="{{ conf_name }}">
+                                        {% for team in teams %}
+                                            <option value="{{ team }}">{{ team }}</option>
+                                        {% endfor %}
+                                    </optgroup>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-2 d-flex align-items-center justify-content-center">
+                    <div class="text-center">
+                        <h3 class="text-muted">VS</h3>
+                        <div class="mb-3">
+                            <label for="location" class="form-label">Location</label>
+                            <select class="form-select" id="location" name="location">
+                                <option value="neutral">Neutral Site</option>
+                                <option value="team1_home">Team 1 Home</option>
+                                <option value="team2_home">Team 2 Home</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-5">
+                    <div class="card">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">Team 2</h5>
+                        </div>
+                        <div class="card-body">
+                            <label for="team2" class="form-label">Select Team</label>
+                            <select class="form-select" id="team2" name="team2" required>
+                                <option value="">Choose Team 2</option>
+                                {% for conf_name, teams in conferences.items() %}
+                                    <optgroup label="{{ conf_name }}">
+                                        {% for team in teams %}
+                                            <option value="{{ team }}">{{ team }}</option>
+                                        {% endfor %}
+                                    </optgroup>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-primary btn-lg">Compare Teams</button>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary btn-lg">Back to Rankings</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}"""
+
+    comparison_results_html = """{% extends "base.html" %}
+
+{% block title %}{{ team1 }} vs {{ team2 }} - Team Comparison{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="text-center mb-4">
+            <h2>{{ team1 }} vs {{ team2 }}</h2>
+            <p class="text-muted">
+                Location: 
+                {% if location == 'neutral' %}Neutral Site
+                {% elif location == 'team1_home' %}{{ team1 }} Home
+                {% else %}{{ team2 }} Home
+                {% endif %}
+            </p>
+        </div>
+
+        <!-- Prediction Section -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Prediction</h4>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <h5>Predicted Winner</h5>
+                        <h3 class="text-primary">{{ prediction.winner }}</h3>
+                        <p class="text-muted">by {{ prediction.final_margin|abs }} points</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h5>Win Probability</h5>
+                        <h3 class="text-success">{{ prediction.win_probability }}%</h3>
+                        <p class="text-muted">Confidence: {{ prediction.confidence }}</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h5>Adjustments</h5>
+                        {% for factor, adjustment in prediction.adjustments.items() %}
+                            <div class="small">
+                                {{ factor }}: {{ "+" if adjustment > 0 else "" }}{{ adjustment }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Comparison -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4 class="mb-0">Statistical Comparison</h4>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Statistic</th>
+                                <th class="text-center">{{ team1 }}</th>
+                                <th class="text-center">{{ team2 }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Record</strong></td>
+                                <td class="text-center">{{ team1_stats.total_wins }}-{{ team1_stats.total_losses }}</td>
+                                <td class="text-center">{{ team2_stats.total_wins }}-{{ team2_stats.total_losses }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Adjusted Total</strong></td>
+                                <td class="text-center text-{{ 'success' if team1_stats.adjusted_total > team2_stats.adjusted_total else 'danger' }}">
+                                    <strong>{{ team1_stats.adjusted_total }}</strong>
+                                </td>
+                                <td class="text-center text-{{ 'success' if team2_stats.adjusted_total > team1_stats.adjusted_total else 'danger' }}">
+                                    <strong>{{ team2_stats.adjusted_total }}</strong>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Strength of Schedule</strong></td>
+                                <td class="text-center">{{ team1_stats.strength_of_schedule }}</td>
+                                <td class="text-center">{{ team2_stats.strength_of_schedule }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>P4 Wins</strong></td>
+                                <td class="text-center">{{ team1_stats.p4_wins }}</td>
+                                <td class="text-center">{{ team2_stats.p4_wins }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Point Differential</strong></td>
+                                <td class="text-center">{{ team1_stats.point_differential }}</td>
+                                <td class="text-center">{{ team2_stats.point_differential }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Form -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">{{ team1 }} Recent Form</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Last 4 Games:</strong> {{ team1_form.record }}</p>
+                        <p><strong>Average Margin:</strong> {{ team1_form.avg_margin }}</p>
+                        <p><strong>Trending:</strong> 
+                            {% if team1_form.trending == 'up' %}📈 Up
+                            {% elif team1_form.trending == 'down' %}📉 Down
+                            {% else %}➡️ Stable
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">{{ team2 }} Recent Form</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Last 4 Games:</strong> {{ team2_form.record }}</p>
+                        <p><strong>Average Margin:</strong> {{ team2_form.avg_margin }}</p>
+                        <p><strong>Trending:</strong> 
+                            {% if team2_form.trending == 'up' %}📈 Up
+                            {% elif team2_form.trending == 'down' %}📉 Down
+                            {% else %}➡️ Stable
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Common Opponents -->
+        {% if common_opponents.has_common %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Common Opponents Analysis</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">{{ common_opponents.summary }}</p>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Opponent</th>
+                                <th>{{ team1 }} Result</th>
+                                <th>{{ team2 }} Result</th>
+                                <th>Advantage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for comparison in common_opponents.comparison %}
+                            <tr>
+                                <td>{{ comparison.opponent }}</td>
+                                <td>{{ comparison.team1_result }}</td>
+                                <td>{{ comparison.team2_result }}</td>
+                                <td class="text-{{ 'success' if comparison.advantage > 0 else 'danger' if comparison.advantage < 0 else 'muted' }}">
+                                    {% if comparison.advantage > 0 %}+{{ comparison.advantage }} {{ team1 }}
+                                    {% elif comparison.advantage < 0 %}{{ comparison.advantage }} {{ team2 }}
+                                    {% else %}Even
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Head to Head History -->
+        {% if h2h_history.has_history %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Head-to-Head History</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Series Record:</strong> {{ h2h_history.record }}</p>
+                <p><strong>Last Meeting:</strong> {{ h2h_history.summary }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="text-center">
+            <a href="{{ url_for('team_compare') }}" class="btn btn-primary">Compare Other Teams</a>
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">Back to Rankings</a>
+        </div>
+    </div>
+</div>
+{% endblock %}"""
+
+    # Write all template files
+    with open('templates/base.html', 'w') as f:
+        f.write(base_html)
+    
+    with open('templates/index.html', 'w') as f:
+        f.write(index_html)
+    
+    with open('templates/add_game.html', 'w') as f:
+        f.write(add_game_html)
+        
+    with open('templates/team_detail.html', 'w') as f:
+        f.write(team_detail_html)
+        
+    with open('templates/weekly_results.html', 'w') as f:
+        f.write(weekly_results_html)
+
+    with open('templates/cfp_bracket.html', 'w') as f:
+        f.write(cfp_bracket_html)
+
+    with open('templates/login.html', 'w') as f:
+        f.write(login_html)
+
+    with open('templates/historical.html', 'w') as f:
+        f.write(historical_html)  
+
+    with open('templates/public.html', 'w') as f:
+        f.write(public_html)
+
+    with open('templates/admin.html', 'w') as f:
+        f.write(admin_html)
+
+    with open('templates/team_compare.html', 'w') as f:
+        f.write(team_compare_html)
+
+    with open('templates/comparison_results.html', 'w') as f:
+        f.write(comparison_results_html)
+
+    print("All templates created successfully!")    
 
 
 if __name__ == '__main__':
