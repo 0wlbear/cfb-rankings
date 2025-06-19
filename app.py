@@ -1670,6 +1670,9 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 {% endblock %}"""
 
+
+
+
     # Weekly results template
     weekly_results_html = """{% extends "base.html" %}
 
@@ -1832,6 +1835,8 @@ function changeWeek() {
 }
 </script>
 {% endblock %}"""
+
+
 
 
     # Write all template files
@@ -2040,6 +2045,176 @@ public_html = """{% extends "base.html" %}
 
 with open('templates/public.html', 'w') as f:
     f.write(public_html)
+
+# CFP Bracket template - Adding Conference Champions
+cfp_bracket_html = """{% extends "base.html" %}
+
+{% block title %}CFP Bracket Projection - College Football Rankings{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="text-center mb-4">
+            <h2 class="text-primary">College Football Playoff</h2>
+            <h4 class="text-muted">If the playoff was selected today...</h4>
+            <p class="small text-muted">Based on current rankings - 12-Team Format</p>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">Automatic Qualifiers</h5>
+                    </div>
+                    <div class="card-body">
+                        {% for team in bracket.all_teams if team.bid_type == 'Conference Champion' %}
+                            <div class="d-flex justify-content-between align-items-center py-2">
+                                <div>
+                                    <span class="badge bg-primary me-2">#{{ team.seed }}</span>
+                                    <strong>{{ team.team }}</strong>
+                                    <small class="text-muted">({{ team.conference }})</small>
+                                </div>
+                                <div>
+                                    <small>{{ team.total_wins }}-{{ team.total_losses }}</small>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">At-Large Bids</h5>
+                    </div>
+                    <div class="card-body">
+                        {% for team in bracket.all_teams if team.bid_type == 'At-Large' %}
+                            <div class="d-flex justify-content-between align-items-center py-2">
+                                <div>
+                                    <span class="badge bg-primary me-2">#{{ team.seed }}</span>
+                                    <strong>{{ team.team }}</strong>
+                                    <small class="text-muted">({{ team.conference }})</small>
+                                </div>
+                                <div>
+                                    <small>{{ team.total_wins }}-{{ team.total_losses }}</small>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">First Round Byes</h5>
+                    </div>
+                    <div class="card-body">
+                        {% for team in bracket.first_round_byes %}
+                            <div class="d-flex align-items-center py-3">
+                                <div class="me-3">
+                                    <span class="badge bg-success fs-6">#{{ team.seed }}</span>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold">{{ team.team }}</div>
+                                    <small class="text-muted">{{ team.total_wins }}-{{ team.total_losses }} - {{ team.conference }}</small>
+                                </div>
+                                <div class="text-end">
+                                    <small class="text-primary fw-bold">{{ team.adjusted_total }}</small>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0">First Round Games</h5>
+                    </div>
+                    <div class="card-body">
+                        {% for game in bracket.first_round_games %}
+                            <div class="card mb-3">
+                                <div class="card-body py-2">
+                                    <div class="text-center mb-2">
+                                        <small class="badge bg-secondary">Game {{ game.game_num }}</small>
+                                    </div>
+                                    
+                                    <div class="d-flex align-items-center justify-content-between py-2 bg-light rounded">
+                                        <div>
+                                            <span class="badge bg-success me-2">#{{ game.higher_seed.seed }}</span>
+                                            <strong>{{ game.higher_seed.team }}</strong>
+                                            <small class="text-success ms-2">(HOST)</small>
+                                        </div>
+                                        <small>{{ game.higher_seed.total_wins }}-{{ game.higher_seed.total_losses }}</small>
+                                    </div>
+                                    
+                                    <div class="text-center py-1">
+                                        <small class="text-muted">vs</small>
+                                    </div>
+                                    
+                                    <div class="d-flex align-items-center justify-content-between py-2">
+                                        <div>
+                                            <span class="badge bg-primary me-2">#{{ game.lower_seed.seed }}</span>
+                                            <strong>{{ game.lower_seed.team }}</strong>
+                                        </div>
+                                        <small>{{ game.lower_seed.total_wins }}-{{ game.lower_seed.total_losses }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Conference Champions</h5>
+                        <small class="text-muted">Current leaders by conference</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            {% for conf_name, champion in bracket.conference_champions.items() %}
+                                <div class="col-md-6 col-lg-4 mb-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-3">
+                                            <span class="badge bg-primary">{{ conf_name }}</span>
+                                        </div>
+                                        <div>
+                                            <strong>{{ champion.team }}</strong>
+                                            <small class="text-muted">({{ champion.total_wins }}-{{ champion.total_losses }})</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <small class="text-muted">
+                * Projection based on current computer rankings<br>
+                * Conference champions determined by highest-ranked team in each conference
+            </small>
+        </div>
+
+        <div class="text-center mt-4">
+            <a href="{{ url_for('index') }}" class="btn btn-primary">Back to Rankings</a>
+            <a href="{{ url_for('add_game') }}" class="btn btn-success">Add Games</a>
+        </div>
+    </div>
+</div>
+{% endblock %}"""
+    
 
 # Admin template (full detailed table)
 admin_html = """{% extends "base.html" %}
