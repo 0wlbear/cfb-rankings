@@ -652,6 +652,9 @@ def add_game():
             
             # Save data after adding game
             save_data()
+
+            # Remember the selected week for next time
+            session['last_selected_week'] = week
             
             location_text = " (Neutral Site)" if is_neutral_site else ""
             flash(f'Game added: {home_team} {home_score} - {away_score} {away_team}{location_text}', 'success')
@@ -668,7 +671,7 @@ def add_game():
             team_classifications[team] = get_auto_game_type(team)
     
     # Get the selected week from URL parameter (if any)
-    selected_week = request.args.get('selected_week', '')
+    selected_week = request.args.get('selected_week') or session.get('last_selected_week', '')
     return render_template('add_game.html', conferences=CONFERENCES, weeks=WEEKS, game_types=GAME_TYPES, team_classifications=team_classifications, recent_games=games_data[-10:], selected_week=selected_week)
 
 @app.route('/historical')
@@ -1232,9 +1235,16 @@ def create_templates():
                         <div class="card-body">
                             <div class="mb-3">
                                 <label for="away_team" class="form-label">Team</label>
-                                <input type="text" class="form-control" id="away_team" name="away_team" 
-                                       list="team_list" placeholder="Type to search or click to browse..." 
-                                       onchange="updateGameTypes()" required>
+                                <select class="form-select" id="away_team" name="away_team" onchange="updateGameTypes()" required>
+                                    <option value="">Select Away Team</option>
+                                    {% for conf_name, teams in conferences.items() %}
+                                        <optgroup label="{{ conf_name }}">
+                                            {% for team in teams %}
+                                                <option value="{{ team }}">{{ team }}</option>
+                                            {% endfor %}
+                                        </optgroup>
+                                    {% endfor %}
+                                </select>
                             </div>
                             
                             <div class="mb-3">
@@ -1270,18 +1280,16 @@ def create_templates():
                         <div class="card-body">
                             <div class="mb-3">
                                 <label for="home_team" class="form-label">Team</label>
-                              <input type="text" class="form-control" id="home_team" name="home_team" 
-       list="team_list" placeholder="Type to search or click to browse..." 
-       onchange="updateGameTypes()" required>
-<datalist id="team_list">
-    {% for conf_name, teams in conferences.items() %}
-        <!-- Optgroup simulation with disabled options -->
-        <option disabled>--- {{ conf_name }} ---</option>
-        {% for team in teams %}
-            <option value="{{ team }}">{{ team }} ({{ conf_name }})</option>
-        {% endfor %}
-    {% endfor %}
-</datalist>
+                              <select class="form-select" id="home_team" name="home_team" onchange="updateGameTypes()" required>
+                                <option value="">Select Home Team</option>
+                                {% for conf_name, teams in conferences.items() %}
+                                    <optgroup label="{{ conf_name }}">
+                                        {% for team in teams %}
+                                            <option value="{{ team }}">{{ team }}</option>
+                                        {% endfor %}
+                                    </optgroup>
+                                {% endfor %}
+                            </select>
                             </div>
                             
                             <div class="mb-3">
