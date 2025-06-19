@@ -1477,7 +1477,13 @@ document.addEventListener('DOMContentLoaded', function() {
 {% block content %}
 <div class="row">
     <div class="col-md-8">
-        <h2>{{ team_name }}</h2>
+        <div class="d-flex align-items-center mb-3">
+    {% set logo_url = get_team_logo_url(team_name) %}
+    {% if logo_url %}
+        <img src="{{ logo_url }}" alt="{{ team_name }}" style="width: 80px; height: 80px; margin-right: 15px;">
+    {% endif %}
+    <h2 class="mb-0">{{ team_name }}</h2>
+</div>
         
         <div class="row mb-4">
             <div class="col-md-3">
