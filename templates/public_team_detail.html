@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+
+{% block title %}{{ team_name }} - Team Analysis{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <!-- Header -->
+        <div class="text-center mb-4">
+            {% set logo_url = get_team_logo_url(team_name) %}
+            {% if logo_url %}
+                <img src="{{ logo_url }}" alt="{{ team_name }}" style="width: 60px; height: 60px;" class="mb-3">
+            {% endif %}
+            <h2 class="text-primary">{{ team_name }}</h2>
+            <p class="text-muted">
+                {{ conference }} • {{ record }} • 
+                {% if current_rank != 'NR' %}
+                    Ranked #{{ current_rank }}
+                {% else %}
+                    Unranked
+                {% endif %}
+            </p>
+        </div>
+
+        <!-- Overall Score -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">📊 Scientific Ranking Score</h3>
+            </div>
+            <div class="card-body text-center">
+                <h1 class="display-4 text-primary">{{ scientific_result.total_score }}</h1>
+                <p class="text-muted">
+                    {% if current_rank != 'NR' %}
+                        #{{ current_rank }} out of {{ total_teams_ranked }} teams
+                    {% else %}
+                        Not in top {{ total_teams_ranked }} teams
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <!-- Component Breakdown -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h3 class="mb-0">🔍 Score Breakdown</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-sm">
+                            <tr>
+                                <td><strong>Victory Value</strong></td>
+                                <td class="text-end text-success">+{{ scientific_result.components.victory_value }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Loss Penalty</strong></td>
+                                <td class="text-end text-danger">-{{ scientific_result.components.loss_penalty }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Recent Form</strong></td>
+                                <td class="text-end">{{ scientific_result.components.temporal_adjustment|round(1) }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-sm">
+                            <tr>
+                                <td><strong>Consistency</strong></td>
+                                <td class="text-end">{{ scientific_result.components.consistency_factor|round(1) }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Games Played Bonus</strong></td>
+                                <td class="text-end">+{{ scientific_result.components.games_bonus }}</td>
+                            </tr>
+                            <tr style="border-top: 2px solid #dee2e6;">
+                                <td><strong>Total Score</strong></td>
+                                <td class="text-end"><strong>{{ scientific_result.total_score }}</strong></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-md-4 text-center">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6>Quality Wins</h6>
+                                <p class="mb-0">{{ (opponent_details | selectattr('result', 'equalto', 'W') | list | length) }} victories</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6>Rivalry Record</h6>
+                                <p class="mb-0">
+                                    {% set rivalry_wins = opponent_details | selectattr('is_rivalry', 'equalto', True) | selectattr('result', 'equalto', 'W') | list | length %}
+                                    {% set rivalry_losses = opponent_details | selectattr('is_rivalry', 'equalto', True) | selectattr('result', 'equalto', 'L') | list | length %}
+                                    {{ rivalry_wins }}-{{ rivalry_losses }} vs rivals
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6>Road Record</h6>
+                                <p class="mb-0">
+                                    {% set road_wins = opponent_details | selectattr('location', 'equalto', 'Away') | selectattr('result', 'equalto', 'W') | list | length %}
+                                    {% set road_losses = opponent_details | selectattr('location', 'equalto', 'Away') | selectattr('result', 'equalto', 'L') | list | length %}
+                                    {{ road_wins }}-{{ road_losses }} away
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game-by-Game Analysis -->
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h3 class="mb-0">🏈 Game-by-Game Analysis</h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Opponent</th>
+                                <th>Result</th>
+                                <th>Score</th>
+                                <th>Location</th>
+                                <th>Opp Quality</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for game in opponent_details %}
+                            <tr class="{% if game.result == 'W' %}table-success{% else %}table-danger{% endif %}">
+                                <td>
+                                    {% set opp_logo_url = get_team_logo_url(game.opponent) %}
+                                    {% if opp_logo_url %}
+                                        <img src="{{ opp_logo_url }}" alt="{{ game.opponent }}" style="width: 20px; height: 20px; margin-right: 5px;">
+                                    {% endif %}
+                                    {{ game.opponent }}
+                                </td>
+                                <td>
+                                    <span class="badge {% if game.result == 'W' %}bg-success{% else %}bg-danger{% endif %}">
+                                        {{ game.result }}
+                                    </span>
+                                </td>
+                                <td>{{ game.team_score }}-{{ game.opp_score }}</td>
+                                <td>
+                                    <small class="text-muted">
+                                        {% if game.location == 'Home' %}🏠
+                                        {% elif game.location == 'Away' %}✈️
+                                        {% else %}⚖️{% endif %}
+                                        {{ game.location }}
+                                    </small>
+                                </td>
+                                <td>
+                                    <span class="badge {% if game.opponent_quality >= 7 %}bg-success{% elif game.opponent_quality >= 5 %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                                        {{ game.opponent_quality }}/10
+                                    </span>
+                                </td>
+                                <td>
+                                    <small>
+                                        {% if game.margin > 0 %}
+                                            Won by {{ game.margin }}
+                                        {% elif game.margin < 0 %}
+                                            Lost by {{ -game.margin }}
+                                        {% else %}
+                                            Tie
+                                        {% endif %}
+                                        {% if game.is_rivalry %}
+                                            <span class="badge bg-danger ms-1">🔥 Rivalry</span>
+                                        {% endif %}
+                                    </small>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Understanding the Score -->
+        <div class="card mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h3 class="mb-0">💡 Understanding This Team's Score</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Strengths</h6>
+                        <ul class="small">
+                            {% if scientific_result.components.victory_value >= 30 %}
+                                <li>Strong collection of quality wins</li>
+                            {% endif %}
+                            {% if scientific_result.components.temporal_adjustment > 0.5 %}
+                                <li>Playing better recently</li>
+                            {% endif %}
+                            {% if scientific_result.components.consistency_factor > 0.2 %}
+                                <li>Consistent, reliable performance</li>
+                            {% endif %}
+                            {% set road_wins = opponent_details | selectattr('location', 'equalto', 'Away') | selectattr('result', 'equalto', 'W') | list | length %}
+                            {% if road_wins >= 2 %}
+                                <li>Proven ability to win on the road</li>
+                            {% endif %}
+                            {% set rivalry_wins = opponent_details | selectattr('is_rivalry', 'equalto', True) | selectattr('result', 'equalto', 'W') | list | length %}
+                            {% if rivalry_wins >= 1 %}
+                                <li>Success in rivalry games</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Areas for Improvement</h6>
+                        <ul class="small">
+                            {% if scientific_result.components.loss_penalty >= 5 %}
+                                <li>Has some costly losses</li>
+                            {% endif %}
+                            {% if scientific_result.components.temporal_adjustment < -0.5 %}
+                                <li>Recent form declining</li>
+                            {% endif %}
+                            {% if scientific_result.components.consistency_factor < -0.2 %}
+                                <li>Inconsistent performance</li>
+                            {% endif %}
+                            {% if scientific_result.components.victory_value < 20 %}
+                                <li>Needs more quality wins</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info mt-3">
+                    <small>
+                        <strong>How to read opponent quality:</strong>
+                        <span class="badge bg-success">7-10</span> Elite teams •
+                        <span class="badge bg-warning text-dark">5-7</span> Good teams •
+                        <span class="badge bg-secondary">1-5</span> Below average teams
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="text-center">
+            <a href="{{ url_for('public_rankings') }}" class="btn btn-primary">
+                <i class="fas fa-arrow-left"></i> Back to Rankings
+            </a>
+            <a href="{{ url_for('ranking_methodology') }}" class="btn btn-outline-info">
+                <i class="fas fa-info-circle"></i> How Rankings Work
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

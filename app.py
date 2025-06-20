@@ -479,6 +479,112 @@ BOWL_GAMES = {
     }
 }
 
+# Define major college football rivalries
+RIVALRIES = {
+    # SEC Rivalries
+    'Alabama': ['Auburn', 'Tennessee', 'LSU'],
+    'Auburn': ['Alabama', 'Georgia'],
+    'Georgia': ['Auburn', 'Florida', 'Georgia Tech'],
+    'Florida': ['Georgia', 'Florida State', 'Miami'],
+    'LSU': ['Alabama', 'Arkansas', 'Ole Miss'],
+    'Arkansas': ['LSU', 'Texas', 'Missouri'],
+    'Tennessee': ['Alabama', 'Kentucky', 'Vanderbilt'],
+    'Kentucky': ['Tennessee', 'Louisville'],
+    'Vanderbilt': ['Tennessee'],
+    'Mississippi State': ['Ole Miss'],
+    'Ole Miss': ['Mississippi State', 'LSU'],
+    'Missouri': ['Arkansas', 'Kansas'],
+    'South Carolina': ['Clemson', 'North Carolina'],
+    'Texas': ['Arkansas', 'Texas A&M', 'Oklahoma'],
+    'Texas A&M': ['Texas', 'LSU'],
+    
+    # Big Ten Rivalries
+    'Ohio State': ['Michigan', 'Penn State'],
+    'Michigan': ['Ohio State', 'Michigan State'],
+    'Michigan State': ['Michigan', 'Penn State'],
+    'Penn State': ['Ohio State', 'Michigan State'],
+    'Wisconsin': ['Minnesota', 'Iowa'],
+    'Minnesota': ['Wisconsin', 'Iowa'],
+    'Iowa': ['Wisconsin', 'Minnesota', 'Iowa State'],
+    'Illinois': ['Northwestern', 'Indiana'],
+    'Northwestern': ['Illinois'],
+    'Indiana': ['Illinois', 'Purdue'],
+    'Purdue': ['Indiana'],
+    'Nebraska': ['Iowa', 'Wisconsin'],
+    'Maryland': ['Virginia', 'Penn State'],
+    'Rutgers': ['Penn State'],
+    
+    # Big XII Rivalries
+    'Oklahoma': ['Texas', 'Oklahoma State'],
+    'Oklahoma State': ['Oklahoma'],
+    'Texas Tech': ['Texas', 'Baylor'],
+    'Baylor': ['Texas Tech', 'TCU'],
+    'TCU': ['Baylor', 'SMU'],
+    'West Virginia': ['Virginia Tech', 'Pittsburgh'],
+    'Kansas': ['Kansas State', 'Missouri'],
+    'Kansas State': ['Kansas'],
+    'Iowa State': ['Iowa'],
+    'Cincinnati': ['Louisville'],
+    'Houston': ['Rice'],
+    'UCF': ['South Florida'],
+    
+    # ACC Rivalries
+    'Clemson': ['South Carolina', 'Georgia Tech'],
+    'Florida State': ['Florida', 'Miami'],
+    'Miami': ['Florida State', 'Florida'],
+    'North Carolina': ['NC State', 'Duke', 'South Carolina'],
+    'NC State': ['North Carolina', 'Wake Forest'],
+    'Duke': ['North Carolina', 'Wake Forest'],
+    'Wake Forest': ['NC State', 'Duke'],
+    'Virginia': ['Virginia Tech', 'Maryland'],
+    'Virginia Tech': ['Virginia', 'West Virginia'],
+    'Pittsburgh': ['West Virginia', 'Penn State'],
+    'Georgia Tech': ['Georgia', 'Clemson'],
+    'Louisville': ['Kentucky', 'Cincinnati'],
+    'Boston College': ['Syracuse'],
+    'Syracuse': ['Boston College'],
+    
+    # Pac 12 / West Coast
+    'Stanford': ['California'],
+    'California': ['Stanford'],
+    'Oregon': ['Oregon State', 'Washington'],
+    'Oregon State': ['Oregon'],
+    'Washington': ['Oregon', 'Washington State'],
+    'Washington State': ['Washington'],
+    'UCLA': ['USC'],
+    'USC': ['UCLA'],
+    
+    # Independent
+    'Notre Dame': ['USC', 'Michigan', 'Navy', 'Stanford'],
+    'Navy': ['Notre Dame', 'Army'],
+    'Army': ['Navy'],
+    
+    # G5 Major Rivalries
+    'SMU': ['TCU', 'Rice', 'Houston'],
+    'Rice': ['SMU', 'Houston'],
+    'Memphis': ['UAB', 'Tulane'],
+    'UAB': ['Memphis'],
+    'Tulane': ['Memphis', 'Louisiana'],
+    'Louisiana': ['Tulane'],
+    'Boise State': ['Fresno State'],
+    'Fresno State': ['Boise State'],
+    'Air Force': ['Army', 'Navy'],
+    'Colorado State': ['Colorado'],
+    'Wyoming': ['Colorado State'],
+    'Marshall': ['West Virginia'],
+    'Troy': ['South Alabama'],
+    'South Alabama': ['Troy'],
+    'App State': ['Georgia Southern'],
+    'Georgia Southern': ['App State'],
+    'Miami (OH)': ['Cincinnati', 'Ohio'],
+    'Ohio': ['Miami (OH)'],
+    'Toledo': ['Bowling Green'],
+    'Bowling Green': ['Toledo'],
+    'Northern Illinois': ['Western Michigan'],
+    'Western Michigan': ['Northern Illinois'],
+}
+
+
 def get_bowl_eligible_teams():
     """Get all teams with 6+ wins (bowl eligible)"""
     bowl_eligible = []
@@ -601,6 +707,106 @@ def generate_bowl_projections():
         'conference_championships': conf_championships,
         'total_bowl_teams': len(used_teams) + len(cfp_bracket['all_teams'])
     }
+
+def is_rivalry_game(team1, team2):
+    """Check if two teams are rivals"""
+    return (team2 in RIVALRIES.get(team1, []) or 
+            team1 in RIVALRIES.get(team2, []))
+
+def get_rivalry_bonus(team_name, opponent_name):
+    """
+    Calculate rivalry bonus for beating a rival.
+    Returns bonus points to add to victory value.
+    """
+    if not is_rivalry_game(team_name, opponent_name):
+        return 0.0
+    
+    # Different tiers of rivalry bonuses based on intensity
+    major_rivalries = {
+        # Tier 1: Historic, intense rivalries (1.0 bonus)
+        ('Alabama', 'Auburn'): 1.0,
+        ('Ohio State', 'Michigan'): 1.0,
+        ('Texas', 'Oklahoma'): 1.0,
+        ('Florida', 'Georgia'): 1.0,
+        ('USC', 'UCLA'): 1.0,
+        ('Army', 'Navy'): 1.0,
+        ('Florida State', 'Miami'): 1.0,
+        ('Clemson', 'South Carolina'): 1.0,
+        ('North Carolina', 'NC State'): 1.0,
+        ('Notre Dame', 'USC'): 1.0,
+        ('Virginia', 'Virginia Tech'): 1.0,
+        ('Stanford', 'California'): 1.0,
+        ('Oregon', 'Oregon State'): 1.0,
+        ('Washington', 'Washington State'): 1.0,
+        
+        # Add more Tier 1 rivalries as needed
+    }
+    
+    # Check if this is a Tier 1 rivalry (order doesn't matter)
+    rivalry_pair = tuple(sorted([team_name, opponent_name]))
+    for (team_a, team_b), bonus in major_rivalries.items():
+        if rivalry_pair == tuple(sorted([team_a, team_b])):
+            return bonus
+    
+    # Default rivalry bonus for other rivalries
+    return 0.6  # Standard rivalry bonus
+
+def calculate_victory_value_with_rivalry(game, team_name):
+    """
+    UPDATED calculate_victory_value function that includes rivalry bonus.
+    Replace your existing calculate_victory_value function with this one.
+    """
+    if game['result'] != 'W':
+        return 0.0
+    
+    opponent = game['opponent']
+    team_score = game['team_score']
+    opp_score = game['opp_score']
+    margin = team_score - opp_score
+    location = game['home_away']
+    
+    # 1. Base Opponent Quality (1-10 scale)
+    opponent_quality = get_current_opponent_quality(opponent)
+    
+    # 2. Location Multiplier
+    location_multipliers = {
+        'Home': 1.0,
+        'Away': 1.3,    # Road wins worth 30% more
+        'Neutral': 1.15  # Neutral site wins worth 15% more
+    }
+    location_mult = location_multipliers.get(location, 1.0)
+    
+    # 3. Margin Bonus with Diminishing Returns
+    if margin <= 0:
+        margin_bonus = 0
+    elif margin <= 7:
+        margin_bonus = margin * 0.1  # Linear up to 7 points
+    elif margin <= 14:
+        margin_bonus = 0.7 + (margin - 7) * 0.08  # Slower growth 7-14
+    elif margin <= 21:
+        margin_bonus = 1.26 + (margin - 14) * 0.04  # Even slower 14-21
+    else:
+        margin_bonus = 1.54 + (margin - 21) * 0.02  # Minimal benefit beyond 21
+    
+    # 4. Conference Context Bonus
+    team_conf = get_team_conference(team_name)
+    opp_conf = get_team_conference(opponent)
+    
+    conf_bonus = 0
+    if team_conf in P4_CONFERENCES and opp_conf in P4_CONFERENCES:
+        conf_bonus = 0.3  # P4 vs P4 bonus
+    elif team_conf in G5_CONFERENCES and opp_conf in P4_CONFERENCES:
+        conf_bonus = 0.5  # G5 beating P4 major bonus
+    
+    # 5. NEW: Rivalry Bonus
+    rivalry_bonus = get_rivalry_bonus(team_name, opponent)
+    
+    # 6. Calculate Final Victory Value
+    base_value = opponent_quality * location_mult
+    total_value = base_value + margin_bonus + conf_bonus + rivalry_bonus
+    
+    return round(total_value, 2)
+
 
 def get_team_logo_url(team_name):
     """Get ESPN logo URL for a team"""
@@ -1003,19 +1209,26 @@ def calculate_victory_value(game, team_name):
     return round(total_value, 2)
 
 def calculate_total_victory_value(team_name):
-    """Sum up all victory values for a team"""
+    """Sum up all victory values for a team - UPDATED for rivalry bonus"""
     total_value = 0
     victory_details = []
     
     for game in team_stats[team_name]['games']:
         if game['result'] == 'W':
-            value = calculate_victory_value(game, team_name)
+            value = calculate_victory_value_with_rivalry(game, team_name)  # Use new function
             total_value += value
+            
+            # Check if this was a rivalry win for display
+            is_rival = is_rivalry_game(team_name, game['opponent'])
+            rivalry_bonus = get_rivalry_bonus(team_name, game['opponent']) if is_rival else 0
+            
             victory_details.append({
                 'opponent': game['opponent'],
                 'value': value,
                 'margin': game['team_score'] - game['opp_score'],
-                'location': game['home_away']
+                'location': game['home_away'],
+                'is_rivalry': is_rival,
+                'rivalry_bonus': rivalry_bonus
             })
     
     return total_value, victory_details
@@ -1651,6 +1864,90 @@ def ranking_methodology():
     """Explain how the scientific ranking system works"""
     return render_template('ranking_methodology.html')
 
+@app.route('/manage_rivalries')
+@login_required
+def manage_rivalries():
+    """Admin page to view and manage rivalries"""
+    return render_template_string("""
+    <html>
+    <head><title>Manage Rivalries</title></head>
+    <body style="font-family: Arial; margin: 40px;">
+        <h1>Rivalry Management</h1>
+        
+        <h2>Current Rivalries</h2>
+        <div style="columns: 3; column-gap: 30px;">
+        {% for team, rivals in rivalries.items() %}
+            <div style="break-inside: avoid; margin-bottom: 15px;">
+                <strong>{{ team }}:</strong><br>
+                {% for rival in rivals %}
+                    <span style="margin-left: 10px;">• {{ rival }}</span>
+                    {% if is_rivalry_tier_1(team, rival) %}
+                        <span style="color: red; font-weight: bold;">(Tier 1)</span>
+                    {% endif %}
+                    <br>
+                {% endfor %}
+            </div>
+        {% endfor %}
+        </div>
+        
+        <h2>Recent Rivalry Games</h2>
+        <table style="border-collapse: collapse; width: 100%;">
+            <tr style="background: #f0f0f0;">
+                <th style="border: 1px solid #ddd; padding: 8px;">Team</th>
+                <th style="border: 1px solid #ddd; padding: 8px;">vs</th>
+                <th style="border: 1px solid #ddd; padding: 8px;">Result</th>
+                <th style="border: 1px solid #ddd; padding: 8px;">Bonus</th>
+            </tr>
+            {% for game in recent_rivalry_games %}
+            <tr>
+                <td style="border: 1px solid #ddd; padding: 8px;">{{ game.team }}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">{{ game.opponent }}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">{{ game.result }} {{ game.score }}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">+{{ game.bonus }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        
+        <p><a href="/admin">Back to Admin</a></p>
+    </body>
+    </html>
+    """, 
+    rivalries=RIVALRIES, 
+    recent_rivalry_games=get_recent_rivalry_games(),
+    is_rivalry_tier_1=lambda t1, t2: get_rivalry_bonus(t1, t2) >= 1.0)
+
+def get_recent_rivalry_games():
+    """Get recent rivalry games for display"""
+    rivalry_games = []
+    
+    for game in games_data[-20:]:  # Last 20 games
+        home_team = game['home_team']
+        away_team = game['away_team']
+        
+        if is_rivalry_game(home_team, away_team):
+            # Home team perspective
+            home_bonus = get_rivalry_bonus(home_team, away_team)
+            if game['home_score'] > game['away_score']:
+                rivalry_games.append({
+                    'team': home_team,
+                    'opponent': away_team,
+                    'result': 'W',
+                    'score': f"{game['home_score']}-{game['away_score']}",
+                    'bonus': home_bonus
+                })
+            else:
+                # Away team won
+                away_bonus = get_rivalry_bonus(away_team, home_team)
+                rivalry_games.append({
+                    'team': away_team,
+                    'opponent': home_team,
+                    'result': 'W',
+                    'score': f"{game['away_score']}-{game['home_score']}",
+                    'bonus': away_bonus
+                })
+    
+    return rivalry_games
+
 
 @app.route('/create_snapshot', methods=['POST'])
 @login_required
@@ -1727,6 +2024,63 @@ def public_rankings():
     comprehensive_stats.sort(key=lambda x: x['adjusted_total'], reverse=True)
     
     return render_template('public.html', comprehensive_stats=comprehensive_stats)   
+
+@app.route('/team/<team_name>')
+def public_team_detail(team_name):
+    """Public team detail page showing scientific ranking breakdown"""
+    if team_name not in team_stats:
+        flash('Team not found!', 'error')
+        return redirect(url_for('public_rankings'))
+    
+    # Get scientific ranking breakdown
+    scientific_result = calculate_scientific_ranking(team_name)
+    basic_stats = team_stats[team_name]
+    
+    # Get opponent details for context
+    opponent_details = []
+    for game in basic_stats['games']:
+        opponent_quality = get_current_opponent_quality(game['opponent'])
+        is_rival = is_rivalry_game(team_name, game['opponent'])
+        rivalry_bonus = get_rivalry_bonus(team_name, game['opponent']) if is_rival else 0
+        
+        opponent_details.append({
+            'opponent': game['opponent'],
+            'opponent_quality': round(opponent_quality, 1),
+            'result': game['result'],
+            'team_score': game['team_score'],
+            'opp_score': game['opp_score'],
+            'margin': game['team_score'] - game['opp_score'],
+            'location': game['home_away'],
+            'is_rivalry': is_rival,
+            'rivalry_bonus': rivalry_bonus
+        })
+    
+    # Calculate current ranking
+    all_teams = []
+    for conf_name, teams in CONFERENCES.items():
+        for team in teams:
+            if team_stats[team]['wins'] + team_stats[team]['losses'] > 0:
+                stats = calculate_comprehensive_stats(team)
+                all_teams.append({
+                    'team': team,
+                    'adjusted_total': stats['adjusted_total']
+                })
+    
+    all_teams.sort(key=lambda x: x['adjusted_total'], reverse=True)
+    current_rank = next((i+1 for i, team in enumerate(all_teams) if team['team'] == team_name), 'NR')
+    
+    template_data = {
+        'team_name': team_name,
+        'conference': get_team_conference(team_name),
+        'current_rank': current_rank,
+        'record': f"{basic_stats['wins']}-{basic_stats['losses']}",
+        'scientific_result': scientific_result,
+        'opponent_details': opponent_details,
+        'total_teams_ranked': len(all_teams)
+    }
+    
+    return render_template('public_team_detail.html', **template_data)
+
 
 @app.route('/')
 def index():

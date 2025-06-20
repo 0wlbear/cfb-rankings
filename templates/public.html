@@ -31,7 +31,9 @@
                             {% if logo_url %}
                                 <img src="{{ logo_url }}" alt="{{ team.team }}" style="width: 20px; height: 20px; margin-right: 8px; vertical-align: middle;">
                             {% endif %}
-                            {{ team.team }}
+                            <a href="{{ url_for('public_team_detail', team_name=team.team) }}" class="text-decoration-none">
+                                {{ team.team }}
+                            </a>
                         </td>
                         <td>
                             {% set badge_class = {
@@ -53,7 +55,8 @@
         <div class="text-center mt-4">
             <small class="text-muted">
                 Ranking system by <a href="/admin">CFB Rankings</a> • 
-                <a href="{{ url_for('ranking_methodology') }}">How it works</a>
+                <a href="{{ url_for('ranking_methodology') }}">How it works</a> •
+                Click team names for detailed analysis
             </small>
         </div>
     </div>

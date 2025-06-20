@@ -92,6 +92,45 @@
             </div>
         </div>
 
+        <!-- Rivalry Bonus System -->
+        <div class="card mb-4">
+            <div class="card-header bg-danger text-white">
+                <h3 class="mb-0">🔥 Rivalry Bonus System</h3>
+            </div>
+            <div class="card-body">
+                <p>College football rivalries carry special significance that goes beyond normal games. Our system recognizes this by awarding bonus points for beating traditional rivals.</p>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Tier 1 Rivalries (+1.0 bonus)</h5>
+                        <ul>
+                            <li><strong>Alabama vs Auburn</strong> (Iron Bowl)</li>
+                            <li><strong>Ohio State vs Michigan</strong> (The Game)</li>
+                            <li><strong>Texas vs Oklahoma</strong> (Red River Showdown)</li>
+                            <li><strong>Florida vs Georgia</strong> (World's Largest Outdoor Cocktail Party)</li>
+                            <li><strong>Army vs Navy</strong></li>
+                            <li><strong>USC vs Notre Dame</strong></li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Regular Rivalries (+0.6 bonus)</h5>
+                        <ul>
+                            <li>Conference rivalries (e.g., NC State vs North Carolina)</li>
+                            <li>Regional matchups (e.g., Virginia vs Virginia Tech)</li>
+                            <li>Historic series (e.g., Stanford vs California)</li>
+                            <li>Trophy games across all conferences</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="alert alert-danger mt-3">
+                    <strong>Example:</strong> Auburn beating Alabama by 10 on the road gets 8.0 (opponent quality) × 1.3 (road bonus) + 1.2 (margin bonus) + 1.0 (rivalry bonus) = <strong>12.6 total victory points</strong> vs only 11.6 without the rivalry factor.
+                </div>
+                
+                <p class="mb-0"><small class="text-muted">Rivalries are predefined based on traditional matchups, trophy games, and historic significance. The system tracks over 100+ rivalry pairs across all conferences.</small></p>
+            </div>
+        </div>
+
         <!-- Advanced Factors -->
         <div class="card mb-4">
             <div class="card-header bg-info text-white">
@@ -129,6 +168,7 @@
                             <li>All losses hurt the same</li>
                             <li>Location doesn't matter much</li>
                             <li>Recent form ignored</li>
+                            <li>Rivalry games not differentiated</li>
                             <li>Human bias influences polls</li>
                         </ul>
                     </div>
@@ -139,6 +179,7 @@
                             <li>Loss context heavily considered</li>
                             <li>Road/neutral site games properly weighted</li>
                             <li>Teams getting hot/cold get adjustments</li>
+                            <li>Rivalry wins receive meaningful bonuses</li>
                             <li>100% mathematical - no human bias</li>
                         </ul>
                     </div>
@@ -165,8 +206,8 @@
                         <tbody>
                             <tr class="table-success">
                                 <td>Victory Value</td>
-                                <td>+42.5</td>
-                                <td>8 wins including quality road victories</td>
+                                <td>+44.1</td>
+                                <td>8 wins including quality road victories + 1 rivalry win</td>
                             </tr>
                             <tr class="table-danger">
                                 <td>Loss Penalty</td>
@@ -190,8 +231,8 @@
                             </tr>
                             <tr class="table-primary">
                                 <td><strong>Final Score</strong></td>
-                                <td><strong>38.7</strong></td>
-                                <td>Total ranking score</td>
+                                <td><strong>40.3</strong></td>
+                                <td>Total ranking score (rivalry win added +1.6 total)</td>
                             </tr>
                         </tbody>
                     </table>
@@ -212,6 +253,9 @@
                         
                         <h6><strong>Q: How often do rankings update?</strong></h6>
                         <p><small>A: Rankings update immediately after each game is entered, including retroactive adjustments as opponent strength changes.</small></p>
+                        
+                        <h6><strong>Q: Which games count as rivalries?</strong></h6>
+                        <p><small>A: Traditional rivalries like Alabama-Auburn, Ohio State-Michigan, plus conference rivals and trophy games. Over 100+ rivalry pairs are tracked across all levels.</small></p>
                     </div>
                     <div class="col-md-6">
                         <h6><strong>Q: Does strength of schedule matter?</strong></h6>
@@ -219,6 +263,9 @@
                         
                         <h6><strong>Q: Can I see the detailed breakdown?</strong></h6>
                         <p><small>A: Click on any team name in the rankings to see their detailed game-by-game analysis and component scores.</small></p>
+                        
+                        <h6><strong>Q: How much do rivalry bonuses matter?</strong></h6>
+                        <p><small>A: Rivalry wins provide meaningful but balanced bonuses (0.6-1.0 points). They won't dramatically change rankings but properly reward these important victories.</small></p>
                     </div>
                 </div>
             </div>
