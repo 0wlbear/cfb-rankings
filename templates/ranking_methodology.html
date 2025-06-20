@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}Ranking Methodology - College Football Rankings{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="text-center mb-4">
+            <h2 class="text-primary">🧪 Scientific Ranking Methodology</h2>
+            <p class="text-muted">How our advanced ranking system evaluates college football teams</p>
+        </div>
+
+        <!-- Overview -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">System Goals</h3>
+            </div>
+            <div class="card-body">
+                <p>Our ranking system is designed to:</p>
+                <ul>
+                    <li><strong>Predict head-to-head matchups:</strong> Who would win if two teams played today?</li>
+                    <li><strong>Reward season-long excellence:</strong> Consistent performance over the full season matters</li>
+                    <li><strong>Use pure mathematics:</strong> No subjective opinions, just objective data analysis</li>
+                </ul>
+                <p class="mb-0">Unlike traditional polls that rely on human voters or simple win-loss records, our system analyzes the <em>quality</em> and <em>context</em> of every game played.</p>
+            </div>
+        </div>
+
+        <!-- Main Components -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h3 class="mb-0">🏆 Victory Value System</h3>
+            </div>
+            <div class="card-body">
+                <p>Not all wins are created equal. Each victory is scored based on:</p>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Opponent Quality (1-10 scale)</h5>
+                        <ul>
+                            <li>Dynamic rating based on opponent's wins, losses, and who <em>they</em> beat</li>
+                            <li>Beating an 8-1 ranked team worth much more than beating a 2-7 team</li>
+                            <li>Updates throughout season as opponent records develop</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Game Context</h5>
+                        <ul>
+                            <li><strong>Location:</strong> Road wins worth 30% more, neutral sites 15% more</li>
+                            <li><strong>Margin:</strong> Winning by 14+ shows dominance, but diminishing returns after 21</li>
+                            <li><strong>Conference:</strong> G5 teams beating P4 teams get major bonus</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="alert alert-success mt-3">
+                    <strong>Example:</strong> Beating #5 Georgia by 10 points on the road might be worth 12+ points, while beating a 3-5 team by 3 at home might only be worth 4 points.
+                </div>
+            </div>
+        </div>
+
+        <!-- Loss Assessment -->
+        <div class="card mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h3 class="mb-0">💔 Loss Quality Assessment</h3>
+            </div>
+            <div class="card-body">
+                <p>How you lose matters as much as whether you lose:</p>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Low-Penalty Losses</h5>
+                        <ul>
+                            <li>Close losses (1-3 points) to top-15 teams</li>
+                            <li>Road losses to quality opponents</li>
+                            <li>Overtime/last-second defeats</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>High-Penalty Losses</h5>
+                        <ul>
+                            <li>Home losses by large margins</li>
+                            <li>Losses to significantly weaker opponents</li>
+                            <li>Blowout defeats (21+ points)</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="alert alert-warning mt-3">
+                    <strong>Example:</strong> Losing by 3 to #1 Alabama on the road barely hurts your ranking, while losing by 20 to an unranked team at home is a major penalty.
+                </div>
+            </div>
+        </div>
+
+        <!-- Advanced Factors -->
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h3 class="mb-0">📊 Advanced Factors</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <h5>Recent Form</h5>
+                        <p>Teams that are "hot" or "cold" get appropriate adjustments. A team winning their last 4 games by larger margins than their season average gets a boost.</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h5>Consistency</h5>
+                        <p>Reliable teams get a small bonus for predictability in head-to-head matchups. Teams with wildly inconsistent performance get a small penalty.</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h5>Games Played</h5>
+                        <p>Teams with more games get a small bonus for having a larger body of work to evaluate (up to 13 games).</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- How It's Different -->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h3 class="mb-0">🔄 How This Differs from Other Systems</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Traditional Rankings</h5>
+                        <ul>
+                            <li>All P4 wins treated equally</li>
+                            <li>All losses hurt the same</li>
+                            <li>Location doesn't matter much</li>
+                            <li>Recent form ignored</li>
+                            <li>Human bias influences polls</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Our Scientific System</h5>
+                        <ul>
+                            <li>Each opponent gets individual quality score</li>
+                            <li>Loss context heavily considered</li>
+                            <li>Road/neutral site games properly weighted</li>
+                            <li>Teams getting hot/cold get adjustments</li>
+                            <li>100% mathematical - no human bias</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sample Calculation -->
+        <div class="card mb-4">
+            <div class="card-header bg-dark text-white">
+                <h3 class="mb-0">🧮 Sample Team Breakdown</h3>
+            </div>
+            <div class="card-body">
+                <h5>Hypothetical Team: 8-2 Record</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Component</th>
+                                <th>Value</th>
+                                <th>Explanation</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="table-success">
+                                <td>Victory Value</td>
+                                <td>+42.5</td>
+                                <td>8 wins including quality road victories</td>
+                            </tr>
+                            <tr class="table-danger">
+                                <td>Loss Penalty</td>
+                                <td>-6.8</td>
+                                <td>One close loss to top team, one bad home loss</td>
+                            </tr>
+                            <tr class="table-info">
+                                <td>Recent Form</td>
+                                <td>+1.2</td>
+                                <td>Won last 3 games by increasing margins</td>
+                            </tr>
+                            <tr class="table-warning">
+                                <td>Consistency</td>
+                                <td>+0.3</td>
+                                <td>Reliable performance vs similar opponents</td>
+                            </tr>
+                            <tr class="table-light">
+                                <td>Games Played</td>
+                                <td>+1.5</td>
+                                <td>10 games played so far</td>
+                            </tr>
+                            <tr class="table-primary">
+                                <td><strong>Final Score</strong></td>
+                                <td><strong>38.7</strong></td>
+                                <td>Total ranking score</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- FAQ -->
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h3 class="mb-0">❓ Frequently Asked Questions</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><strong>Q: Why isn't the undefeated team #1?</strong></h6>
+                        <p><small>A: An undefeated team with weak opponents might rank below a 1-loss team with several top-10 wins. Quality matters more than quantity.</small></p>
+                        
+                        <h6><strong>Q: How often do rankings update?</strong></h6>
+                        <p><small>A: Rankings update immediately after each game is entered, including retroactive adjustments as opponent strength changes.</small></p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><strong>Q: Does strength of schedule matter?</strong></h6>
+                        <p><small>A: Yes, but it's built into the opponent quality scores rather than calculated separately. Playing tough opponents naturally increases your victory values.</small></p>
+                        
+                        <h6><strong>Q: Can I see the detailed breakdown?</strong></h6>
+                        <p><small>A: Click on any team name in the rankings to see their detailed game-by-game analysis and component scores.</small></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Back Link -->
+        <div class="text-center">
+            <a href="{{ url_for('public_rankings') }}" class="btn btn-primary">
+                <i class="fas fa-arrow-left"></i> Back to Rankings
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
