@@ -941,7 +941,11 @@ def admin():
     # Sort by Adjusted Total (highest first)
     comprehensive_stats.sort(key=lambda x: x['adjusted_total'], reverse=True)
     
-    return render_template('admin.html', comprehensive_stats=comprehensive_stats, recent_games=games_data[-10:])
+    return render_template('admin.html', 
+                         comprehensive_stats=comprehensive_stats, 
+                         recent_games=games_data[-10:],
+                         games_data=games_data,
+                         historical_rankings=historical_rankings)
 
 @app.route('/team/<team_name>')
 def team_detail(team_name):
@@ -1245,6 +1249,146 @@ def load_historical_data():
         historical_rankings = []
 
 
+# Season Archive System
+def archive_current_season(season_name):
+    """Archive the current season's complete data"""
+    try:
+        # Create archives directory
+        archives_dir = os.path.join(DATA_DIR, 'archives')
+        os.makedirs(archives_dir, exist_ok=True)
+        
+        # Get current comprehensive stats for final rankings
+        final_rankings = []
+        for conf_name, teams in CONFERENCES.items():
+            for team in teams:
+                stats = calculate_comprehensive_stats(team)
+                stats['team'] = team
+                stats['conference'] = conf_name
+                final_rankings.append(stats)
+        
+        # Sort by Adjusted Total (highest first) 
+        final_rankings.sort(key=lambda x: x['adjusted_total'], reverse=True)
+        
+        # Add rank numbers
+        for rank, team_data in enumerate(final_rankings, 1):
+            team_data['final_rank'] = rank
+        
+        # Convert team_stats defaultdict to regular dict for JSON serialization
+        team_stats_dict = {}
+        for team, stats in team_stats.items():
+            team_stats_dict[team] = dict(stats)
+        
+        # Create complete season archive
+        season_archive = {
+            'season_name': season_name,
+            'archived_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'total_games': len(games_data),
+            'total_teams_with_games': len([team for team, stats in team_stats.items() if stats['wins'] + stats['losses'] > 0]),
+            'games_data': games_data,
+            'team_stats': team_stats_dict,
+            'historical_rankings': historical_rankings,
+            'final_rankings': final_rankings[:25],  # Top 25 final rankings
+            'season_summary': {
+                'champion': final_rankings[0] if final_rankings else None,
+                'total_weeks': len(historical_rankings),
+                'conferences_represented': len(set(team['conference'] for team in final_rankings[:25] if final_rankings))
+            }
+        }
+        
+        # Save archive file
+        archive_filename = f"{season_name.replace(' ', '_').lower()}_complete.json"
+        archive_path = os.path.join(archives_dir, archive_filename)
+        
+        with open(archive_path, 'w') as f:
+            json.dump(season_archive, f, indent=2)
+        
+        print(f"✅ Season '{season_name}' archived successfully to {archive_filename}")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error archiving season: {e}")
+        return False
+
+def load_archived_seasons():
+    """Load list of all archived seasons"""
+    try:
+        archives_dir = os.path.join(DATA_DIR, 'archives')
+        if not os.path.exists(archives_dir):
+            return []
+        
+        archived_seasons = []
+        for filename in os.listdir(archives_dir):
+            if filename.endswith('_complete.json'):
+                try:
+                    archive_path = os.path.join(archives_dir, filename)
+                    with open(archive_path, 'r') as f:
+                        archive_data = json.load(f)
+                    
+                    # Extract summary info
+                    season_info = {
+                        'filename': filename,
+                        'season_name': archive_data.get('season_name', 'Unknown Season'),
+                        'archived_date': archive_data.get('archived_date', 'Unknown Date'),
+                        'total_games': archive_data.get('total_games', 0),
+                        'total_teams': archive_data.get('total_teams_with_games', 0),
+                        'champion': archive_data.get('season_summary', {}).get('champion', {}).get('team', 'Unknown') if archive_data.get('season_summary', {}).get('champion') else 'No Champion',
+                        'total_weeks': archive_data.get('season_summary', {}).get('total_weeks', 0)
+                    }
+                    archived_seasons.append(season_info)
+                except Exception as e:
+                    print(f"Error reading archive {filename}: {e}")
+                    continue
+        
+        # Sort by archived date (newest first)
+        archived_seasons.sort(key=lambda x: x['archived_date'], reverse=True)
+        return archived_seasons
+        
+    except Exception as e:
+        print(f"Error loading archived seasons: {e}")
+        return []
+
+def load_archived_season_details(filename):
+    """Load complete details of a specific archived season"""
+    try:
+        archives_dir = os.path.join(DATA_DIR, 'archives')
+        archive_path = os.path.join(archives_dir, filename)
+        
+        with open(archive_path, 'r') as f:
+            return json.load(f)
+            
+    except Exception as e:
+        print(f"Error loading archived season details: {e}")
+        return None
+
+def safe_reset_season():
+    """Reset current season data (only call after archiving!)"""
+    global games_data, team_stats, historical_rankings
+    
+    games_data = []
+    team_stats = defaultdict(lambda: {
+        'wins': 0, 'losses': 0, 'points_for': 0, 'points_against': 0,
+        'p4_wins': 0, 'p4_losses': 0, 'g5_wins': 0, 'g5_losses': 0,
+        'home_wins': 0, 'road_wins': 0, 'margin_of_victory_total': 0,
+        'games': []
+    })
+    historical_rankings = []
+    
+    # Delete current season files (archives are preserved)
+    try:
+        files_to_remove = ['games_data.json', 'team_stats.json', 'historical_rankings.json']
+        for filename in files_to_remove:
+            file_path = os.path.join(DATA_DIR, filename)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+        print("🗑️ Current season data reset successfully")
+        return True
+    except Exception as e:
+        print(f"Error resetting season data: {e}")
+        return False
+
+
+
+
 @app.route('/health')
 def health_check():
     """Health check endpoint for load balancers"""
@@ -1269,7 +1413,132 @@ def login():
 def logout():
     session.pop('admin_logged_in', None)
     flash('Logged out successfully!', 'success')
-    return redirect(url_for('public_rankings'))    
+    return redirect(url_for('public_rankings')) 
+
+@app.route('/archive_season', methods=['POST'])
+@login_required
+def archive_season():
+    """Archive the current season"""
+    try:
+        season_name = request.form.get('season_name', '').strip()
+        if not season_name:
+            flash('Please enter a season name!', 'error')
+            return redirect(url_for('admin'))
+        
+        # Check if season has any data
+        if len(games_data) == 0:
+            flash('No games to archive! Add some games first.', 'error')
+            return redirect(url_for('admin'))
+        
+        # Archive the season
+        if archive_current_season(season_name):
+            flash(f'✅ Season "{season_name}" archived successfully! You can now safely start a new season.', 'success')
+        else:
+            flash('❌ Error archiving season. Please try again.', 'error')
+            
+    except Exception as e:
+        flash(f'Error archiving season: {e}', 'error')
+    
+    return redirect(url_for('admin'))
+
+@app.route('/archived_seasons')
+def archived_seasons():
+    """View list of all archived seasons"""
+    archived_seasons_list = load_archived_seasons()
+    return render_template('archived_seasons.html', archived_seasons=archived_seasons_list)
+
+@app.route('/archived_season/<filename>')
+def view_archived_season(filename):
+    """View details of a specific archived season"""
+    # Security check - ensure filename is safe
+    if not filename.endswith('_complete.json') or '/' in filename or '\\' in filename:
+        flash('Invalid archive file!', 'error')
+        return redirect(url_for('archived_seasons'))
+    
+    season_data = load_archived_season_details(filename)
+    if not season_data:
+        flash('Could not load archived season data!', 'error')
+        return redirect(url_for('archived_seasons'))
+    
+    return render_template('archived_season_detail.html', season_data=season_data)
+
+@app.route('/delete_archived_season', methods=['POST'])
+@login_required
+def delete_archived_season():
+    """Delete a specific archived season"""
+    try:
+        filename = request.form.get('filename', '').strip()
+        confirm_text = request.form.get('delete_confirm', '').strip()
+        
+        # Security checks
+        if not filename.endswith('_complete.json') or '/' in filename or '\\' in filename:
+            flash('Invalid archive file!', 'error')
+            return redirect(url_for('archived_seasons'))
+        
+        if confirm_text != 'DELETE':
+            flash('Delete confirmation failed. Please type DELETE exactly.', 'error')
+            return redirect(url_for('archived_seasons'))
+        
+        # Check if file exists
+        archives_dir = os.path.join(DATA_DIR, 'archives')
+        archive_path = os.path.join(archives_dir, filename)
+        
+        if not os.path.exists(archive_path):
+            flash('Archive file not found!', 'error')
+            return redirect(url_for('archived_seasons'))
+        
+        # Load season name for confirmation message
+        try:
+            with open(archive_path, 'r') as f:
+                archive_data = json.load(f)
+            season_name = archive_data.get('season_name', 'Unknown Season')
+        except:
+            season_name = 'Unknown Season'
+        
+        # Delete the file
+        os.remove(archive_path)
+        flash(f'✅ Archived season "{season_name}" deleted successfully.', 'success')
+        
+    except Exception as e:
+        flash(f'Error deleting archived season: {e}', 'error')
+    
+    return redirect(url_for('archived_seasons'))
+
+
+@app.route('/safe_reset_data', methods=['POST'])
+@login_required
+def safe_reset_data():
+    """Safely reset data with archive confirmation"""
+    try:
+        confirm_text = request.form.get('reset_confirm', '').strip()
+        if confirm_text != 'RESET':
+            flash('Reset confirmation failed. Please type RESET exactly.', 'error')
+            return redirect(url_for('admin'))
+        
+        # Check if current season has been archived
+        current_games_count = len(games_data)
+        if current_games_count > 0:
+            archived_seasons_list = load_archived_seasons()
+            if not archived_seasons_list:
+                flash('⚠️ You have games but no archived seasons! Please archive the current season first before resetting.', 'error')
+                return redirect(url_for('admin'))
+            
+            # Check if latest archive is recent and has similar game count
+            latest_archive = archived_seasons_list[0] if archived_seasons_list else None
+            if latest_archive and abs(latest_archive['total_games'] - current_games_count) > 5:
+                flash('⚠️ Current data differs significantly from latest archive. Please create a new archive first.', 'error')
+                return redirect(url_for('admin'))
+        
+        # Perform the reset
+        if safe_reset_season():
+            flash('🗑️ Season data reset successfully! All previous seasons remain archived.', 'success')
+        else:
+            flash('❌ Error resetting season data.', 'error')
+            
+    except Exception as e:
+        flash(f'Error resetting data: {e}', 'error')
+    
+    return redirect(url_for('admin'))   
 
 
 
