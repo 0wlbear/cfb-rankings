@@ -40,8 +40,10 @@ jobs:
           if python -c "from app import app; print('✅ Import test passed')" 2>/dev/null; then
               echo "✅ New code validated"
               
-              # Copy new version
+              # Copy new version and templates
               cp /home/ubuntu/cfb-app-git/app.py /home/ubuntu/cfb-app/
+              cp -r /home/ubuntu/cfb-app-git/templates/ /home/ubuntu/cfb-app/
+              echo "✅ App and templates copied"
               
               # Create environment file with GitHub secrets
               echo "ADMIN_USERNAME=$ADMIN_USERNAME" | sudo tee /home/ubuntu/cfb-app/.env
@@ -59,13 +61,7 @@ jobs:
                   echo "✅ Service updated to use environment file"
               fi
               
-              # Regenerate templates
-              cd /home/ubuntu/cfb-app
-              source venv/bin/activate
-              mkdir -p templates
-              rm -f templates/*
-              python -c "from app import create_templates; create_templates()"
-              echo "✅ Templates regenerated"
+              echo "✅ Templates already in place, no generation needed"
               
               # Restart service
               sudo systemctl daemon-reload
