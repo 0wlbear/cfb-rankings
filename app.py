@@ -1029,52 +1029,125 @@ def get_conference_champions():
     return champions
 
 def generate_cfp_bracket():
-    """Generate 12-team CFP bracket based on current rankings - using real wins"""
-    # Get all teams ranked by adjusted total
-    all_teams = []
-    for conf_name, teams in CONFERENCES.items():
-        for team in teams:
-            stats = calculate_comprehensive_stats(team)
-            
-            # Calculate real wins (excluding FCS)
-            real_wins = 0
-            for game in team_stats[team]['games']:
-                if game['result'] == 'W' and not is_fcs_opponent(game['opponent']):
-                    real_wins += 1
-            
-            stats['team'] = team
-            stats['conference'] = conf_name
-            stats['real_wins'] = real_wins  # Add real wins to stats
-            all_teams.append(stats)
-    
-    # Sort by adjusted total (highest first)
-    all_teams.sort(key=lambda x: x['adjusted_total'], reverse=True)
-    
-    # Get conference champions (using real wins for eligibility)
-    champions = get_conference_champions()
-    
-    # Step 1: Get the top 5 ranked conference champions (automatic qualifiers)
-    automatic_qualifiers = []
-    for team in all_teams:
-        if team['conference'] in champions and champions[team['conference']]['team'] == team['team']:
-            automatic_qualifiers.append(team)
-            if len(automatic_qualifiers) == 5:
-                break
-    
-    # Step 2: Get the top 12 teams overall
-    top_12_teams = all_teams[:12].copy()
-    
-    # Continue with existing CFP logic...
-    # (rest of the function stays the same)
-    
-    # For display purposes, show both real wins and total wins
-    for team in top_12_teams:
-        team['display_record'] = f"{team['real_wins']}-{team['total_losses']}"
-        if team['total_wins'] > team['real_wins']:
-            team['display_record'] += f" ({team['total_wins']}-{team['total_losses']} including FCS)"
-    
-    # Step 5: First Round Byes and bracket structure (existing code continues...)
-    # ... rest of function unchanged
+    """Generate 12-team CFP bracket based on current rankings - FIXED VERSION"""
+    try:
+        # Get all teams ranked by adjusted total
+        all_teams = []
+        for conf_name, teams in CONFERENCES.items():
+            for team in teams:
+                stats = calculate_comprehensive_stats(team)
+                
+                # Calculate real wins (excluding FCS) for display
+                real_wins = 0
+                total_wins = stats['total_wins']
+                if team in team_stats:
+                    for game in team_stats[team]['games']:
+                        if game['result'] == 'W' and not is_fcs_opponent(game['opponent']):
+                            real_wins += 1
+                else:
+                    real_wins = total_wins  # Fallback if no game data
+                
+                team_data = {
+                    'team': team,
+                    'conference': conf_name,
+                    'total_wins': total_wins,
+                    'total_losses': stats['total_losses'],
+                    'real_wins': real_wins,
+                    'adjusted_total': stats['adjusted_total']
+                }
+                all_teams.append(team_data)
+        
+        # Sort by adjusted total (highest first)
+        all_teams.sort(key=lambda x: x['adjusted_total'], reverse=True)
+        
+        # Get conference champions (using existing function)
+        champions = get_conference_champions()
+        
+        # Ensure we have at least some teams to work with
+        if len(all_teams) < 4:
+            # Return minimal bracket if not enough teams
+            return {
+                'first_round_byes': all_teams[:4] if len(all_teams) >= 4 else all_teams,
+                'first_round_games': [],
+                'all_teams': all_teams[:12] if len(all_teams) >= 12 else all_teams,
+                'automatic_qualifiers': [],
+                'at_large_display': [],
+                'conference_champions': champions if champions else {}
+            }
+        
+        # Step 1: Get the top 5 ranked conference champions (automatic qualifiers)
+        automatic_qualifiers = []
+        for team in all_teams:
+            if team['conference'] in champions and champions[team['conference']]['team'] == team['team']:
+                automatic_qualifiers.append(team)
+                if len(automatic_qualifiers) == 5:
+                    break
+        
+        # Step 2: Get the top 12 teams overall
+        top_12_teams = all_teams[:12].copy() if len(all_teams) >= 12 else all_teams.copy()
+        
+        # Step 3: Ensure all auto-qualifiers are in the playoff
+        auto_qualifier_names = {team['team'] for team in automatic_qualifiers}
+        
+        # Find auto-qualifiers not in top 12
+        missing_auto_qualifiers = [team for team in automatic_qualifiers if team['team'] not in [t['team'] for t in top_12_teams]]
+        
+        # Replace lowest-ranked non-auto-qualifiers with missing auto-qualifiers
+        for missing_team in missing_auto_qualifiers:
+            # Find the lowest-ranked team in top_12 that's not an auto-qualifier
+            for i in range(len(top_12_teams) - 1, -1, -1):  # Start from bottom
+                if top_12_teams[i]['team'] not in auto_qualifier_names:
+                    top_12_teams[i] = missing_team
+                    break
+        
+        # Step 4: Sort the final teams and assign seeds 1-12
+        playoff_teams = top_12_teams
+        playoff_teams.sort(key=lambda x: x['adjusted_total'], reverse=True)
+        
+        for i, team in enumerate(playoff_teams):
+            team['seed'] = i + 1
+        
+        # Step 5: First Round Byes go to TOP 4 TEAMS (seeds 1-4)
+        first_round_byes = playoff_teams[:4]
+        
+        # At-Large Display: Seeds 5-12
+        at_large_display = playoff_teams[4:] if len(playoff_teams) > 4 else []
+        
+        # Generate first round games if we have enough teams
+        first_round_games = []
+        if len(playoff_teams) >= 8:
+            first_round_games = [
+                {'higher_seed': playoff_teams[4], 'lower_seed': playoff_teams[11], 'game_num': 1} if len(playoff_teams) > 11 else None,
+                {'higher_seed': playoff_teams[5], 'lower_seed': playoff_teams[10], 'game_num': 2} if len(playoff_teams) > 10 else None,
+                {'higher_seed': playoff_teams[6], 'lower_seed': playoff_teams[9], 'game_num': 3} if len(playoff_teams) > 9 else None,
+                {'higher_seed': playoff_teams[7], 'lower_seed': playoff_teams[8], 'game_num': 4} if len(playoff_teams) > 8 else None,
+            ]
+            # Remove None entries
+            first_round_games = [game for game in first_round_games if game is not None]
+        
+        # Generate bracket structure
+        bracket = {
+            'first_round_byes': first_round_byes,
+            'first_round_games': first_round_games,
+            'all_teams': playoff_teams,
+            'automatic_qualifiers': automatic_qualifiers,
+            'at_large_display': at_large_display,
+            'conference_champions': champions if champions else {}
+        }
+        
+        return bracket
+        
+    except Exception as e:
+        print(f"Error in generate_cfp_bracket: {e}")
+        # Return safe fallback bracket
+        return {
+            'first_round_byes': [],
+            'first_round_games': [],
+            'all_teams': [],
+            'automatic_qualifiers': [],
+            'at_large_display': [],
+            'conference_champions': {}
+        }
 
 
 # ===============================================
