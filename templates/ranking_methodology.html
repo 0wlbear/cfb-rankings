@@ -92,6 +92,83 @@
             </div>
         </div>
 
+        <!-- FCS Game Policy -->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h3 class="mb-0">🎓 FCS Game Policy</h3>
+            </div>
+            <div class="card-body">
+                <p>Games against FCS (Football Championship Subdivision) opponents are treated as "gimme" wins with severely limited ranking credit and <strong>do not count toward bowl eligibility</strong>:</p>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>FCS Game Penalties</h5>
+                        <ul>
+                            <li><strong>Bowl Eligibility:</strong> FCS wins don't count toward 6-win requirement</li>
+                            <li><strong>Opponent Quality:</strong> Fixed at 0.5/10 (extremely low)</li>
+                            <li><strong>No Location Bonus:</strong> Road wins vs FCS get no extra credit</li>
+                            <li><strong>Minimal Margin Bonus:</strong> Maximum 0.2 points regardless of score</li>
+                            <li><strong>No Conference/Rivalry Bonuses:</strong> FCS games can't be rivalries</li>
+                            <li><strong>Hard Cap:</strong> Maximum 1.0 total victory points</li>
+                        </ul>
+                        
+                        <h5 class="mt-3">Bowl Eligibility Examples</h5>
+                        <table class="table table-sm">
+                            <tr>
+                                <td>Team A: 6-6 (all FBS wins)</td>
+                                <td class="text-success"><strong>Bowl Eligible ✅</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Team B: 6-6 (5 FBS + 1 FCS)</td>
+                                <td class="text-danger"><strong>Not Eligible ❌</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Team C: 7-5 (6 FBS + 1 FCS)</td>
+                                <td class="text-success"><strong>Bowl Eligible ✅</strong></td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Victory Value Comparison</h5>
+                        <table class="table table-sm">
+                            <tr>
+                                <td>Beat Top-10 Team (Road)</td>
+                                <td class="text-success"><strong>10+ points</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Beat Average P4 Team (Home)</td>
+                                <td class="text-primary"><strong>5-7 points</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Beat Good G5 Team (Road)</td>
+                                <td class="text-info"><strong>4-6 points</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Beat FCS Team by 50</td>
+                                <td class="text-muted"><strong>0.7 points</strong></td>
+                            </tr>
+                        </table>
+                        
+                        <h5 class="mt-3">FCS Calculation Example</h5>
+                        <div class="small">
+                            <p><strong>Beat FCS 42-7 at home:</strong></p>
+                            <ul class="small">
+                                <li>Base Value: 0.5 (quality) × 1.0 (no location bonus) = 0.5</li>
+                                <li>Margin Bonus: 0.2 (capped regardless of 35-point win)</li>
+                                <li>Conference Bonus: 0.0 (none for FCS)</li>
+                                <li>Rivalry Bonus: 0.0 (FCS can't be rivals)</li>
+                                <li><strong>Total: 0.7 points</strong> (vs 7+ for real teams)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-warning mt-3">
+                    <strong>Why This Policy:</strong> FCS teams compete at a lower division level with smaller scholarships and budgets. While these games may help win totals, they don't count toward bowl eligibility and provide minimal ranking benefit. Teams must earn 6 wins against FBS-level competition to qualify for bowl games and demonstrate true strength.
+                </div>
+            </div>
+        </div>
+
         <!-- Rivalry Bonus System -->
         <div class="card mb-4">
             <div class="card-header bg-danger text-white">
@@ -109,7 +186,7 @@
                             <li><strong>Texas vs Oklahoma</strong> (Red River Showdown)</li>
                             <li><strong>Florida vs Georgia</strong> (World's Largest Outdoor Cocktail Party)</li>
                             <li><strong>Army vs Navy</strong></li>
-                            <li><strong>USC vs Notre Dame</strong></li>
+                            <li><strong>USC vs UCLA</strong> (Battle for Los Angeles)</li>
                         </ul>
                     </div>
                     <div class="col-md-6">
