@@ -1367,6 +1367,32 @@ def create_templates():
     <!-- Hidden form for reset data -->
     <form id="resetForm" method="POST" action="{{ url_for('reset_data') }}" style="display: none;">
     </form>
+
+    <!-- Reset Confirmation Modal -->
+    <div class="modal fade" id="resetModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">⚠️ Confirm Data Reset</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger">
+                        <strong>WARNING:</strong> This will permanently delete ALL games, statistics, and historical data. This action cannot be undone.
+                    </div>
+                    <p>To confirm this action, please type <strong>RESET</strong> in the box below:</p>
+                    <input type="text" class="form-control" id="resetConfirmInput" placeholder="Type RESET to confirm">
+                    <div class="invalid-feedback" id="resetError">
+                        Please type "RESET" exactly as shown above.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmResetBtn" disabled>Reset All Data</button>
+                </div>
+            </div>
+        </div>
+    </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
@@ -1432,10 +1458,54 @@ def create_templates():
         
         // Reset data confirmation
         function confirmReset() {
-            if (confirm('Are you sure you want to reset all data? This will delete all games and statistics. This action cannot be undone.')) {
-                document.getElementById('resetForm').submit();
-            }
+            // Show the modal instead of a simple confirm
+            const resetModal = new bootstrap.Modal(document.getElementById('resetModal'));
+            resetModal.show();
         }
+
+        // Handle reset confirmation modal
+        document.addEventListener('DOMContentLoaded', function() {
+            const resetInput = document.getElementById('resetConfirmInput');
+            const confirmBtn = document.getElementById('confirmResetBtn');
+            const resetError = document.getElementById('resetError');
+
+            // Check input in real-time
+            resetInput.addEventListener('input', function() {
+                const inputValue = this.value.trim();
+                
+                if (inputValue === 'RESET') {
+                    confirmBtn.disabled = false;
+                    confirmBtn.classList.remove('disabled');
+                    this.classList.remove('is-invalid');
+                    resetError.style.display = 'none';
+                } else {
+                    confirmBtn.disabled = true;
+                    confirmBtn.classList.add('disabled');
+                    if (inputValue.length > 0) {
+                        this.classList.add('is-invalid');
+                        resetError.style.display = 'block';
+                    } else {
+                        this.classList.remove('is-invalid');
+                        resetError.style.display = 'none';
+                    }
+                }
+            });
+
+            // Handle the final confirmation
+            confirmBtn.addEventListener('click', function() {
+                if (resetInput.value.trim() === 'RESET') {
+                    document.getElementById('resetForm').submit();
+                }
+            });
+
+            // Clear input when modal is hidden
+            document.getElementById('resetModal').addEventListener('hidden.bs.modal', function() {
+                resetInput.value = '';
+                resetInput.classList.remove('is-invalid');
+                confirmBtn.disabled = true;
+                resetError.style.display = 'none';
+            });
+        });
     </script>
 </body>
 </html>"""
@@ -2081,8 +2151,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 {% else %}
                     <div class="text-center text-muted py-5">
                         <h5>No games recorded for Week {{ selected_week }}</h5>
-                        <p>Games will appear here once you add them for this week.</p>
-                        <a href="{{ url_for('add_game') }}" class="btn btn-primary">Add Game</a>
+                        <p>Check back later for game results.</p>
                     </div>
                 {% endif %}
             </div>
