@@ -1540,6 +1540,122 @@ def safe_reset_data():
     
     return redirect(url_for('admin'))   
 
+@app.route('/import_csv', methods=['GET', 'POST'])
+@login_required
+def import_csv():
+    """Import final rankings from CSV file"""
+    if request.method == 'GET':
+        return render_template('import_csv.html')
+    
+    try:
+        season_name = request.form.get('season_name', '').strip()
+        if not season_name:
+            flash('Please enter a season name!', 'error')
+            return redirect(url_for('import_csv'))
+        
+        # Check if file was uploaded
+        if 'csv_file' not in request.files:
+            flash('Please select a CSV file!', 'error')
+            return redirect(url_for('import_csv'))
+        
+        file = request.files['csv_file']
+        if file.filename == '':
+            flash('Please select a CSV file!', 'error')
+            return redirect(url_for('import_csv'))
+        
+        if not file.filename.endswith('.csv'):
+            flash('Please upload a CSV file!', 'error')
+            return redirect(url_for('import_csv'))
+        
+        # Read and parse CSV
+        import csv
+        import io
+        
+        # Read file content
+        file_content = file.read().decode('utf-8')
+        csv_data = list(csv.DictReader(io.StringIO(file_content)))
+        
+        if not csv_data:
+            flash('CSV file is empty!', 'error')
+            return redirect(url_for('import_csv'))
+        
+        # Validate required columns
+        required_cols = ['Rank', 'Team', 'Conference', 'Wins', 'Losses', 'Adjusted_Total']
+        missing_cols = [col for col in required_cols if col not in csv_data[0].keys()]
+        if missing_cols:
+            flash(f'Missing required columns: {", ".join(missing_cols)}', 'error')
+            return redirect(url_for('import_csv'))
+        
+        # Process the data
+        final_rankings = []
+        for row in csv_data:
+            try:
+                team_data = {
+                    'final_rank': int(row['Rank']),
+                    'team': row['Team'].strip(),
+                    'conference': row['Conference'].strip(),
+                    'total_wins': int(row['Wins']),
+                    'total_losses': int(row['Losses']),
+                    'adjusted_total': float(row['Adjusted_Total']),
+                    'p4_wins': int(row.get('P4_Wins', 0)) if row.get('P4_Wins', '').strip() else 0,
+                    'g5_wins': int(row.get('G5_Wins', 0)) if row.get('G5_Wins', '').strip() else 0,
+                    'strength_of_schedule': 0.500,  # Default value
+                    'points_fielded': 0,  # Not available from CSV
+                    'points_allowed': 0,  # Not available from CSV
+                    'margin_of_victory': 0,  # Not available from CSV
+                    'point_differential': 0,  # Not available from CSV
+                    'home_wins': 0,  # Not available from CSV
+                    'road_wins': 0,  # Not available from CSV
+                    'opp_w': 0,  # Not available from CSV
+                    'opp_l': 0,  # Not available from CSV
+                    'opp_wl_differential': 0,  # Not available from CSV
+                    'totals': float(row['Adjusted_Total'])  # Use adjusted total as totals
+                }
+                final_rankings.append(team_data)
+            except (ValueError, KeyError) as e:
+                flash(f'Error processing row {row.get("Rank", "?")}: {e}', 'error')
+                return redirect(url_for('import_csv'))
+        
+        # Sort by rank to ensure proper order
+        final_rankings.sort(key=lambda x: x['final_rank'])
+        
+        # Create the archive structure
+        import_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        season_archive = {
+            'season_name': season_name,
+            'archived_date': import_date,
+            'total_games': 0,  # Unknown from CSV import
+            'total_teams_with_games': len(final_rankings),
+            'games_data': [],  # No individual games from CSV
+            'team_stats': {},  # No detailed stats from CSV
+            'historical_rankings': [],  # No weekly data from CSV
+            'final_rankings': final_rankings,
+            'season_summary': {
+                'champion': final_rankings[0] if final_rankings else None,
+                'total_weeks': 0,  # Unknown from CSV
+                'conferences_represented': len(set(team['conference'] for team in final_rankings)),
+                'import_source': 'CSV Import',
+                'import_date': import_date
+            }
+        }
+        
+        # Save the archive
+        archives_dir = os.path.join(DATA_DIR, 'archives')
+        os.makedirs(archives_dir, exist_ok=True)
+        
+        archive_filename = f"{season_name.replace(' ', '_').lower()}_complete.json"
+        archive_path = os.path.join(archives_dir, archive_filename)
+        
+        with open(archive_path, 'w') as f:
+            json.dump(season_archive, f, indent=2)
+        
+        flash(f'✅ Successfully imported {len(final_rankings)} teams for "{season_name}"!', 'success')
+        return redirect(url_for('archived_seasons'))
+        
+    except Exception as e:
+        flash(f'Error importing CSV: {e}', 'error')
+        return redirect(url_for('import_csv'))
 
 
 if __name__ == '__main__':
