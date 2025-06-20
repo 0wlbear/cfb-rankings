@@ -1592,8 +1592,7 @@ def calculate_scientific_ranking(team_name):
 
 def calculate_comprehensive_stats(team_name):
     """
-    REPLACEMENT for old function - now uses scientific ranking system
-    but maintains same return format for compatibility with existing templates
+    Calculate comprehensive stats - UPDATED to remove P4/G5 legacy fields
     """
     scientific_result = calculate_scientific_ranking(team_name)
     
@@ -1622,20 +1621,19 @@ def calculate_comprehensive_stats(team_name):
         # NEW: Scientific score as main ranking
         'adjusted_total': scientific_result['total_score'],
         
-        # LEGACY: Keep all old fields for template compatibility
+        # LEGACY: Keep all old fields for template compatibility (except P4/G5)
         'points_fielded': stats['points_for'],
         'points_allowed': stats['points_against'],
         'margin_of_victory': stats['margin_of_victory_total'],
         'point_differential': point_differential,
         'home_wins': stats['home_wins'],
         'road_wins': stats['road_wins'],
-        'p4_wins': stats['p4_wins'],
-        'g5_wins': stats['g5_wins'],
+        # REMOVED: 'p4_wins': stats['p4_wins'], 'g5_wins': stats['g5_wins'],
         'opp_w': opponent_total_wins,
         'opp_l': opponent_total_losses,
         'strength_of_schedule': round(strength_of_schedule, 3),
         'opp_wl_differential': opp_wl_differential,
-        'totals': scientific_result['components']['victory_value'],  # Map victory value to totals
+        'totals': scientific_result['components']['victory_value'],
         'total_wins': stats['wins'],
         'total_losses': stats['losses'],
         
@@ -1644,8 +1642,13 @@ def calculate_comprehensive_stats(team_name):
     }
 
 
-def update_team_stats(team, opponent, team_score, opp_score, team_game_type, is_home, is_neutral_site=False):
-    """Update team statistics after a game"""
+def update_team_stats_simplified(team, opponent, team_score, opp_score, is_home, is_neutral_site=False):
+    """Update team statistics after a game - SIMPLIFIED without game types"""
+    
+    # Special case: Don't update stats for FCS placeholder team
+    if team == 'FCS' or team.upper() == 'FCS':
+        return
+    
     # Determine win/loss and margin of victory
     if team_score > opp_score:
         team_stats[team]['wins'] += 1
@@ -1658,18 +1661,11 @@ def update_team_stats(team, opponent, team_score, opp_score, team_game_type, is_
                 team_stats[team]['home_wins'] += 1
             else:
                 team_stats[team]['road_wins'] += 1
-            
-        # Track P4/G5 wins
-        if team_game_type == 'P4':
-            team_stats[team]['p4_wins'] += 1
-        elif team_game_type == 'G5':
-            team_stats[team]['g5_wins'] += 1
+        
+        # REMOVED: P4/G5 win tracking (no longer needed)
     else:
         team_stats[team]['losses'] += 1
-        if team_game_type == 'P4':
-            team_stats[team]['p4_losses'] += 1
-        elif team_game_type == 'G5':
-            team_stats[team]['g5_losses'] += 1
+        # REMOVED: P4/G5 loss tracking (no longer needed)
     
     # Update points
     team_stats[team]['points_for'] += team_score
@@ -1683,12 +1679,11 @@ def update_team_stats(team, opponent, team_score, opp_score, team_game_type, is_
     else:
         location = 'Away'
     
-    # Add game to history
+    # Add game to history - SIMPLIFIED
     team_stats[team]['games'].append({
         'opponent': opponent,
         'team_score': team_score,
         'opp_score': opp_score,
-        'game_type': team_game_type,
         'result': 'W' if team_score > opp_score else 'L',
         'home_away': location
     })
@@ -2253,14 +2248,12 @@ def index():
 def add_game():
     if request.method == 'POST':
         try:
-            # Get form data
+            # Get form data - REMOVED game type fields
             week = request.form['week']
             home_team = request.form['home_team']
             away_team = request.form['away_team']
             home_score = int(request.form['home_score'])
             away_score = int(request.form['away_score'])
-            home_game_type = request.form['home_game_type']
-            away_game_type = request.form['away_game_type']
             is_neutral_site = 'neutral_site' in request.form
             
             # Validate that teams are different
@@ -2268,28 +2261,25 @@ def add_game():
                 flash('Teams must be different!', 'error')
                 return redirect(url_for('add_game', selected_week=week))
             
+            # FCS warning check
             if is_fcs_opponent(home_team) or is_fcs_opponent(away_team):
                 flash('⚠️ FCS game detected - minimal ranking credit will be awarded for this victory', 'warning')
-
-
-
-            # Add game to data
+            
+            # Add game to data - REMOVED game type fields
             game = {
                 'week': week,
                 'home_team': home_team,
                 'away_team': away_team,
                 'home_score': home_score,
                 'away_score': away_score,
-                'home_game_type': home_game_type,
-                'away_game_type': away_game_type,
                 'is_neutral_site': is_neutral_site,
                 'date_added': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
             games_data.append(game)
             
-            # Update team statistics
-            update_team_stats(home_team, away_team, home_score, away_score, home_game_type, True, is_neutral_site)
-            update_team_stats(away_team, home_team, away_score, home_score, away_game_type, False, is_neutral_site)
+            # Update team statistics - SIMPLIFIED (no game types needed)
+            update_team_stats_simplified(home_team, away_team, home_score, away_score, True, is_neutral_site)
+            update_team_stats_simplified(away_team, home_team, away_score, home_score, False, is_neutral_site)
             
             # Save data after adding game
             save_data()
@@ -2305,14 +2295,13 @@ def add_game():
             flash('Please enter valid scores (numbers only)', 'error')
             return redirect(url_for('add_game'))
     
-    # Create team classification data for JavaScript
-    team_classifications = {}
-    for conf_name, teams in CONFERENCES.items():
-        for team in teams:
-            team_classifications[team] = get_auto_game_type(team)
-    
-    # Get the selected week from URL parameter (if any)
+    # GET request - render the form
     selected_week = request.args.get('selected_week') or session.get('last_selected_week', '')
+    return render_template('add_game.html', 
+                         conferences=CONFERENCES, 
+                         weeks=WEEKS, 
+                         recent_games=games_data[-10:], 
+                         selected_week=selected_week)
   
 
     return render_template('add_game.html', conferences=CONFERENCES, weeks=WEEKS, game_types=GAME_TYPES, team_classifications=team_classifications, recent_games=games_data[-10:], selected_week=selected_week)
@@ -2559,9 +2548,8 @@ def reset_data():
     games_data = []
     team_stats = defaultdict(lambda: {
         'wins': 0, 'losses': 0, 'points_for': 0, 'points_against': 0,
-        'p4_wins': 0, 'p4_losses': 0, 'g5_wins': 0, 'g5_losses': 0,
-        'home_wins': 0, 'road_wins': 0, 'margin_of_victory_total': 0,
-        'games': []
+    'home_wins': 0, 'road_wins': 0, 'margin_of_victory_total': 0,
+    'games': []
     })
     historical_rankings = []
     
