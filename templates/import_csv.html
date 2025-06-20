@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Import CSV Rankings - College Football Rankings{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>📤 Import Final Rankings from CSV</h2>
+            <a href="{{ url_for('archived_seasons') }}" class="btn btn-secondary">Back to Archives</a>
+        </div>
+        
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">Upload Your Final Rankings</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <strong>Quick Import:</strong> Upload a CSV file with your final Top 25 rankings to create an archived season without entering individual games.
+                </div>
+                
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="season_name" class="form-label">Season Name</label>
+                        <input type="text" class="form-control" id="season_name" name="season_name" 
+                               value="2024 Season" required placeholder="e.g., 2024 Season, 2023 Final, etc.">
+                        <div class="form-text">What should this archived season be called?</div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="csv_file" class="form-label">CSV File</label>
+                        <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv" required>
+                        <div class="form-text">Upload a CSV file with your final rankings</div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Required CSV Columns:</h6>
+                            <ul class="small">
+                                <li><strong>Rank</strong> - Final ranking (1-25)</li>
+                                <li><strong>Team</strong> - Team name</li>
+                                <li><strong>Conference</strong> - Conference name</li>
+                                <li><strong>Wins</strong> - Season wins</li>
+                                <li><strong>Losses</strong> - Season losses</li>
+                                <li><strong>Adjusted_Total</strong> - Final rating</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Optional CSV Columns:</h6>
+                            <ul class="small">
+                                <li><strong>P4_Wins</strong> - Power 4 victories</li>
+                                <li><strong>G5_Wins</strong> - Group of 5 victories</li>
+                                <li><strong>Notes</strong> - Any additional notes</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-warning mt-3">
+                        <small>
+                            <strong>Note:</strong> CSV imports create archived seasons with final rankings only. 
+                            Individual games, weekly snapshots, and detailed statistics won't be available.
+                        </small>
+                    </div>
+                    
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary btn-lg">📤 Import Rankings</button>
+                        <a href="{{ url_for('archived_seasons') }}" class="btn btn-secondary btn-lg">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">📋 CSV Format Example</h6>
+            </div>
+            <div class="card-body">
+                <pre class="small"><code>Rank,Team,Conference,Wins,Losses,Adjusted_Total,P4_Wins,G5_Wins,Notes
+1,Michigan,Big Ten,15,0,45.2,8,0,National Champion
+2,Washington,Pac 12,14,1,42.1,7,1,Runner-up
+3,Texas,Big XII,12,2,40.5,6,1,Big XII Champion</code></pre>
+                <small class="text-muted">Make sure your CSV file has these exact column headers (case-sensitive).</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
