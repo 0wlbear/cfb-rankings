@@ -866,7 +866,7 @@ def generate_cfp_bracket():
     return bracket
 
 def calculate_comprehensive_stats(team_name):
-    """Calculate all comprehensive statistics for a team"""
+    """Calculate all comprehensive statistics for a team - FIXED VERSION"""
     stats = team_stats[team_name]
     
     # Basic stats
@@ -901,10 +901,11 @@ def calculate_comprehensive_stats(team_name):
     # Point Differential
     point_differential = stats['points_for'] - stats['points_against']
     
-    # Opponent W/L Differential
+    # Opponent W/L Differential - FIXED: SCALE IT DOWN!
     opp_wl_differential = opponent_total_wins - opponent_total_losses
+    scaled_opp_differential = opp_wl_differential * 0.1  # Scale from -7.0 to -0.7
     
-    # Totals calculation: =(sum(((MoV*0.1)*0.05),(Total Losses*-1.5),((Point Differential*0.1)*0.05),(Home Win*0.1), (Road Win*0.2), (P4 Win), (G5 Win*0.75),Opponent W/L Differential))
+    # Totals calculation - FIXED: Use scaled opponent differential
     totals = (
         ((stats['margin_of_victory_total'] * 0.1) * 0.05) +
         (stats['losses'] * -1.5) +
@@ -913,7 +914,7 @@ def calculate_comprehensive_stats(team_name):
         (stats['road_wins'] * 0.2) +
         (stats['p4_wins'] * 1) +
         (stats['g5_wins'] * 0.75) +
-        opp_wl_differential
+        scaled_opp_differential  # FIXED: Now properly scaled!
     )
     
     # Adjusted Total: =((Totals+(SoS*0.4))
@@ -931,7 +932,7 @@ def calculate_comprehensive_stats(team_name):
         'opp_w': opponent_total_wins,
         'opp_l': opponent_total_losses,
         'strength_of_schedule': round(strength_of_schedule, 3),
-        'opp_wl_differential': opp_wl_differential,
+        'opp_wl_differential': opp_wl_differential,  # Keep original for display
         'totals': round(totals, 2),
         'total_wins': stats['wins'],
         'total_losses': stats['losses'],
@@ -1474,25 +1475,6 @@ def bowl_projections():
         </body>
         </html>
         """
-
-# Optional: Add a minimal test route to check if your functions work
-@app.route('/bowl_test')
-def bowl_test():
-    """Test bowl functions"""
-    try:
-        # Test basic functions
-        total_games = len(games_data)
-        bowl_eligible = get_bowl_eligible_teams()
-        
-        return f"""
-        <h1>Bowl Test Results</h1>
-        <p>Total games: {total_games}</p>
-        <p>Bowl eligible teams: {len(bowl_eligible)}</p>
-        <p>Bowl games defined: {len(BOWL_GAMES)}</p>
-        <p><a href="/bowl_projections">Try Bowl Projections</a></p>
-        """
-    except Exception as e:
-        return f"<h1>Error:</h1><p>{str(e)}</p>"
 
 
 @app.route('/historical')
