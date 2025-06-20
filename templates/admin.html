@@ -6,11 +6,33 @@
         <h2>Admin Panel - Comprehensive Team Statistics</h2>
         <p class="text-muted">Click column headers to sort</p>
             <div class="mb-3">
-                <a href="/add_game" class="btn btn-sm btn-primary">Add Game</a>
-                <button class="btn btn-sm btn-success ms-2" data-bs-toggle="modal" data-bs-target="#snapshotModal">📸 Create Snapshot</button>
-                {% if historical_rankings|length >= 2 %}
-                    <a href="{{ url_for('historical_rankings') }}" class="btn btn-sm btn-info ms-2">📈 View Historical</a>
-                {% endif %}
+                <!-- Season Management -->
+                <div class="btn-group me-2" role="group">
+                    <a href="/add_game" class="btn btn-sm btn-primary">Add Game</a>
+                    <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#snapshotModal">📸 Create Snapshot</button>
+                </div>
+                
+                <!-- Archive & History -->
+                <div class="btn-group me-2" role="group">
+                    <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#archiveModal">📦 Archive Season</button>
+                    <a href="{{ url_for('archived_seasons') }}" class="btn btn-sm btn-info">🗂️ View Past Seasons</a>
+                    {% if historical_rankings|length >= 2 %}
+                        <a href="{{ url_for('historical_rankings') }}" class="btn btn-sm btn-secondary">📈 Weekly Movement</a>
+                    {% endif %}
+                </div>
+                
+                <!-- Danger Zone -->
+                <div class="btn-group" role="group">
+                    <button class="btn btn-sm btn-danger" onclick="confirmSafeReset()">🗑️ Reset Season</button>
+                </div>
+            </div>
+            
+            <!-- Current Season Stats -->
+            <div class="alert alert-info mb-3">
+                <strong>Current Season:</strong> 
+                {{ games_data|length }} games • 
+                {{ comprehensive_stats|selectattr('total_wins')|list|length + comprehensive_stats|selectattr('total_losses')|list|length }} teams with games •
+                {% if historical_rankings %}{{ historical_rankings|length }} weekly snapshots{% else %}No snapshots yet{% endif %}
             </div>
         <div class="table-responsive">
             <table class="table table-striped table-sm" id="statsTable">
@@ -124,5 +146,156 @@
         </div>
     </div>
 </div>
+
+<!-- Archive Season Modal -->
+<div class="modal fade" id="archiveModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">📦 Archive Current Season</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('archive_season') }}">
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <strong>Archive this season's data permanently!</strong><br>
+                        This will save all games, stats, and rankings so you can view them later.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="season_name" class="form-label">Season Name</label>
+                        <input type="text" class="form-control" id="season_name" name="season_name" 
+                               value="2025 Season" required placeholder="e.g., 2025 Season, Spring 2025, etc.">
+                        <div class="form-text">Give this season a memorable name</div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card text-center">
+                                <div class="card-body p-2">
+                                    <h6 class="card-title mb-1">Games</h6>
+                                    <h4 class="text-primary">{{ games_data|length }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card text-center">
+                                <div class="card-body p-2">
+                                    <h6 class="card-title mb-1">Teams</h6>
+                                    <h4 class="text-success">{{ comprehensive_stats|selectattr('total_wins')|list|length + comprehensive_stats|selectattr('total_losses')|list|length }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card text-center">
+                                <div class="card-body p-2">
+                                    <h6 class="card-title mb-1">Snapshots</h6>
+                                    <h4 class="text-info">{% if historical_rankings %}{{ historical_rankings|length }}{% else %}0{% endif %}</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-success mt-3 mb-0">
+                        <small><strong>After archiving:</strong> Your current data stays active, but you'll have a permanent backup you can view anytime.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">📦 Archive Season</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Safe Reset Confirmation Modal -->
+<div class="modal fade" id="safeResetModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">⚠️ Reset Current Season</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <strong>WARNING:</strong> This will delete all current games, statistics, and weekly snapshots.
+                </div>
+                
+                <div class="alert alert-info">
+                    <strong>✅ Archived seasons are safe!</strong><br>
+                    Any seasons you've archived will remain intact and viewable.
+                </div>
+                
+                <p><strong>Before resetting, make sure you've archived this season!</strong></p>
+                <p>To confirm this action, please type <strong>RESET</strong> in the box below:</p>
+                
+                <form method="POST" action="{{ url_for('safe_reset_data') }}" id="safeResetForm">
+                    <input type="text" class="form-control" id="resetConfirmInput" name="reset_confirm" placeholder="Type RESET to confirm">
+                    <div class="invalid-feedback" id="resetError">
+                        Please type "RESET" exactly as shown above.
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmSafeResetBtn" disabled>🗑️ Reset Season Data</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Safe reset confirmation with modal
+function confirmSafeReset() {
+    const safeResetModal = new bootstrap.Modal(document.getElementById('safeResetModal'));
+    safeResetModal.show();
+}
+
+// Handle safe reset modal functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const resetInput = document.getElementById('resetConfirmInput');
+    const confirmBtn = document.getElementById('confirmSafeResetBtn');
+    const resetError = document.getElementById('resetError');
+    const resetForm = document.getElementById('safeResetForm');
+
+    // Check input in real-time
+    resetInput.addEventListener('input', function() {
+        const inputValue = this.value.trim();
+        
+        if (inputValue === 'RESET') {
+            confirmBtn.disabled = false;
+            confirmBtn.classList.remove('disabled');
+            this.classList.remove('is-invalid');
+            resetError.style.display = 'none';
+        } else {
+            confirmBtn.disabled = true;
+            confirmBtn.classList.add('disabled');
+            if (inputValue.length > 0) {
+                this.classList.add('is-invalid');
+                resetError.style.display = 'block';
+            } else {
+                this.classList.remove('is-invalid');
+                resetError.style.display = 'none';
+            }
+        }
+    });
+
+    // Handle the final confirmation
+    confirmBtn.addEventListener('click', function() {
+        if (resetInput.value.trim() === 'RESET') {
+            resetForm.submit();
+        }
+    });
+
+    // Clear input when modal is hidden
+    document.getElementById('safeResetModal').addEventListener('hidden.bs.modal', function() {
+        resetInput.value = '';
+        resetInput.classList.remove('is-invalid');
+        confirmBtn.disabled = true;
+        resetError.style.display = 'none';
+    });
+});
+</script>
 
 {% endblock %}
