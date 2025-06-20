@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}{{ season_data.season_name }} - Archived Season{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2>{{ season_data.season_name }}</h2>
+                <p class="text-muted mb-0">Archived: {{ season_data.archived_date }}</p>
+            </div>
+            <div>
+                <a href="{{ url_for('archived_seasons') }}" class="btn btn-secondary">Back to Archives</a>
+                <a href="{{ url_for('admin') }}" class="btn btn-primary">Admin Panel</a>
+            </div>
+        </div>
+        
+        <!-- Season Summary -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Games</h5>
+                        <h3 class="text-primary">{{ season_data.total_games }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Teams Played</h5>
+                        <h3 class="text-success">{{ season_data.total_teams_with_games }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Weeks Tracked</h5>
+                        <h3 class="text-info">{{ season_data.season_summary.total_weeks if season_data.season_summary else 0 }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Conferences</h5>
+                        <h3 class="text-warning">{{ season_data.season_summary.conferences_represented if season_data.season_summary else 0 }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Champion -->
+        {% if season_data.season_summary and season_data.season_summary.champion %}
+        <div class="card mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h4 class="mb-0">🏆 Season Champion</h4>
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h3 class="text-primary">{{ season_data.season_summary.champion.team }}</h3>
+                        <p class="text-muted mb-1">{{ season_data.season_summary.champion.conference }}</p>
+                        <p class="mb-0"><strong>Record:</strong> {{ season_data.season_summary.champion.total_wins }}-{{ season_data.season_summary.champion.total_losses }}</p>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        <div class="mb-2">
+                            <span class="badge bg-primary fs-6">Final Rating: {{ season_data.season_summary.champion.adjusted_total }}</span>
+                        </div>
+                        <div>
+                            <small class="text-muted">
+                                P4 Wins: {{ season_data.season_summary.champion.p4_wins }} | 
+                                G5 Wins: {{ season_data.season_summary.champion.g5_wins }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Final Top 25 Rankings -->
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">📊 Final Top 25 Rankings</h4>
+            </div>
+            <div class="card-body">
+                {% if season_data.final_rankings %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Team</th>
+                                    <th>Conference</th>
+                                    <th>Record</th>
+                                    <th>Final Rating</th>
+                                    <th>P4 Wins</th>
+                                    <th>SoS</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for team in season_data.final_rankings %}
+                                <tr>
+                                    <td><strong>{{ team.final_rank }}</strong></td>
+                                    <td>
+                                        <strong>{{ team.team }}</strong>
+                                        {% if team.final_rank == 1 %}
+                                            <span class="badge bg-warning text-dark ms-1">Champion</span>
+                                        {% elif team.final_rank <= 4 %}
+                                            <span class="badge bg-success ms-1">CFP Bye</span>
+                                        {% elif team.final_rank <= 12 %}
+                                            <span class="badge bg-info ms-1">CFP</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ team.conference }}</span>
+                                    </td>
+                                    <td>{{ team.total_wins }}-{{ team.total_losses }}</td>
+                                    <td class="text-primary"><strong>{{ team.adjusted_total }}</strong></td>
+                                    <td>{{ team.p4_wins }}</td>
+                                    <td>{{ team.strength_of_schedule }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No final rankings available for this season.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
