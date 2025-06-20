@@ -1984,20 +1984,6 @@ def admin():
                          games_data=games_data,
                          historical_rankings=historical_rankings)
 
-@app.route('/team/<team_name>')
-def team_detail(team_name):
-    if team_name not in team_stats:
-        flash('Team not found!', 'error')
-        return redirect(url_for('public_rankings'))
-    
-    stats = team_stats[team_name]
-    comprehensive_stats = calculate_comprehensive_stats(team_name)
-    
-    return render_template('team_detail.html', 
-                         team_name=team_name, 
-                         stats=stats, 
-                         adjusted_total=comprehensive_stats['adjusted_total'])
-
 
 @app.route('/cfp_bracket')
 def cfp_bracket():
@@ -2024,6 +2010,23 @@ def public_rankings():
     comprehensive_stats.sort(key=lambda x: x['adjusted_total'], reverse=True)
     
     return render_template('public.html', comprehensive_stats=comprehensive_stats)   
+
+# First, add this simple test route to check if the basic route works:
+@app.route('/team_test/<team_name>')
+def team_test(team_name):
+    """Simple test to see if team detail routing works"""
+    if team_name not in team_stats:
+        return f"<h1>Team {team_name} not found in team_stats</h1>"
+    
+    basic_stats = team_stats[team_name]
+    return f"""
+    <h1>Team Test: {team_name}</h1>
+    <p>Games: {len(basic_stats['games'])}</p>
+    <p>Record: {basic_stats['wins']}-{basic_stats['losses']}</p>
+    <p>Has games data: {len(basic_stats['games']) > 0}</p>
+    <p><a href="/team/{team_name}">Try Full Detail Page</a></p>
+    """
+
 
 @app.route('/team/<team_name>')
 def public_team_detail(team_name):
@@ -2164,6 +2167,22 @@ def add_game():
 
 # Replace your bowl_projections route with this clean version
 # This removes all potential issues and uses simple error handling
+
+# And add this test route:
+@app.route('/team_simple/<team_name>')
+def team_simple(team_name):
+    """Super simple template test"""
+    basic_stats = team_stats[team_name]
+    opponent_details = []
+    for game in basic_stats['games']:
+        opponent_details.append({
+            'opponent': game['opponent'],
+            'result': game['result'],
+        })
+    
+    return render_template('test_template.html', 
+                         team_name=team_name, 
+                         opponent_details=opponent_details)
 
 @app.route('/bowl_projections')
 def bowl_projections():
