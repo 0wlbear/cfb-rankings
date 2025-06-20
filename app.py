@@ -241,6 +241,366 @@ TEAM_LOGOS = {
 
 }
 
+# Bowl game definitions with tie-ins and selection order
+BOWL_GAMES = {
+    # College Football Playoff (handled separately)
+    'cfp_national_championship': {
+        'name': 'CFP National Championship',
+        'tier': 'CFP',
+        'location': 'TBD',
+        'teams': 2,
+        'selection': 'CFP #1 vs CFP #2',
+        'payout': '$20M'
+    },
+    
+    # New Year's Six Bowls
+    'rose_bowl': {
+        'name': 'Rose Bowl',
+        'tier': 'NY6',
+        'location': 'Pasadena, CA',
+        'teams': 2,
+        'primary_tie_ins': ['Big Ten', 'Pac 12'],
+        'selection_order': 1,
+        'payout': '$4M'
+    },
+    'sugar_bowl': {
+        'name': 'Sugar Bowl',
+        'tier': 'NY6', 
+        'location': 'New Orleans, LA',
+        'teams': 2,
+        'primary_tie_ins': ['SEC', 'Big XII'],
+        'selection_order': 2,
+        'payout': '$4M'
+    },
+    'orange_bowl': {
+        'name': 'Orange Bowl',
+        'tier': 'NY6',
+        'location': 'Miami Gardens, FL',
+        'teams': 2,
+        'primary_tie_ins': ['ACC', 'SEC/Big Ten/Notre Dame'],
+        'selection_order': 3,
+        'payout': '$4M'
+    },
+    'cotton_bowl': {
+        'name': 'Cotton Bowl',
+        'tier': 'NY6',
+        'location': 'Arlington, TX',
+        'teams': 2,
+        'primary_tie_ins': ['Big XII', 'SEC/Big Ten'],
+        'selection_order': 4,
+        'payout': '$4M'
+    },
+    'fiesta_bowl': {
+        'name': 'Fiesta Bowl',
+        'tier': 'NY6',
+        'location': 'Glendale, AZ',
+        'teams': 2,
+        'primary_tie_ins': ['Big XII', 'At-Large'],
+        'selection_order': 5,
+        'payout': '$4M'
+    },
+    'peach_bowl': {
+        'name': 'Peach Bowl',
+        'tier': 'NY6',
+        'location': 'Atlanta, GA',
+        'teams': 2,
+        'primary_tie_ins': ['ACC', 'At-Large'],
+        'selection_order': 6,
+        'payout': '$4M'
+    },
+    
+    # Major Conference Bowls
+    'citrus_bowl': {
+        'name': 'Citrus Bowl',
+        'tier': 'Major',
+        'location': 'Orlando, FL',
+        'teams': 2,
+        'primary_tie_ins': ['SEC', 'Big Ten'],
+        'selection_order': 7,
+        'payout': '$2.75M'
+    },
+    'outback_bowl': {
+        'name': 'Outback Bowl',
+        'tier': 'Major',
+        'location': 'Tampa, FL',
+        'teams': 2,
+        'primary_tie_ins': ['SEC', 'Big Ten'],
+        'selection_order': 8,
+        'payout': '$2.5M'
+    },
+    'alamo_bowl': {
+        'name': 'Alamo Bowl',
+        'tier': 'Major',
+        'location': 'San Antonio, TX',
+        'teams': 2,
+        'primary_tie_ins': ['Big XII', 'Pac 12'],
+        'selection_order': 9,
+        'payout': '$2.4M'
+    },
+    'holiday_bowl': {
+        'name': 'Holiday Bowl',
+        'tier': 'Major',
+        'location': 'San Diego, CA',
+        'teams': 2,
+        'primary_tie_ins': ['Pac 12', 'ACC'],
+        'selection_order': 10,
+        'payout': '$2.2M'
+    },
+    'gator_bowl': {
+        'name': 'Gator Bowl',
+        'tier': 'Major',
+        'location': 'Jacksonville, FL',
+        'teams': 2,
+        'primary_tie_ins': ['ACC', 'SEC'],
+        'selection_order': 11,
+        'payout': '$2.1M'
+    },
+    'sun_bowl': {
+        'name': 'Sun Bowl',
+        'tier': 'Major',
+        'location': 'El Paso, TX',
+        'teams': 2,
+        'primary_tie_ins': ['Pac 12', 'ACC'],
+        'selection_order': 12,
+        'payout': '$2M'
+    },
+    
+    # Conference Tie-In Bowls
+    'music_city_bowl': {
+        'name': 'Music City Bowl',
+        'tier': 'Conference',
+        'location': 'Nashville, TN',
+        'teams': 2,
+        'primary_tie_ins': ['SEC', 'Big Ten'],
+        'selection_order': 13,
+        'payout': '$1.8M'
+    },
+    'las_vegas_bowl': {
+        'name': 'Las Vegas Bowl',
+        'tier': 'Conference',
+        'location': 'Las Vegas, NV',
+        'teams': 2,
+        'primary_tie_ins': ['Pac 12', 'SEC'],
+        'selection_order': 14,
+        'payout': '$1.7M'
+    },
+    'texas_bowl': {
+        'name': 'Texas Bowl',
+        'tier': 'Conference',
+        'location': 'Houston, TX',
+        'teams': 2,
+        'primary_tie_ins': ['Big XII', 'SEC'],
+        'selection_order': 15,
+        'payout': '$1.6M'
+    },
+    'duke_mayo_bowl': {
+        'name': "Duke's Mayo Bowl",
+        'tier': 'Conference',
+        'location': 'Charlotte, NC',
+        'teams': 2,
+        'primary_tie_ins': ['ACC', 'Big Ten'],
+        'selection_order': 16,
+        'payout': '$1.5M'
+    },
+    'liberty_bowl': {
+        'name': 'Liberty Bowl',
+        'tier': 'Conference',
+        'location': 'Memphis, TN',
+        'teams': 2,
+        'primary_tie_ins': ['Big XII', 'SEC'],
+        'selection_order': 17,
+        'payout': '$1.4M'
+    },
+    'armed_forces_bowl': {
+        'name': 'Armed Forces Bowl',
+        'tier': 'Conference',
+        'location': 'Fort Worth, TX',
+        'teams': 2,
+        'primary_tie_ins': ['Big XII', 'American'],
+        'selection_order': 18,
+        'payout': '$1.3M'
+    },
+    
+    # G5 and Lower Tier Bowls
+    'new_mexico_bowl': {
+        'name': 'New Mexico Bowl',
+        'tier': 'G5',
+        'location': 'Albuquerque, NM',
+        'teams': 2,
+        'primary_tie_ins': ['Mountain West', 'Conference USA'],
+        'selection_order': 25,
+        'payout': '$1M'
+    },
+    'boca_raton_bowl': {
+        'name': 'Boca Raton Bowl',
+        'tier': 'G5',
+        'location': 'Boca Raton, FL',
+        'teams': 2,
+        'primary_tie_ins': ['American', 'MAC'],
+        'selection_order': 26,
+        'payout': '$1M'
+    },
+    'frisco_bowl': {
+        'name': 'Frisco Bowl',
+        'tier': 'G5',
+        'location': 'Frisco, TX',
+        'teams': 2,
+        'primary_tie_ins': ['American', 'Mountain West'],
+        'selection_order': 27,
+        'payout': '$1M'
+    },
+    'cure_bowl': {
+        'name': 'Cure Bowl',
+        'tier': 'G5',
+        'location': 'Orlando, FL',
+        'teams': 2,
+        'primary_tie_ins': ['American', 'Sun Belt'],
+        'selection_order': 28,
+        'payout': '$1M'
+    },
+    'gasparilla_bowl': {
+        'name': 'Gasparilla Bowl',
+        'tier': 'G5',
+        'location': 'St. Petersburg, FL',
+        'teams': 2,
+        'primary_tie_ins': ['American', 'ACC'],
+        'selection_order': 29,
+        'payout': '$1M'
+    },
+    'camellia_bowl': {
+        'name': 'Camellia Bowl',
+        'tier': 'G5',
+        'location': 'Montgomery, AL',
+        'teams': 2,
+        'primary_tie_ins': ['MAC', 'Sun Belt'],
+        'selection_order': 30,
+        'payout': '$1M'
+    }
+}
+
+def get_bowl_eligible_teams():
+    """Get all teams with 6+ wins (bowl eligible)"""
+    bowl_eligible = []
+    
+    for conf_name, teams in CONFERENCES.items():
+        for team in teams:
+            stats = calculate_comprehensive_stats(team)
+            if stats['total_wins'] >= 6:  # Bowl eligible
+                team_data = {
+                    'team': team,
+                    'conference': conf_name,
+                    'wins': stats['total_wins'],
+                    'losses': stats['total_losses'],
+                    'adjusted_total': stats['adjusted_total']
+                }
+                bowl_eligible.append(team_data)
+    
+    # Sort by adjusted total (best teams first)
+    bowl_eligible.sort(key=lambda x: x['adjusted_total'], reverse=True)
+    return bowl_eligible
+
+def get_conference_bowl_teams():
+    """Get available teams by conference for bowl selection"""
+    bowl_teams_by_conf = {}
+    
+    # Get conference champions and bowl eligible teams
+    champions = get_conference_champions()
+    bowl_eligible = get_bowl_eligible_teams()
+    
+    # Organize teams by conference (excluding CFP teams)
+    cfp_bracket = generate_cfp_bracket()
+    cfp_team_names = {team['team'] for team in cfp_bracket['all_teams']}
+    
+    for conf_name in CONFERENCES.keys():
+        conf_teams = [team for team in bowl_eligible 
+                     if team['conference'] == conf_name and team['team'] not in cfp_team_names]
+        bowl_teams_by_conf[conf_name] = conf_teams[:8]  # Max 8 bowl teams per conference
+    
+    return bowl_teams_by_conf, champions
+
+def generate_bowl_projections():
+    """Generate complete bowl projections"""
+    # Get CFP bracket (already have this)
+    cfp_bracket = generate_cfp_bracket()
+    
+    # Get available teams for bowls
+    bowl_teams_by_conf, champions = get_conference_bowl_teams()
+    
+    # Get all bowl eligible teams not in CFP
+    cfp_team_names = {team['team'] for team in cfp_bracket['all_teams']}
+    at_large_pool = [team for team in get_bowl_eligible_teams() 
+                     if team['team'] not in cfp_team_names]
+    
+    bowl_projections = []
+    used_teams = set()
+    
+    # Process bowls in selection order
+    sorted_bowls = sorted(BOWL_GAMES.items(), key=lambda x: x[1].get('selection_order', 99))
+    
+    for bowl_id, bowl_info in sorted_bowls:
+        if bowl_info['tier'] == 'CFP':
+            continue  # Skip CFP, handled separately
+            
+        projection = {
+            'id': bowl_id,
+            'name': bowl_info['name'],
+            'tier': bowl_info['tier'],
+            'location': bowl_info['location'],
+            'payout': bowl_info['payout'],
+            'teams': [],
+            'tie_ins': bowl_info.get('primary_tie_ins', [])
+        }
+        
+        # Try to fill based on tie-ins
+        teams_needed = bowl_info['teams']
+        for tie_in in bowl_info.get('primary_tie_ins', []):
+            if teams_needed <= 0:
+                break
+                
+            if tie_in in bowl_teams_by_conf:
+                available_teams = [t for t in bowl_teams_by_conf[tie_in] if t['team'] not in used_teams]
+                if available_teams:
+                    selected_team = available_teams[0]
+                    projection['teams'].append(selected_team)
+                    used_teams.add(selected_team['team'])
+                    teams_needed -= 1
+        
+        # Fill remaining spots with at-large teams
+        while teams_needed > 0:
+            available_at_large = [t for t in at_large_pool if t['team'] not in used_teams]
+            if not available_at_large:
+                break
+            selected_team = available_at_large[0]
+            projection['teams'].append(selected_team)
+            used_teams.add(selected_team['team'])
+            teams_needed -= 1
+        
+        # Only add bowl if it has at least one team
+        if projection['teams']:
+            bowl_projections.append(projection)
+    
+    # Add conference championships
+    conf_championships = []
+    for conf_name, champion in champions.items():
+        if conf_name not in ['Independent', 'Pac 12']:  # Skip independents and Pac 12
+            # Get second place team
+            conf_teams = [team for team in get_bowl_eligible_teams() 
+                         if team['conference'] == conf_name and team['team'] != champion['team']]
+            runner_up = conf_teams[0] if conf_teams else None
+            
+            conf_championships.append({
+                'name': f'{conf_name} Championship',
+                'teams': [champion, runner_up] if runner_up else [champion],
+                'tier': 'Championship'
+            })
+    
+    return {
+        'cfp_bracket': cfp_bracket,
+        'bowl_projections': bowl_projections,
+        'conference_championships': conf_championships,
+        'total_bowl_teams': len(used_teams) + len(cfp_bracket['all_teams'])
+    }
+
 def get_team_logo_url(team_name):
     """Get ESPN logo URL for a team"""
     team_id = TEAM_LOGOS.get(team_name)
@@ -1067,6 +1427,73 @@ def add_game():
     # Get the selected week from URL parameter (if any)
     selected_week = request.args.get('selected_week') or session.get('last_selected_week', '')
     return render_template('add_game.html', conferences=CONFERENCES, weeks=WEEKS, game_types=GAME_TYPES, team_classifications=team_classifications, recent_games=games_data[-10:], selected_week=selected_week)
+
+# Replace your bowl_projections route with this clean version
+# This removes all potential issues and uses simple error handling
+
+@app.route('/bowl_projections')
+def bowl_projections():
+    """Bowl projections page showing all bowl games"""
+    try:
+        # Generate projections
+        projections = generate_bowl_projections()
+        
+        # Organize bowls by tier for display
+        bowls_by_tier = {
+            'NY6': [],
+            'Major': [],
+            'Conference': [],
+            'G5': [],
+            'Championship': projections.get('conference_championships', [])
+        }
+        
+        # Sort bowl projections by tier
+        for bowl in projections.get('bowl_projections', []):
+            tier = bowl.get('tier', 'Other')
+            if tier in bowls_by_tier:
+                bowls_by_tier[tier].append(bowl)
+        
+        # Prepare template data
+        template_data = {
+            'cfp_bracket': projections.get('cfp_bracket', {'all_teams': [], 'first_round_byes': []}),
+            'bowls_by_tier': bowls_by_tier,
+            'total_bowl_teams': projections.get('total_bowl_teams', 0)
+        }
+        
+        return render_template('bowl_projections.html', **template_data)
+        
+    except Exception as e:
+        # Simple error page
+        return f"""
+        <html>
+        <head><title>Bowl Projections Error</title></head>
+        <body style="font-family: Arial; margin: 40px;">
+            <h1>Bowl Projections Error</h1>
+            <p><strong>Error:</strong> {str(e)}</p>
+            <p><a href="/">Back to Home</a> | <a href="/admin">Admin Panel</a></p>
+        </body>
+        </html>
+        """
+
+# Optional: Add a minimal test route to check if your functions work
+@app.route('/bowl_test')
+def bowl_test():
+    """Test bowl functions"""
+    try:
+        # Test basic functions
+        total_games = len(games_data)
+        bowl_eligible = get_bowl_eligible_teams()
+        
+        return f"""
+        <h1>Bowl Test Results</h1>
+        <p>Total games: {total_games}</p>
+        <p>Bowl eligible teams: {len(bowl_eligible)}</p>
+        <p>Bowl games defined: {len(BOWL_GAMES)}</p>
+        <p><a href="/bowl_projections">Try Bowl Projections</a></p>
+        """
+    except Exception as e:
+        return f"<h1>Error:</h1><p>{str(e)}</p>"
+
 
 @app.route('/historical')
 def historical_rankings():

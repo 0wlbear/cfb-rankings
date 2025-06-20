@@ -61,8 +61,16 @@
             <div class="card-body">
                 <div class="row align-items-center">
                     <div class="col-md-6">
-                        <h3 class="text-primary">{{ season_data.season_summary.champion.team }}</h3>
-                        <p class="text-muted mb-1">{{ season_data.season_summary.champion.conference }}</p>
+                        <div class="d-flex align-items-center mb-3">
+                            {% set logo_url = get_team_logo_url(season_data.season_summary.champion.team) %}
+                            {% if logo_url %}
+                                <img src="{{ logo_url }}" alt="{{ season_data.season_summary.champion.team }}" style="width: 48px; height: 48px; margin-right: 15px;">
+                            {% endif %}
+                            <div>
+                                <h3 class="text-primary mb-1">{{ season_data.season_summary.champion.team }}</h3>
+                                <p class="text-muted mb-0">{{ season_data.season_summary.champion.conference }}</p>
+                            </div>
+                        </div>
                         <p class="mb-0"><strong>Record:</strong> {{ season_data.season_summary.champion.total_wins }}-{{ season_data.season_summary.champion.total_losses }}</p>
                     </div>
                     <div class="col-md-6 text-md-end">
@@ -106,14 +114,22 @@
                                 <tr>
                                     <td><strong>{{ team.final_rank }}</strong></td>
                                     <td>
-                                        <strong>{{ team.team }}</strong>
-                                        {% if team.final_rank == 1 %}
-                                            <span class="badge bg-warning text-dark ms-1">Champion</span>
-                                        {% elif team.final_rank <= 4 %}
-                                            <span class="badge bg-success ms-1">CFP Bye</span>
-                                        {% elif team.final_rank <= 12 %}
-                                            <span class="badge bg-info ms-1">CFP</span>
-                                        {% endif %}
+                                        <div class="d-flex align-items-center">
+                                            {% set logo_url = get_team_logo_url(team.team) %}
+                                            {% if logo_url %}
+                                                <img src="{{ logo_url }}" alt="{{ team.team }}" style="width: 24px; height: 24px; margin-right: 8px; flex-shrink: 0;">
+                                            {% endif %}
+                                            <div>
+                                                <strong>{{ team.team }}</strong>
+                                                {% if team.final_rank == 1 %}
+                                                    <span class="badge bg-warning text-dark ms-1">Champion</span>
+                                                {% elif team.final_rank <= 4 %}
+                                                    <span class="badge bg-success ms-1">CFP Bye</span>
+                                                {% elif team.final_rank <= 12 %}
+                                                    <span class="badge bg-info ms-1">CFP</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
                                     </td>
                                     <td>
                                         <span class="badge bg-secondary">{{ team.conference }}</span>
