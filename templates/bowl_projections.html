@@ -1,0 +1,346 @@
+{% extends "base.html" %}
+
+{% block title %}Bowl Projections - College Football Rankings{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="text-center mb-4">
+            <h2 class="text-primary">🏈 Bowl Projections</h2>
+            <h4 class="text-muted">If the season ended today...</h4>
+            <p class="text-muted">{{ total_bowl_teams }} teams projected for bowl games</p>
+            
+            {% if is_admin %}
+            <!-- Debug info for admin -->
+            <div class="alert alert-info">
+                <small>
+                    Debug: {{ bowls_by_tier.NY6|length }} NY6, 
+                    {{ bowls_by_tier.Major|length }} Major, 
+                    {{ bowls_by_tier.Conference|length }} Conference, 
+                    {{ bowls_by_tier.G5|length }} G5 bowls,
+                    {{ bowls_by_tier.Championship|length }} championships
+                </small>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Check if we have any bowl data -->
+        {% set total_bowls = bowls_by_tier.NY6|length + bowls_by_tier.Major|length + bowls_by_tier.Conference|length + bowls_by_tier.G5|length %}
+        
+        {% if total_bowls == 0 %}
+        <div class="alert alert-warning text-center">
+            <h4>No Bowl Projections Available</h4>
+            <p>Not enough teams are currently bowl eligible (6+ wins) to generate projections.</p>
+            <p><strong>Possible reasons:</strong></p>
+            <ul class="list-unstyled">
+                <li>• Not enough games have been played yet</li>
+                <li>• Too few teams have reached 6 wins</li>
+                <li>• All eligible teams are in the College Football Playoff</li>
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- College Football Playoff -->
+        <div class="card mb-4">
+            <div class="card-header bg-danger text-white">
+                <h3 class="mb-0">🏆 College Football Playoff</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Championship Game</h5>
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <div class="d-flex justify-content-around align-items-center">
+                                    {% if cfp_bracket.all_teams|length >= 2 %}
+                                        {% for team in cfp_bracket.all_teams[:2] %}
+                                            <div class="text-center">
+                                                {% set logo_url = get_team_logo_url(team.team) %}
+                                                {% if logo_url %}
+                                                    <img src="{{ logo_url }}" alt="{{ team.team }}" style="width: 40px; height: 40px;" class="mb-2">
+                                                {% endif %}
+                                                <div class="fw-bold">#{{ team.seed }} {{ team.team }}</div>
+                                                <small class="text-muted">{{ team.total_wins }}-{{ team.total_losses }}</small>
+                                            </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <p class="text-muted">Not enough ranked teams for CFP</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>First Round Byes</h5>
+                        <div class="row">
+                            {% for team in cfp_bracket.first_round_byes %}
+                                <div class="col-6 mb-2">
+                                    <div class="card bg-success bg-opacity-25">
+                                        <div class="card-body p-2 text-center">
+                                            {% set logo_url = get_team_logo_url(team.team) %}
+                                            {% if logo_url %}
+                                                <img src="{{ logo_url }}" alt="{{ team.team }}" style="width: 24px; height: 24px;" class="mb-1">
+                                            {% endif %}
+                                            <div class="small fw-bold">#{{ team.seed }} {{ team.team }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('cfp_bracket') }}" class="btn btn-primary">View Full CFP Bracket</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- New Year's Six Bowls -->
+        {% if bowls_by_tier.NY6 %}
+        <div class="card mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h3 class="mb-0">✨ New Year's Six Bowls</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for bowl in bowls_by_tier.NY6 %}
+                        <div class="col-lg-4 col-md-6 mb-3">
+                            <div class="card h-100 border-warning">
+                                <div class="card-header bg-warning bg-opacity-25">
+                                    <h5 class="mb-0">{{ bowl.name }}</h5>
+                                    <small class="text-muted">{{ bowl.location }} • {{ bowl.payout }}</small>
+                                </div>
+                                <div class="card-body">
+                                    {% if bowl.teams and bowl.teams|length > 0 %}
+                                        {% for team in bowl.teams %}
+                                            <div class="d-flex align-items-center mb-2 {% if not loop.last %}border-bottom pb-2{% endif %}">
+                                                {% set logo_url = get_team_logo_url(team.team) %}
+                                                {% if logo_url %}
+                                                    <img src="{{ logo_url }}" alt="{{ team.team }}" style="width: 32px; height: 32px; margin-right: 10px;">
+                                                {% endif %}
+                                                <div>
+                                                    <div class="fw-bold">{{ team.team }}</div>
+                                                    <small class="text-muted">{{ team.wins }}-{{ team.losses }} • {{ team.conference }}</small>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                        {% if bowl.teams|length < 2 %}
+                                            <div class="text-muted">
+                                                <small>vs. TBD</small>
+                                            </div>
+                                        {% endif %}
+                                    {% else %}
+                                        <p class="text-muted">
+                                            <small>Teams TBD<br>
+                                            <em>Tie-ins: {{ bowl.tie_ins|join(', ') if bowl.tie_ins else 'At-Large' }}</em></small>
+                                        </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Conference Championships -->
+        {% if bowls_by_tier.Championship and bowls_by_tier.Championship|length > 0 %}
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">🏆 Conference Championships</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for championship in bowls_by_tier.Championship %}
+                        <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
+                            <div class="card h-100 border-primary">
+                                <div class="card-header bg-primary bg-opacity-25">
+                                    <h6 class="mb-0">{{ championship.name }}</h6>
+                                </div>
+                                <div class="card-body p-2">
+                                    {% if championship.teams and championship.teams|length > 0 %}
+                                        {% for team in championship.teams %}
+                                            <div class="d-flex align-items-center mb-1">
+                                                {% set logo_url = get_team_logo_url(team.team) %}
+                                                {% if logo_url %}
+                                                    <img src="{{ logo_url }}" alt="{{ team.team }}" style="width: 20px; height: 20px; margin-right: 6px;">
+                                                {% endif %}
+                                                <div>
+                                                    <div class="small fw-bold">{{ team.team }}</div>
+                                                    <div class="text-muted" style="font-size: 0.75rem;">{{ team.total_wins }}-{{ team.total_losses }}</div>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                        {% if championship.teams|length == 1 %}
+                                            <div class="text-muted small mt-1">vs. TBD</div>
+                                        {% endif %}
+                                    {% else %}
+                                        <p class="text-muted small">Teams TBD</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Major Bowls -->
+        {% if bowls_by_tier.Major and bowls_by_tier.Major|length > 0 %}
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h3 class="mb-0">🎊 Major Bowls</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for bowl in bowls_by_tier.Major %}
+                        <div class="col-lg-4 col-md-6 mb-3">
+                            <div class="card h-100 border-success">
+                                <div class="card-header bg-success bg-opacity-25">
+                                    <h6 class="mb-0">{{ bowl.name }}</h6>
+                                    <small class="text-muted">{{ bowl.location }} • {{ bowl.payout }}</small>
+                                </div>
+                                <div class="card-body">
+                                    {% if bowl.teams and bowl.teams|length > 0 %}
+                                        {% for team in bowl.teams %}
+                                            <div class="d-flex align-items-center mb-2 {% if not loop.last %}border-bottom pb-2{% endif %}">
+                                                {% set logo_url = get_team_logo_url(team.team) %}
+                                                {% if logo_url %}
+                                                    <img src="{{ logo_url }}" alt="{{ team.team }}" style="width: 24px; height: 24px; margin-right: 8px;">
+                                                {% endif %}
+                                                <div>
+                                                    <div class="fw-bold small">{{ team.team }}</div>
+                                                    <small class="text-muted">{{ team.wins }}-{{ team.losses }} • {{ team.conference }}</small>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                        {% if bowl.teams|length < 2 %}
+                                            <div class="text-muted small">vs. TBD</div>
+                                        {% endif %}
+                                    {% else %}
+                                        <p class="text-muted small">
+                                            Teams TBD<br>
+                                            <em>{{ bowl.tie_ins|join(' vs ') if bowl.tie_ins else 'At-Large' }}</em>
+                                        </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Conference Tie-In Bowls -->
+        {% if bowls_by_tier.Conference and bowls_by_tier.Conference|length > 0 %}
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h3 class="mb-0">🏈 Conference Bowls</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for bowl in bowls_by_tier.Conference %}
+                        <div class="col-lg-4 col-md-6 mb-3">
+                            <div class="card h-100 border-info">
+                                <div class="card-header bg-info bg-opacity-25">
+                                    <h6 class="mb-0">{{ bowl.name }}</h6>
+                                    <small class="text-muted">{{ bowl.location }} • {{ bowl.payout }}</small>
+                                </div>
+                                <div class="card-body">
+                                    {% if bowl.teams and bowl.teams|length > 0 %}
+                                        {% for team in bowl.teams %}
+                                            <div class="d-flex align-items-center mb-2 {% if not loop.last %}border-bottom pb-2{% endif %}">
+                                                {% set logo_url = get_team_logo_url(team.team) %}
+                                                {% if logo_url %}
+                                                    <img src="{{ logo_url }}" alt="{{ team.team }}" style="width: 24px; height: 24px; margin-right: 8px;">
+                                                {% endif %}
+                                                <div>
+                                                    <div class="fw-bold small">{{ team.team }}</div>
+                                                    <small class="text-muted">{{ team.wins }}-{{ team.losses }} • {{ team.conference }}</small>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                        {% if bowl.teams|length < 2 %}
+                                            <div class="text-muted small">vs. TBD</div>
+                                        {% endif %}
+                                    {% else %}
+                                        <p class="text-muted small">
+                                            Teams TBD<br>
+                                            <em>{{ bowl.tie_ins|join(' vs ') if bowl.tie_ins else 'At-Large' }}</em>
+                                        </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- G5 and Other Bowls -->
+        {% if bowls_by_tier.G5 and bowls_by_tier.G5|length > 0 %}
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h3 class="mb-0">🎯 Group of 5 & Other Bowls</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for bowl in bowls_by_tier.G5 %}
+                        <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
+                            <div class="card h-100 border-secondary">
+                                <div class="card-header bg-secondary bg-opacity-25">
+                                    <h6 class="mb-0 small">{{ bowl.name }}</h6>
+                                    <small class="text-muted">{{ bowl.location }}</small>
+                                </div>
+                                <div class="card-body p-2">
+                                    {% if bowl.teams and bowl.teams|length > 0 %}
+                                        {% for team in bowl.teams %}
+                                            <div class="d-flex align-items-center mb-1">
+                                                {% set logo_url = get_team_logo_url(team.team) %}
+                                                {% if logo_url %}
+                                                    <img src="{{ logo_url }}" alt="{{ team.team }}" style="width: 20px; height: 20px; margin-right: 6px;">
+                                                {% endif %}
+                                                <div>
+                                                    <div class="small fw-bold">{{ team.team }}</div>
+                                                    <div class="text-muted" style="font-size: 0.75rem;">{{ team.wins }}-{{ team.losses }}</div>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                        {% if bowl.teams|length < 2 %}
+                                            <div class="text-muted small">vs. TBD</div>
+                                        {% endif %}
+                                    {% else %}
+                                        <p class="text-muted small">
+                                            Teams TBD<br>
+                                            <em style="font-size: 0.7rem;">{{ bowl.tie_ins|join(' vs ') if bowl.tie_ins else 'At-Large' }}</em>
+                                        </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Footer Notes -->
+        <div class="card">
+            <div class="card-body">
+                <small class="text-muted">
+                    <strong>Projection Notes:</strong>
+                    • Based on current rankings and conference standings
+                    • Bowl selection order and conference tie-ins considered
+                    • Teams must be bowl eligible (6+ wins)
+                    • Actual selections may vary based on geographic preferences and rematches
+                    • Conference championship games determine final seeding
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
