@@ -16,9 +16,6 @@
                 <div class="btn-group me-2" role="group">
                     <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#archiveModal">📦 Archive Season</button>
                     <a href="{{ url_for('archived_seasons') }}" class="btn btn-sm btn-info">🗂️ View Past Seasons</a>
-                    {% if historical_rankings|length >= 2 %}
-                        <a href="{{ url_for('historical_rankings') }}" class="btn btn-sm btn-secondary">📈 Weekly Movement</a>
-                    {% endif %}
                 </div>
                 
                 <!-- Danger Zone -->

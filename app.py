@@ -1069,7 +1069,6 @@ def add_game():
     return render_template('add_game.html', conferences=CONFERENCES, weeks=WEEKS, game_types=GAME_TYPES, team_classifications=team_classifications, recent_games=games_data[-10:], selected_week=selected_week)
 
 @app.route('/historical')
-@login_required
 def historical_rankings():
     if len(historical_rankings) < 2:
         flash('Need at least 2 weekly snapshots to show movement', 'info')
