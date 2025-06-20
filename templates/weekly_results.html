@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Weekly Results - College Football Rankings{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Weekly Results</h2>
+            <div>
+                <label for="week_selector" class="form-label me-2">Select Week:</label>
+                <select class="form-select d-inline-block w-auto" id="week_selector" onchange="changeWeek()">
+                    {% for week_option in all_weeks %}
+                        <option value="{{ week_option }}" {% if week_option == selected_week %}selected{% endif %}>
+                            Week {{ week_option }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        {% if weeks_with_games %}
+            <div class="mb-3">
+                <div class="btn-group" role="group" aria-label="Week navigation">
+                    {% for week_with_games in weeks_with_games %}
+                        <a href="{{ url_for('weekly_results', week=week_with_games) }}" 
+                           class="btn btn-{{ 'primary' if week_with_games == selected_week else 'outline-primary' }} btn-sm">
+                            {{ week_with_games }}
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+        
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    Week {{ selected_week }} Results
+                    {% if week_games %}
+                        <span class="badge bg-secondary ms-2">{{ week_games|length }} game{{ 's' if week_games|length != 1 else '' }}</span>
+                    {% endif %}
+                </h4>
+            </div>
+            <div class="card-body">
+                {% if week_games %}
+                    <div class="row">
+                        {% for game in week_games %}
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <div class="text-center mb-2">
+                                            {% if game.get('is_neutral_site') %}
+                                                <small class="badge bg-info text-dark mb-2">Neutral Site</small>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div class="text-center">
+                                            <!-- Teams and Scores -->
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <div class="text-{{ 'success' if game.home_score > game.away_score else 'muted' }}">
+                                                    <strong>{{ game.home_team }}</strong>
+                                                    {% if not game.get('is_neutral_site') %}
+                                                        <small class="text-muted">(H)</small>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="mx-2">
+                                                    <span class="badge bg-{{ 'success' if game.home_score > game.away_score else 'secondary' }} fs-6">
+                                                        {{ game.home_score }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                                <div class="text-{{ 'success' if game.away_score > game.home_score else 'muted' }}">
+                                                    <strong>{{ game.away_team }}</strong>
+                                                    {% if not game.get('is_neutral_site') %}
+                                                        <small class="text-muted">(A)</small>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="mx-2">
+                                                    <span class="badge bg-{{ 'success' if game.away_score > game.home_score else 'secondary' }} fs-6">
+                                                        {{ game.away_score }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Game Types -->
+                                            <div class="small text-muted">
+                                                <div>{{ game.home_team }}: {{ game.home_game_type }} Game</div>
+                                                <div>{{ game.away_team }}: {{ game.away_game_type }} Game</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer text-center">
+                                        <small class="text-muted">
+                                            Added: {{ game.date_added.split(' ')[0] if ' ' in game.date_added else game.date_added }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-5">
+                        <h5>No games recorded for Week {{ selected_week }}</h5>
+                        <p>Check back later for game results.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if week_games %}
+            <div class="mt-4">
+                <h5>Week {{ selected_week }} Summary</h5>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h6 class="card-title">Total Games</h6>
+                                <h4 class="text-primary">{{ week_games|length }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h6 class="card-title">P4 Games</h6>
+                                <h4 class="text-primary">{{ week_games|selectattr('home_game_type', 'equalto', 'P4')|list|length + week_games|selectattr('away_game_type', 'equalto', 'P4')|list|length }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h6 class="card-title">G5 Games</h6>
+                                <h4 class="text-primary">{{ week_games|selectattr('home_game_type', 'equalto', 'G5')|list|length + week_games|selectattr('away_game_type', 'equalto', 'G5')|list|length }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h6 class="card-title">Neutral Site</h6>
+                                <h4 class="text-primary">{{ week_games|selectattr('is_neutral_site', 'equalto', true)|list|length }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function changeWeek() {
+    const selectedWeek = document.getElementById('week_selector').value;
+    window.location.href = "{{ url_for('weekly_results') }}/" + selectedWeek;
+}
+</script>
+{% endblock %}

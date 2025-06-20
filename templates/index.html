@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-10">
+        <h2>Comprehensive Team Statistics</h2>
+        <p class="text-muted">Click column headers to sort</p>
+        <!-- Desktop Table (hidden on mobile) -->
+        <div class="d-none d-lg-block">
+            <div class="table-responsive">
+                <table class="table table-striped table-sm" id="statsTable">
+                    <thead>
+                        <tr>
+                            <th class="sortable-header" onclick="sortTable(0, true)">Rank<span class="sort-indicator"></span></th>
+                            <th class="sortable-header" onclick="sortTable(1)">Team<span class="sort-indicator"></span></th>
+                            <th class="sortable-header" onclick="sortTable(2)">Conf<span class="sort-indicator"></span></th>
+                            <th class="sortable-header" onclick="sortTable(3, true)">PF<span class="sort-indicator"></span></th>
+                            <th class="sortable-header" onclick="sortTable(4, true)">PA<span class="sort-indicator"></span></th>
+                            <th class="sortable-header" onclick="sortTable(5, true)">MoV<span class="sort-indicator"></span></th>
+                            <th class="sortable-header" onclick="sortTable(6, true)">PD<span class="sort-indicator"></span></th>
+                            <th class="sortable-header" onclick="sortTable(7, true)">HW<span class="sort-indicator"></span></th>
+                            <th class="sortable-header" onclick="sortTable(8, true)">RW<span class="sort-indicator"></span></th>
+                            <th class="sortable-header" onclick="sortTable(9, true)">P4W<span class="sort-indicator"></span></th>
+                            <th class="sortable-header" onclick="sortTable(10, true)">G5W<span class="sort-indicator"></span></th>
+                            <th class="sortable-header" onclick="sortTable(11, true)">Opp W<span class="sort-indicator"></span></th>
+                            <th class="sortable-header" onclick="sortTable(12, true)">Opp L<span class="sort-indicator"></span></th>
+                            <th class="sortable-header" onclick="sortTable(13, true)">SoS<span class="sort-indicator"></span></th>
+                            <th class="sortable-header" onclick="sortTable(14, true)">Opp W/L Diff<span class="sort-indicator"></span></th>
+                            <th class="sortable-header" onclick="sortTable(15, true)">Totals<span class="sort-indicator"></span></th>
+                            <th class="sortable-header" onclick="sortTable(16, true)">Total W<span class="sort-indicator"></span></th>
+                            <th class="sortable-header" onclick="sortTable(17, true)">Total L<span class="sort-indicator"></span></th>
+                            <th class="sortable-header" onclick="sortTable(18, true)">Adj Total<span class="sort-indicator">↓</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for team in comprehensive_stats %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td style="white-space: nowrap; min-width: 120px;">
+                               {% set logo_url = get_team_logo_url(team.team) %}
+{% if logo_url %}
+    <img src="{{ logo_url }}" alt="{{ team.team }}" style="width: 20px; height: 20px; margin-right: 8px;">
+{% endif %}
+<a href="{{ url_for('team_detail', team_name=team.team) }}">{{ team.team }}</a>
+                            </td>
+                            <td>
+                                {% set badge_class = {
+                                    'ACC': 'primary',
+                                    'Big Ten': 'success',
+                                    'Big XII': 'warning text-dark',
+                                    'Pac 12': 'info',
+                                    'SEC': 'danger',
+                                    'Independent': 'secondary',
+                                    'American': 'dark',
+                                    'Conference USA': 'light text-dark',
+                                    'MAC': 'primary',
+                                    'Mountain West': 'success',
+                                    'Sun Belt': 'warning text-dark'
+                                }.get(team.conference, 'secondary') %}
+                                <span class="badge bg-{{ badge_class }}">
+                                    {{ team.conference }}
+                                </span>
+                            </td>
+                            <td>{{ team.points_fielded }}</td>
+                            <td>{{ team.points_allowed }}</td>
+                            <td>{{ team.margin_of_victory }}</td>
+                            <td>{{ team.point_differential }}</td>
+                            <td>{{ team.home_wins }}</td>
+                            <td>{{ team.road_wins }}</td>
+                            <td>{{ team.p4_wins }}</td>
+                            <td>{{ team.g5_wins }}</td>
+                            <td>{{ team.opp_w }}</td>
+                            <td>{{ team.opp_l }}</td>
+                            <td>{{ team.strength_of_schedule }}</td>
+                            <td>{{ team.opp_wl_differential }}</td>
+                            <td><strong>{{ team.totals }}</strong></td>
+                            <td>{{ team.total_wins }}</td>
+                            <td>{{ team.total_losses }}</td>
+                            <td class="text-primary"><strong>{{ team.adjusted_total }}</strong></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Mobile Table (hidden on desktop) -->
+        <div class="d-lg-none">
+            <div class="table-responsive">
+                <table class="table table-striped" id="mobileStatsTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Team</th>
+                            <th>Record</th>
+                            <th>Rating</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for team in comprehensive_stats %}
+                        <tr>
+                            <td class="text-center">
+                                <strong>{{ loop.index }}</strong>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    {% set logo_url = get_team_logo_url(team.team) %}
+                                    {% if logo_url %}
+                                        <img src="{{ logo_url }}" alt="{{ team.team }}" style="width: 24px; height: 24px; margin-right: 8px; flex-shrink: 0;">
+                                    {% endif %}
+                                    <div>
+                                        <div class="fw-bold">
+                                            <a href="{{ url_for('team_detail', team_name=team.team) }}" class="text-decoration-none">
+                                                {{ team.team }}
+                                            </a>
+                                        </div>
+                                        <div>
+                                            {% set badge_class = {
+                                                'ACC': 'primary', 'Big Ten': 'success', 'Big XII': 'warning text-dark',
+                                                'Pac 12': 'info', 'SEC': 'danger', 'Independent': 'secondary',
+                                                'American': 'dark', 'Conference USA': 'light text-dark',
+                                                'MAC': 'primary', 'Mountain West': 'success', 'Sun Belt': 'warning text-dark'
+                                            }.get(team.conference, 'secondary') %}
+                                            <span class="badge bg-{{ badge_class }}" style="font-size: 0.7em;">
+                                                {{ team.conference }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <div class="fw-bold">{{ team.total_wins }}-{{ team.total_losses }}</div>
+                                <small class="text-muted">
+                                    {{ team.p4_wins }}P4 {{ team.g5_wins }}G5
+                                </small>
+                            </td>
+                            <td class="text-center">
+                                <div class="fw-bold text-primary">{{ team.adjusted_total }}</div>
+                                <small class="text-muted">SoS: {{ team.strength_of_schedule }}</small>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-2 col-md-12">
+        <!-- Top 25 Rankings -->
+        <div class="mb-4">
+            <h5 class="text-center">
+                <span class="badge bg-primary">Top 25</span>
+            </h5>
+            
+            <!-- Mobile: Horizontal scroll -->
+            <div class="d-lg-none">
+                <div class="d-flex overflow-auto pb-2" style="gap: 1rem;">
+                    {% for team in comprehensive_stats[:12] %}
+                        <div class="card flex-shrink-0" style="min-width: 200px;">
+                            <div class="card-body p-2 text-center">
+                                <div class="fw-bold text-primary">#{{ loop.index }}</div>
+                                {% set logo_url = get_team_logo_url(team.team) %}
+                                {% if logo_url %}
+                                    <img src="{{ logo_url }}" alt="{{ team.team }}" style="width: 32px; height: 32px;" class="mb-1">
+                                {% endif %}
+                                <div class="fw-bold small">{{ team.team }}</div>
+                                <div class="small text-muted">{{ team.total_wins }}-{{ team.total_losses }}</div>
+                                <div class="small text-primary">{{ team.adjusted_total }}</div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="text-center mt-2">
+                    <small class="text-muted">← Scroll for more teams →</small>
+                </div>
+            </div>
+            
+            <!-- Desktop: Vertical list -->
+            <div class="d-none d-lg-block">
+                <div class="card">
+                    <div class="card-body p-1">
+                        {% for team in comprehensive_stats[:25] %}
+                            <div class="d-flex justify-content-between align-items-center py-1 px-2 {% if loop.index <= 4 %}bg-success bg-opacity-25{% elif loop.index <= 12 %}bg-warning bg-opacity-25{% endif %} {% if not loop.last %}border-bottom{% endif %}">
+                                <div class="flex-grow-1">
+                                    <small class="fw-bold">{{ loop.index }}.</small>
+                                    <a href="{{ url_for('team_detail', team_name=team.team) }}" class="text-decoration-none ms-1">
+                                        <small class="fw-bold">{{ team.team }}</small>
+                                    </a>
+                                    <br>
+                                    <small class="text-muted ms-3">{{ team.total_wins }}-{{ team.total_losses }}</small>
+                                </div>
+                                <div>
+                                    <small class="text-primary fw-bold">{{ team.adjusted_total }}</small>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <div class="card-footer p-1 text-center">
+                        <small class="text-muted">
+                            <span class="badge bg-success me-1" style="font-size: 0.6em;">CFP</span>
+                            <span class="badge bg-warning text-dark" style="font-size: 0.6em;">At-Large</span>
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Games -->
+        <div class="d-none d-lg-block">
+            <h6>Recent Games</h6>
+            {% if recent_games %}
+                <div class="list-group">
+                    {% for game in recent_games[:5] %}
+                    <div class="list-group-item p-2">
+                        <small class="text-muted">Week {{ game.week }}{% if game.get('is_neutral_site') %} - N{% endif %}</small><br>
+                        <small class="fw-bold">{{ game.home_team }} {{ game.home_score }}-{{ game.away_score }} {{ game.away_team }}</small>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted small">No games yet.</p>
+            {% endif %}
+        </div>
+        
+        <!-- Mobile: Recent Games in expandable section -->
+        <div class="d-lg-none">
+            {% if recent_games %}
+                <div class="card">
+                    <div class="card-header" data-bs-toggle="collapse" data-bs-target="#recentGamesMobile" style="cursor: pointer;">
+                        <h6 class="mb-0">📊 Recent Games <small class="text-muted">(tap to expand)</small></h6>
+                    </div>
+                    <div class="collapse" id="recentGamesMobile">
+                        <div class="card-body p-2">
+                            {% for game in recent_games[:5] %}
+                                <div class="border-bottom py-2">
+                                    <div class="small text-muted">Week {{ game.week }}{% if game.get('is_neutral_site') %} - Neutral{% endif %}</div>
+                                    <div class="fw-bold small">{{ game.home_team }} {{ game.home_score }}-{{ game.away_score }} {{ game.away_team }}</div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+</div>
+{% endblock %}

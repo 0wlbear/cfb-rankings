@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Historical Rankings - College Football Rankings{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2>Weekly Rankings Movement</h2>
+        <p class="text-muted">{{ previous_week.week }} → {{ current_week.week }} • Changes from last week</p>
+        
+        <div class="table-responsive">
+            <table class="table table-striped table-sm">
+                <thead>
+                    <tr>
+                        <th>Current Rank</th>
+                        <th>Team</th>
+                        <th>Conference</th>
+                        <th>Record</th>
+                        <th>Previous Rank</th>
+                        <th>Movement</th>
+                        <th>Adj Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for team in movement_data %}
+                    <tr>
+                        <td><strong>{{ team.current_rank }}</strong></td>
+                        <td style="white-space: nowrap;">
+                            {% set logo_url = get_team_logo_url(team.team) %}
+                            {% if logo_url %}
+                                <img src="{{ logo_url }}" alt="{{ team.team }}" style="width: 20px; height: 20px; margin-right: 8px; vertical-align: middle;">
+                            {% endif %}
+                            {{ team.team }}
+                        </td>
+                        <td>
+                            {% set badge_class = {
+                                'ACC': 'primary', 'Big Ten': 'success', 'Big XII': 'warning text-dark',
+                                'Pac 12': 'info', 'SEC': 'danger', 'Independent': 'secondary',
+                                'American': 'dark', 'Conference USA': 'light text-dark',
+                                'MAC': 'primary', 'Mountain West': 'success', 'Sun Belt': 'warning text-dark'
+                            }.get(team.conference, 'secondary') %}
+                            <span class="badge bg-{{ badge_class }}">{{ team.conference }}</span>
+                        </td>
+                        <td>{{ team.wins }}-{{ team.losses }}</td>
+                        <td>
+                            {% if team.previous_rank %}
+                                {{ team.previous_rank }}
+                            {% else %}
+                                <span class="text-muted">NR</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if team.movement is none %}
+                                <span class="badge bg-info">NEW</span>
+                            {% elif team.movement > 0 %}
+                                <span class="text-success">↑{{ team.movement }}</span>
+                            {% elif team.movement < 0 %}
+                                <span class="text-danger">↓{{ team.movement|abs }}</span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-primary"><strong>{{ team.adjusted_total }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="mt-4">
+            <h5>Biggest Movers</h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="text-success">⬆️ Biggest Gainers</h6>
+                    {% set gainers = movement_data|selectattr('movement', 'greaterthan', 0)|sort(attribute='movement', reverse=true) %}
+                    {% for team in gainers[:5] %}
+                        <div>{{ team.team }} (+{{ team.movement }})</div>
+                    {% endfor %}
+                </div>
+                <div class="col-md-6">
+                    <h6 class="text-danger">⬇️ Biggest Drops</h6>
+                    {% set droppers = movement_data|selectattr('movement', 'lessthan', 0)|sort(attribute='movement') %}
+                    {% for team in droppers[:5] %}
+                        <div>{{ team.team }} ({{ team.movement }})</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}{{ team1 }} vs {{ team2 }} - Team Comparison{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="text-center mb-4">
+            <h2>{{ team1 }} vs {{ team2 }}</h2>
+            <p class="text-muted">
+                Location: 
+                {% if location == 'neutral' %}Neutral Site
+                {% elif location == 'team1_home' %}{{ team1 }} Home
+                {% else %}{{ team2 }} Home
+                {% endif %}
+            </p>
+        </div>
+
+        <!-- Prediction Section -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Prediction</h4>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <h5>Predicted Winner</h5>
+                        <h3 class="text-primary">{{ prediction.winner }}</h3>
+                        <p class="text-muted">by {{ prediction.final_margin|abs }} points</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h5>Win Probability</h5>
+                        <h3 class="text-success">{{ prediction.win_probability }}%</h3>
+                        <p class="text-muted">Confidence: {{ prediction.confidence }}</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h5>Adjustments</h5>
+                        {% for factor, adjustment in prediction.adjustments.items() %}
+                            <div class="small">
+                                {{ factor }}: {{ "+" if adjustment > 0 else "" }}{{ adjustment }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Comparison -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4 class="mb-0">Statistical Comparison</h4>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Statistic</th>
+                                <th class="text-center">{{ team1 }}</th>
+                                <th class="text-center">{{ team2 }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Record</strong></td>
+                                <td class="text-center">{{ team1_stats.total_wins }}-{{ team1_stats.total_losses }}</td>
+                                <td class="text-center">{{ team2_stats.total_wins }}-{{ team2_stats.total_losses }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Adjusted Total</strong></td>
+                                <td class="text-center text-{{ 'success' if team1_stats.adjusted_total > team2_stats.adjusted_total else 'danger' }}">
+                                    <strong>{{ team1_stats.adjusted_total }}</strong>
+                                </td>
+                                <td class="text-center text-{{ 'success' if team2_stats.adjusted_total > team1_stats.adjusted_total else 'danger' }}">
+                                    <strong>{{ team2_stats.adjusted_total }}</strong>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Strength of Schedule</strong></td>
+                                <td class="text-center">{{ team1_stats.strength_of_schedule }}</td>
+                                <td class="text-center">{{ team2_stats.strength_of_schedule }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>P4 Wins</strong></td>
+                                <td class="text-center">{{ team1_stats.p4_wins }}</td>
+                                <td class="text-center">{{ team2_stats.p4_wins }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Point Differential</strong></td>
+                                <td class="text-center">{{ team1_stats.point_differential }}</td>
+                                <td class="text-center">{{ team2_stats.point_differential }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Form -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">{{ team1 }} Recent Form</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Last 4 Games:</strong> {{ team1_form.record }}</p>
+                        <p><strong>Average Margin:</strong> {{ team1_form.avg_margin }}</p>
+                        <p><strong>Trending:</strong> 
+                            {% if team1_form.trending == 'up' %}📈 Up
+                            {% elif team1_form.trending == 'down' %}📉 Down
+                            {% else %}➡️ Stable
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">{{ team2 }} Recent Form</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Last 4 Games:</strong> {{ team2_form.record }}</p>
+                        <p><strong>Average Margin:</strong> {{ team2_form.avg_margin }}</p>
+                        <p><strong>Trending:</strong> 
+                            {% if team2_form.trending == 'up' %}📈 Up
+                            {% elif team2_form.trending == 'down' %}📉 Down
+                            {% else %}➡️ Stable
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Common Opponents -->
+        {% if common_opponents.has_common %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Common Opponents Analysis</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">{{ common_opponents.summary }}</p>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Opponent</th>
+                                <th>{{ team1 }} Result</th>
+                                <th>{{ team2 }} Result</th>
+                                <th>Advantage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for comparison in common_opponents.comparison %}
+                            <tr>
+                                <td>{{ comparison.opponent }}</td>
+                                <td>{{ comparison.team1_result }}</td>
+                                <td>{{ comparison.team2_result }}</td>
+                                <td class="text-{{ 'success' if comparison.advantage > 0 else 'danger' if comparison.advantage < 0 else 'muted' }}">
+                                    {% if comparison.advantage > 0 %}+{{ comparison.advantage }} {{ team1 }}
+                                    {% elif comparison.advantage < 0 %}{{ comparison.advantage }} {{ team2 }}
+                                    {% else %}Even
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Head to Head History -->
+        {% if h2h_history.has_history %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Head-to-Head History</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Series Record:</strong> {{ h2h_history.record }}</p>
+                <p><strong>Last Meeting:</strong> {{ h2h_history.summary }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="text-center">
+            <a href="{{ url_for('team_compare') }}" class="btn btn-primary">Compare Other Teams</a>
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">Back to Rankings</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

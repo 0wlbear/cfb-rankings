@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+
+{% block title %}Add Game - College Football Rankings{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <h2>Add New Game</h2>
+        <p class="text-muted">Game types are automatically set based on opponent classification. Type team names to search or click dropdown arrow to browse.</p>
+        
+        <form method="POST">
+            <!-- Recent Games Display -->
+            {% if recent_games %}
+            <div class="alert alert-info mb-4">
+                <h6><i class="fas fa-info-circle"></i> Recent Games Added:</h6>
+                <div class="small">
+                    {% for game in recent_games[:3] %}
+                        <div>{{ game.home_team }} {{ game.home_score }} - {{ game.away_score }} {{ game.away_team }} (Week {{ game.week }}){% if game.get('is_neutral_site') %} - Neutral{% endif %}</div>
+                    {% endfor %}
+                    {% if recent_games|length > 3 %}
+                        <div class="text-muted">... and {{ recent_games|length - 3 }} more</div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="week" class="form-label">Week</label>
+                    <select class="form-select" id="week" name="week" required>
+                        <option value="">Select Week</option>
+                        {% for week in weeks %}
+                            <option value="{{ week }}" {% if week == selected_week %}selected{% endif %}>{{ week }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6 d-flex align-items-end">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="neutral_site" name="neutral_site" onchange="updateNeutralSiteLabels()">
+                        <label class="form-check-label" for="neutral_site">
+                            <strong>Neutral Site Game</strong><br>
+                            <small class="text-muted">Neither team gets home/road win credit</small>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Away Team Card -->
+                <div class="col-lg-6 mb-3">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0" id="away_team_header">Away Team</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="away_team" class="form-label">Team</label>
+                                <select class="form-select form-select-lg" id="away_team" name="away_team" onchange="updateGameTypes()" required>
+                                    <option value="">Select Away Team</option>
+                                    {% for conf_name, teams in conferences.items() %}
+                                        <optgroup label="{{ conf_name }}">
+                                            {% for team in teams %}
+                                                <option value="{{ team }}">{{ team }}</option>
+                                            {% endfor %}
+                                        </optgroup>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="away_score" class="form-label">Score</label>
+                                <input type="number" class="form-control form-control-lg" id="away_score" name="away_score" min="0" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Game Type for Away Team</label>
+                                <div id="away_game_type_display" class="mb-2">
+                                    <span class="badge bg-secondary">Select both teams first</span>
+                                </div>
+                                <div class="d-grid gap-2">
+                                    {% for game_type in game_types %}
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="away_game_type" id="away_{{ game_type }}" value="{{ game_type }}" required>
+                                        <label class="form-check-label" for="away_{{ game_type }}">
+                                            {{ game_type }}
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        
+                <!-- Home Team Card -->
+                <div class="col-lg-6 mb-3">
+                    <div class="card">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0" id="home_team_header">Home Team</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="home_team" class="form-label">Team</label>
+                                <select class="form-select form-select-lg" id="home_team" name="home_team" onchange="updateGameTypes()" required>
+                                    <option value="">Select Home Team</option>
+                                    {% for conf_name, teams in conferences.items() %}
+                                        <optgroup label="{{ conf_name }}">
+                                            {% for team in teams %}
+                                                <option value="{{ team }}">{{ team }}</option>
+                                            {% endfor %}
+                                        </optgroup>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="home_score" class="form-label">Score</label>
+                                <input type="number" class="form-control form-control-lg" id="home_score" name="home_score" min="0" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Game Type for Home Team</label>
+                                <div id="home_game_type_display" class="mb-2">
+                                    <span class="badge bg-secondary">Select both teams first</span>
+                                </div>
+                                <div class="d-grid gap-2">
+                                    {% for game_type in game_types %}
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="home_game_type" id="home_{{ game_type }}" value="{{ game_type }}" required>
+                                        <label class="form-check-label" for="home_{{ game_type }}">
+                                            {{ game_type }}
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+                
+            
+            
+            <div class="mt-4 text-center">
+                <button type="submit" class="btn btn-primary btn-lg">Add Game</button>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary btn-lg">View Rankings</a>
+                <a href="{{ url_for('weekly_results') }}" class="btn btn-outline-secondary btn-lg">Weekly Results</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Team classifications data
+const teamClassifications = {{ team_classifications | tojson }};
+
+// Create array of valid team names for validation
+const validTeams = Object.keys(teamClassifications);
+
+function validateTeamInput(inputElement) {
+    const teamName = inputElement.value.trim();
+    if (teamName && !validTeams.includes(teamName)) {
+        inputElement.setCustomValidity('Please select a valid team from the list');
+        inputElement.classList.add('is-invalid');
+    } else {
+        inputElement.setCustomValidity('');
+        inputElement.classList.remove('is-invalid');
+    }
+}
+
+function updateGameTypes() {
+    const homeTeamInput = document.getElementById('home_team');
+    const awayTeamInput = document.getElementById('away_team');
+    const homeTeam = homeTeamInput.value.trim();
+    const awayTeam = awayTeamInput.value.trim();
+    
+    // Validate team inputs
+    validateTeamInput(homeTeamInput);
+    validateTeamInput(awayTeamInput);
+    
+    const homeDisplay = document.getElementById('home_game_type_display');
+    const awayDisplay = document.getElementById('away_game_type_display');
+    
+    // Clear previous selections
+    const homeRadios = document.querySelectorAll('input[name="home_game_type"]');
+    const awayRadios = document.querySelectorAll('input[name="away_game_type"]');
+    homeRadios.forEach(radio => radio.checked = false);
+    awayRadios.forEach(radio => radio.checked = false);
+    
+    if (homeTeam && awayTeam && teamClassifications[homeTeam] && teamClassifications[awayTeam]) {
+        // Home team's game type = what level the away team is
+        const homeGameType = teamClassifications[awayTeam];
+        // Away team's game type = what level the home team is  
+        const awayGameType = teamClassifications[homeTeam];
+        
+        // Update displays
+        updateGameTypeDisplay('home', homeGameType, awayTeam);
+        updateGameTypeDisplay('away', awayGameType, homeTeam);
+        
+        // Auto-select radio buttons
+        const homeRadio = document.getElementById('home_' + homeGameType);
+        const awayRadio = document.getElementById('away_' + awayGameType);
+        
+        if (homeRadio) homeRadio.checked = true;
+        if (awayRadio) awayRadio.checked = true;
+        
+    } else {
+        homeDisplay.innerHTML = '<span class="badge bg-secondary">Select both teams first</span>';
+        awayDisplay.innerHTML = '<span class="badge bg-secondary">Select both teams first</span>';
+    }
+}
+
+function updateGameTypeDisplay(side, gameType, opponent) {
+    const displayElement = document.getElementById(side + '_game_type_display');
+    
+    let badgeClass = 'bg-secondary';
+    let explanation = '';
+    
+    if (gameType === 'P4') {
+        badgeClass = 'bg-primary';
+        explanation = `Playing P4 team (${opponent})`;
+    } else if (gameType === 'G5') {
+        badgeClass = 'bg-success';
+        explanation = `Playing G5 team (${opponent})`;
+    } else if (gameType === 'None') {
+        badgeClass = 'bg-warning text-dark';
+        explanation = `Playing other team (${opponent})`;
+    }
+    
+    displayElement.innerHTML = `<span class="badge ${badgeClass}">${gameType} Game</span><br><small class="text-muted">${explanation}</small>`;
+}
+
+function updateNeutralSiteLabels() {
+    const neutralSite = document.getElementById('neutral_site').checked;
+    const homeHeader = document.getElementById('home_team_header');
+    const awayHeader = document.getElementById('away_team_header');
+    
+    if (neutralSite) {
+        homeHeader.innerHTML = 'Team 1 <small class="text-light">(Neutral Site)</small>';
+        awayHeader.innerHTML = 'Team 2 <small class="text-light">(Neutral Site)</small>';
+    } else {
+        homeHeader.innerHTML = 'Home Team';
+        awayHeader.innerHTML = 'Away Team';
+    }
+}
+
+// Clear form after successful game addition (if there's a success message)
+document.addEventListener('DOMContentLoaded', function() {
+    const successAlert = document.querySelector('.alert-success');
+    if (successAlert) {
+        // Preserve the selected week
+        const currentWeek = document.getElementById('week').value;
+        
+        // Clear form fields EXCEPT week
+        document.getElementById('home_team').value = '';
+        document.getElementById('away_team').value = '';
+        document.getElementById('home_score').value = '';
+        document.getElementById('away_score').value = '';
+        document.getElementById('neutral_site').checked = false;
+        
+        // Restore week selection
+        document.getElementById('week').value = currentWeek;
+        
+        // Clear game type displays
+        document.getElementById('home_game_type_display').innerHTML = '<span class="badge bg-secondary">Select both teams first</span>';
+        document.getElementById('away_game_type_display').innerHTML = '<span class="badge bg-secondary">Select both teams first</span>';
+        
+        // Clear radio buttons
+        const homeRadios = document.querySelectorAll('input[name="home_game_type"]');
+        const awayRadios = document.querySelectorAll('input[name="away_game_type"]');
+        homeRadios.forEach(radio => radio.checked = false);
+        awayRadios.forEach(radio => radio.checked = false);
+        
+        // Reset headers
+        updateNeutralSiteLabels();
+        
+        // Focus on home team input for next entry
+        document.getElementById('home_team').focus();
+    }
+    
+    // Add event listeners for team input validation
+    document.getElementById('home_team').addEventListener('input', function() {
+        updateGameTypes();
+    });
+    
+    document.getElementById('away_team').addEventListener('input', function() {
+        updateGameTypes();
+    });
+});
+</script>
+{% endblock %}
