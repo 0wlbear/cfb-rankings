@@ -1646,7 +1646,10 @@ def compare_teams():
     
     return render_template('comparison_results.html', **comparison_data)
 
-
+@app.route('/ranking_methodology')
+def ranking_methodology():
+    """Explain how the scientific ranking system works"""
+    return render_template('ranking_methodology.html')
 
 
 @app.route('/create_snapshot', methods=['POST'])
