@@ -1072,7 +1072,7 @@ def add_game():
 def historical_rankings():
     if len(historical_rankings) < 2:
         flash('Need at least 2 weekly snapshots to show movement', 'info')
-        return redirect(url_for('admin'))
+        return redirect(url_for('public_rankings'))
     
     # Get the two most recent snapshots
     current_week = historical_rankings[-1]
