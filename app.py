@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, render_template_string
 import json
+import math
 from datetime import datetime
 from collections import defaultdict
 from functools import wraps
@@ -865,22 +866,413 @@ def generate_cfp_bracket():
     
     return bracket
 
-def calculate_comprehensive_stats(team_name):
-    """Calculate all comprehensive statistics for a team - FIXED VERSION"""
-    stats = team_stats[team_name]
+# ===============================================
+# MODULE 1: OPPONENT QUALITY ENGINE
+# ===============================================
+
+def calculate_team_base_strength(team_name, iteration=0, max_iterations=3):
+    """
+    Calculate a team's base strength using iterative opponent quality.
+    Returns value between 1-10 (10 = elite, 5 = average, 1 = terrible)
+    """
+    if iteration >= max_iterations:
+        # Base case: use simple metrics
+        stats = team_stats[team_name]
+        total_games = stats['wins'] + stats['losses']
+        if total_games == 0:
+            return 5.0  # Neutral rating for teams with no games
+        
+        win_pct = stats['wins'] / total_games
+        return 2.0 + (win_pct * 6.0)  # Scale 2-8 based on win percentage
     
-    # Basic stats
+    stats = team_stats[team_name]
     total_games = stats['wins'] + stats['losses']
+    
+    if total_games == 0:
+        return 5.0
+    
+    # Calculate base win percentage component
+    win_pct = stats['wins'] / total_games
+    base_score = 2.0 + (win_pct * 4.0)  # 2-6 range from win percentage
+    
+    # Add opponent-adjusted component
+    opponent_quality_sum = 0
+    game_count = 0
+    
+    for game in stats['games']:
+        opponent = game['opponent']
+        if opponent in team_stats and opponent != team_name:
+            # Recursive call with iteration limit
+            opp_strength = calculate_team_base_strength(opponent, iteration + 1, max_iterations)
+            
+            # Weight by game result and margin
+            if game['result'] == 'W':
+                # Beating strong opponents adds more, beating weak opponents adds less
+                quality_bonus = (opp_strength - 5.0) * 0.3  # Scale opponent strength impact
+                margin_factor = min(1.0, abs(game['team_score'] - game['opp_score']) / 14.0)
+                opponent_quality_sum += quality_bonus * margin_factor
+            else:
+                # Losing to strong opponents hurts less, losing to weak opponents hurts more
+                quality_penalty = (5.0 - opp_strength) * 0.4
+                margin_factor = min(1.0, abs(game['team_score'] - game['opp_score']) / 21.0)
+                opponent_quality_sum -= quality_penalty * margin_factor
+            
+            game_count += 1
+    
+    if game_count > 0:
+        avg_opponent_adjustment = opponent_quality_sum / game_count
+        final_strength = base_score + avg_opponent_adjustment
+    else:
+        final_strength = base_score
+    
+    # Bound the result between 1-10
+    return max(1.0, min(10.0, final_strength))
+
+def get_current_opponent_quality(opponent_name):
+    """Get current quality rating for an opponent (1-10 scale)"""
+    if opponent_name not in team_stats:
+        return 3.0  # Default for unknown opponents (FCS, etc.)
+    
+    base_strength = calculate_team_base_strength(opponent_name)
+    
+    # Adjust for recent form (last 4 games)
+    recent_games = team_stats[opponent_name]['games'][-4:]
+    if len(recent_games) >= 2:
+        recent_wins = sum(1 for g in recent_games if g['result'] == 'W')
+        recent_form_bonus = (recent_wins / len(recent_games) - 0.5) * 1.0  # -0.5 to +0.5 bonus
+        base_strength += recent_form_bonus
+    
+    return max(1.0, min(10.0, base_strength))
+
+# ===============================================
+# MODULE 2: VICTORY VALUE CALCULATOR  
+# ===============================================
+
+def calculate_victory_value(game, team_name):
+    """
+    Calculate the value of a single victory.
+    Returns a score typically between 0-15 (excellent wins can exceed 10)
+    """
+    if game['result'] != 'W':
+        return 0.0
+    
+    opponent = game['opponent']
+    team_score = game['team_score']
+    opp_score = game['opp_score']
+    margin = team_score - opp_score
+    location = game['home_away']
+    
+    # 1. Base Opponent Quality (1-10 scale)
+    opponent_quality = get_current_opponent_quality(opponent)
+    
+    # 2. Location Multiplier
+    location_multipliers = {
+        'Home': 1.0,
+        'Away': 1.3,    # Road wins worth 30% more
+        'Neutral': 1.15  # Neutral site wins worth 15% more
+    }
+    location_mult = location_multipliers.get(location, 1.0)
+    
+    # 3. Margin Bonus with Diminishing Returns
+    # Peak efficiency at 14-point wins, diminishing returns after that
+    if margin <= 0:
+        margin_bonus = 0
+    elif margin <= 7:
+        margin_bonus = margin * 0.1  # Linear up to 7 points
+    elif margin <= 14:
+        margin_bonus = 0.7 + (margin - 7) * 0.08  # Slower growth 7-14
+    elif margin <= 21:
+        margin_bonus = 1.26 + (margin - 14) * 0.04  # Even slower 14-21
+    else:
+        margin_bonus = 1.54 + (margin - 21) * 0.02  # Minimal benefit beyond 21
+    
+    # 4. Conference Context Bonus
+    team_conf = get_team_conference(team_name)
+    opp_conf = get_team_conference(opponent)
+    
+    conf_bonus = 0
+    if team_conf in P4_CONFERENCES and opp_conf in P4_CONFERENCES:
+        conf_bonus = 0.3  # P4 vs P4 bonus
+    elif team_conf in G5_CONFERENCES and opp_conf in P4_CONFERENCES:
+        conf_bonus = 0.5  # G5 beating P4 major bonus
+    
+    # 5. Calculate Final Victory Value
+    base_value = opponent_quality * location_mult
+    total_value = base_value + margin_bonus + conf_bonus
+    
+    return round(total_value, 2)
+
+def calculate_total_victory_value(team_name):
+    """Sum up all victory values for a team"""
+    total_value = 0
+    victory_details = []
+    
+    for game in team_stats[team_name]['games']:
+        if game['result'] == 'W':
+            value = calculate_victory_value(game, team_name)
+            total_value += value
+            victory_details.append({
+                'opponent': game['opponent'],
+                'value': value,
+                'margin': game['team_score'] - game['opp_score'],
+                'location': game['home_away']
+            })
+    
+    return total_value, victory_details
+
+# ===============================================
+# MODULE 3: LOSS QUALITY ASSESSMENT
+# ===============================================
+
+def calculate_loss_penalty(game, team_name):
+    """
+    Calculate penalty for a single loss based on quality and context.
+    Returns a penalty value (positive number = bad for ranking)
+    """
+    if game['result'] != 'L':
+        return 0.0
+    
+    opponent = game['opponent']
+    team_score = game['team_score']
+    opp_score = game['opp_score']
+    margin = opp_score - team_score  # How much they lost by
+    location = game['home_away']
+    
+    # 1. Base Loss Penalty
+    base_penalty = 3.0  # Every loss starts with 3-point penalty
+    
+    # 2. Opponent Quality Adjustment
+    opponent_quality = get_current_opponent_quality(opponent)
+    
+    # Losing to good teams hurts less, losing to bad teams hurts more
+    if opponent_quality >= 7.0:  # Top tier opponent
+        quality_adjustment = -1.5  # Reduce penalty
+    elif opponent_quality >= 5.5:  # Decent opponent  
+        quality_adjustment = -0.5  # Slight penalty reduction
+    elif opponent_quality >= 4.0:  # Below average opponent
+        quality_adjustment = 0.5   # Slight penalty increase
+    else:  # Bad opponent
+        quality_adjustment = 2.0   # Major penalty increase
+    
+    # 3. Margin Penalty - Blowout losses hurt more
+    if margin <= 3:
+        margin_penalty = 0  # Close losses don't add extra penalty
+    elif margin <= 7:
+        margin_penalty = 0.5
+    elif margin <= 14:
+        margin_penalty = 1.0
+    elif margin <= 21:
+        margin_penalty = 2.0
+    else:
+        margin_penalty = 3.0  # Blowout losses hurt a lot
+    
+    # 4. Location Adjustment
+    location_adjustments = {
+        'Home': 0.5,     # Losing at home hurts more
+        'Away': -0.3,    # Losing on road hurts less
+        'Neutral': 0.0   # Neutral baseline
+    }
+    location_adj = location_adjustments.get(location, 0.0)
+    
+    # 5. Calculate Total Penalty
+    total_penalty = base_penalty + quality_adjustment + margin_penalty + location_adj
+    
+    # Ensure penalty is never negative (losses should always hurt something)
+    return max(0.5, total_penalty)
+
+def calculate_total_loss_penalty(team_name):
+    """Sum up all loss penalties for a team"""
+    total_penalty = 0
+    loss_details = []
+    
+    for game in team_stats[team_name]['games']:
+        if game['result'] == 'L':
+            penalty = calculate_loss_penalty(game, team_name)
+            total_penalty += penalty
+            loss_details.append({
+                'opponent': game['opponent'],
+                'penalty': penalty,
+                'margin': game['opp_score'] - game['team_score'],
+                'location': game['home_away']
+            })
+    
+    return total_penalty, loss_details
+
+# ===============================================
+# MODULE 4: TEMPORAL WEIGHTING ENGINE
+# ===============================================
+
+def calculate_temporal_adjustment(team_name):
+    """
+    Adjust for recent form vs season-long performance.
+    Returns adjustment factor for current strength (-2 to +2 range).
+    """
+    games = team_stats[team_name]['games']
+    if len(games) < 4:
+        return 0  # Not enough games for temporal analysis
+    
+    # Split season into early (all but last 4) and recent (last 4)
+    early_games = games[:-4] if len(games) > 4 else []
+    recent_games = games[-4:]
+    
+    if not early_games:
+        return 0  # All games are "recent"
+    
+    # Calculate performance metrics for each period
+    def calculate_period_performance(game_list):
+        if not game_list:
+            return 0.5, 0  # Neutral win rate, no margin
+        
+        wins = sum(1 for g in game_list if g['result'] == 'W')
+        win_rate = wins / len(game_list)
+        
+        total_margin = sum(g['team_score'] - g['opp_score'] for g in game_list)
+        avg_margin = total_margin / len(game_list)
+        
+        return win_rate, avg_margin
+    
+    early_win_rate, early_margin = calculate_period_performance(early_games)
+    recent_win_rate, recent_margin = calculate_period_performance(recent_games)
+    
+    # Calculate improvement/decline
+    win_rate_change = recent_win_rate - early_win_rate
+    margin_change = recent_margin - early_margin
+    
+    # Convert to temporal adjustment (-2 to +2 range)
+    adjustment = (win_rate_change * 2.0) + (margin_change / 14.0)
+    
+    return max(-2.0, min(2.0, adjustment))
+
+# ===============================================
+# MODULE 5: CONSISTENCY ANALYZER
+# ===============================================
+
+def calculate_consistency_factor(team_name):
+    """
+    Measure team consistency/reliability.
+    Returns adjustment based on performance variance (-0.6 to +0.5 range).
+    """
+    games = team_stats[team_name]['games']
+    if len(games) < 4:
+        return 0  # Need multiple games for consistency analysis
+    
+    # Calculate game-by-game performance scores
+    performance_scores = []
+    for game in games:
+        opponent_quality = get_current_opponent_quality(game['opponent'])
+        margin = game['team_score'] - game['opp_score']
+        
+        # Expected margin based on opponent quality (rough approximation)
+        expected_margin = (5.0 - opponent_quality) * 2  # Stronger opponents = negative expected margin
+        
+        # Performance score = how much better/worse than expected
+        performance_score = margin - expected_margin
+        performance_scores.append(performance_score)
+    
+    # Calculate variance
+    if len(performance_scores) < 2:
+        return 0
+    
+    mean_performance = sum(performance_scores) / len(performance_scores)
+    variance = sum((score - mean_performance) ** 2 for score in performance_scores) / len(performance_scores)
+    std_dev = math.sqrt(variance)
+    
+    # Convert to consistency factor
+    # Lower variance = more consistent = small bonus
+    # Higher variance = less reliable = small penalty
+    if std_dev <= 10:
+        consistency_bonus = 0.5  # Very consistent
+    elif std_dev <= 15:
+        consistency_bonus = 0.2  # Somewhat consistent
+    elif std_dev <= 20:
+        consistency_bonus = 0.0  # Average consistency
+    elif std_dev <= 25:
+        consistency_bonus = -0.3  # Inconsistent
+    else:
+        consistency_bonus = -0.6  # Very inconsistent
+    
+    return consistency_bonus
+
+# ===============================================
+# MODULE 6: FINAL RANKING COMPOSER
+# ===============================================
+
+def calculate_scientific_ranking(team_name):
+    """
+    Combine all modules into final scientific ranking score.
+    Higher score = better ranking.
+    """
+    stats = team_stats[team_name]
+    total_games = stats['wins'] + stats['losses']
+    
     if total_games == 0:
         return {
-            'points_fielded': 0, 'points_allowed': 0, 'margin_of_victory': 0,
-            'point_differential': 0, 'home_wins': 0, 'road_wins': 0,
-            'p4_wins': 0, 'g5_wins': 0, 'opp_w': 0, 'opp_l': 0,
-            'strength_of_schedule': 0, 'opp_wl_differential': 0,
-            'totals': 0, 'total_wins': 0, 'total_losses': 0, 'adjusted_total': 0
+            'total_score': 0.0,
+            'components': {
+                'victory_value': 0.0,
+                'loss_penalty': 0.0,
+                'temporal_adjustment': 0.0,
+                'consistency_factor': 0.0,
+                'games_bonus': 0.0
+            },
+            'basic_stats': {'wins': 0, 'losses': 0}
         }
     
-    # Calculate opponent wins/losses and SoS
+    # Component 1: Victory Value (0-100+ range)
+    victory_value, victory_details = calculate_total_victory_value(team_name)
+    
+    # Component 2: Loss Penalties (0-50+ range, subtracted)
+    loss_penalty, loss_details = calculate_total_loss_penalty(team_name)
+    
+    # Component 3: Temporal Adjustment (-2 to +2 range)
+    temporal_adj = calculate_temporal_adjustment(team_name)
+    
+    # Component 4: Consistency Factor (-0.6 to +0.5 range)
+    consistency_factor = calculate_consistency_factor(team_name)
+    
+    # Component 5: Games Played Bonus (rewards full seasons)
+    games_bonus = min(2.0, total_games * 0.15)  # Up to 2 points for 13+ games
+    
+    # Final Score Calculation
+    total_score = (
+        victory_value -           # Higher for quality wins
+        loss_penalty +           # Lower for bad losses  
+        temporal_adj +           # Recent form adjustment
+        consistency_factor +     # Reliability bonus/penalty
+        games_bonus             # Slight bonus for playing full season
+    )
+    
+    return {
+        'total_score': round(total_score, 2),
+        'components': {
+            'victory_value': round(victory_value, 2),
+            'loss_penalty': round(loss_penalty, 2),
+            'temporal_adjustment': round(temporal_adj, 2),
+            'consistency_factor': round(consistency_factor, 2),
+            'games_bonus': round(games_bonus, 2)
+        },
+        'basic_stats': {
+            'wins': stats['wins'],
+            'losses': stats['losses'],
+            'total_games': total_games
+        }
+    }
+
+
+
+
+def calculate_comprehensive_stats(team_name):
+    """
+    REPLACEMENT for old function - now uses scientific ranking system
+    but maintains same return format for compatibility with existing templates
+    """
+    scientific_result = calculate_scientific_ranking(team_name)
+    
+    # Map to old format for backward compatibility
+    stats = team_stats[team_name]
+    total_games = stats['wins'] + stats['losses']
+    
+    # Calculate some legacy fields that other parts of code might expect
     opponent_total_wins = 0
     opponent_total_losses = 0
     opponent_total_games = 0
@@ -889,38 +1281,19 @@ def calculate_comprehensive_stats(team_name):
         opponent = game['opponent']
         if opponent in team_stats:
             opp_stats = team_stats[opponent]
-            opp_wins = opp_stats['wins']
-            opp_losses = opp_stats['losses']
-            opponent_total_wins += opp_wins
-            opponent_total_losses += opp_losses
-            opponent_total_games += (opp_wins + opp_losses)
+            opponent_total_wins += opp_stats['wins']
+            opponent_total_losses += opp_stats['losses']
+            opponent_total_games += (opp_stats['wins'] + opp_stats['losses'])
     
-    # Strength of Schedule (Average Opponent Win Percentage)
     strength_of_schedule = opponent_total_wins / opponent_total_games if opponent_total_games > 0 else 0
-    
-    # Point Differential
     point_differential = stats['points_for'] - stats['points_against']
-    
-    # Opponent W/L Differential - FIXED: SCALE IT DOWN!
     opp_wl_differential = opponent_total_wins - opponent_total_losses
-    scaled_opp_differential = opp_wl_differential * 0.1  # Scale from -7.0 to -0.7
-    
-    # Totals calculation - FIXED: Use scaled opponent differential
-    totals = (
-        ((stats['margin_of_victory_total'] * 0.1) * 0.05) +
-        (stats['losses'] * -1.5) +
-        ((point_differential * 0.1) * 0.05) +
-        (stats['home_wins'] * 0.1) +
-        (stats['road_wins'] * 0.2) +
-        (stats['p4_wins'] * 1) +
-        (stats['g5_wins'] * 0.75) +
-        scaled_opp_differential  # FIXED: Now properly scaled!
-    )
-    
-    # Adjusted Total: =((Totals+(SoS*0.4))
-    adjusted_total = totals + (strength_of_schedule * 0.4)
     
     return {
+        # NEW: Scientific score as main ranking
+        'adjusted_total': scientific_result['total_score'],
+        
+        # LEGACY: Keep all old fields for template compatibility
         'points_fielded': stats['points_for'],
         'points_allowed': stats['points_against'],
         'margin_of_victory': stats['margin_of_victory_total'],
@@ -932,12 +1305,15 @@ def calculate_comprehensive_stats(team_name):
         'opp_w': opponent_total_wins,
         'opp_l': opponent_total_losses,
         'strength_of_schedule': round(strength_of_schedule, 3),
-        'opp_wl_differential': opp_wl_differential,  # Keep original for display
-        'totals': round(totals, 2),
+        'opp_wl_differential': opp_wl_differential,
+        'totals': scientific_result['components']['victory_value'],  # Map victory value to totals
         'total_wins': stats['wins'],
         'total_losses': stats['losses'],
-        'adjusted_total': round(adjusted_total, 2)
+        
+        # NEW: Scientific breakdown available for future use
+        'scientific_breakdown': scientific_result
     }
+
 
 def update_team_stats(team, opponent, team_score, opp_score, team_game_type, is_home, is_neutral_site=False):
     """Update team statistics after a game"""
