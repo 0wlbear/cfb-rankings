@@ -242,6 +242,169 @@ TEAM_LOGOS = {
 
 }
 
+# Comprehensive team variations - GLOBAL
+TEAM_VARIATIONS = {
+    # SEC
+            'Alabama': ['Alabama', 'Bama', 'Crimson Tide'],
+            'Arkansas': ['Arkansas', 'Ark', 'Razorbacks'],
+            'Auburn': ['Auburn', 'Tigers'],
+            'Florida': ['Florida', 'UF', 'Gators'],
+            'Georgia': ['Georgia', 'UGA', 'Bulldogs'],
+            'Kentucky': ['Kentucky', 'UK', 'Wildcats'],
+            'LSU': ['LSU', 'Louisiana State', 'Tigers'],
+            'Mississippi State': ['Mississippi State', 'MSU', 'Miss State', 'Bulldogs'],
+            'Missouri': ['Missouri', 'Mizzou', 'Tigers'],
+            'Oklahoma': ['Oklahoma', 'OU', 'Sooners'],
+            'Ole Miss': ['Ole Miss', 'Mississippi', 'Rebels'],
+            'South Carolina': ['South Carolina', 'Gamecocks'],
+            'Tennessee': ['Tennessee', 'Tenn', 'UT', 'Volunteers', 'Vols'],
+            'Texas': ['Texas', 'UT', 'Longhorns'],
+            'Texas A&M': ['Texas A&M', 'TAMU', 'A&M', 'Aggies', 'Texas AM'],
+            'Vanderbilt': ['Vanderbilt', 'Vandy', 'Commodores'],
+
+            # Big Ten
+            'Illinois': ['Illinois', 'Illini', 'Fighting Illini'],
+            'Indiana': ['Indiana', 'IU', 'Hoosiers'],
+            'Iowa': ['Iowa', 'Hawkeyes'],
+            'Maryland': ['Maryland', 'UMD', 'Terrapins', 'Terps'],
+            'Michigan': ['Michigan', 'UM', 'Wolverines'],
+            'Michigan State': ['Michigan State', 'MSU', 'Mich State', 'Spartans'],
+            'Minnesota': ['Minnesota', 'Gophers', 'Golden Gophers'],
+            'Nebraska': ['Nebraska', 'Huskers', 'Cornhuskers'],
+            'Northwestern': ['Northwestern', 'NU', 'Wildcats'],
+            'Ohio State': ['Ohio State', 'OSU', 'tOSU', 'Buckeyes'],
+            'Oregon': ['Oregon', 'Ducks'],
+            'Penn State': ['Penn State', 'PSU', 'Nittany Lions'],
+            'Purdue': ['Purdue', 'Boilermakers'],
+            'Rutgers': ['Rutgers', 'RU', 'Scarlet Knights'],
+            'UCLA': ['UCLA', 'Bruins'],
+            'USC': ['USC', 'Southern Cal', 'Southern California', 'Trojans'],
+            'Washington': ['Washington', 'UW', 'Huskies'],
+            'Wisconsin': ['Wisconsin', 'Badgers'],
+
+            # ACC
+            'Boston College': ['Boston College', 'BC', 'Eagles'],
+            'California': ['California', 'Cal', 'Berkeley', 'Golden Bears'],
+            'Clemson': ['Clemson', 'Tigers'],
+            'Duke': ['Duke', 'Blue Devils'],
+            'Florida State': ['Florida State', 'FSU', 'Seminoles'],
+            'Georgia Tech': ['Georgia Tech', 'GT', 'Yellow Jackets'],
+            'Louisville': ['Louisville', 'Cards', 'Cardinals'],
+            'Miami': ['Miami', 'UM', 'Miami (FL)', 'Miami Florida', 'Miami FL', 'Hurricanes', 'The U'],
+            'NC State': ['NC State', 'North Carolina State', 'NCSU', 'Wolfpack'],
+            'North Carolina': ['North Carolina', 'UNC', 'Tar Heels', 'Carolina'],
+            'Pittsburgh': ['Pittsburgh', 'Pitt', 'Panthers'],
+            'SMU': ['SMU', 'Southern Methodist', 'Mustangs'],
+            'Stanford': ['Stanford', 'Cardinal'],
+            'Syracuse': ['Syracuse', 'Cuse', 'Orange'],
+            'Virginia': ['Virginia', 'UVA', 'Cavaliers'],
+            'Virginia Tech': ['Virginia Tech', 'VT', 'Hokies'],
+            'Wake Forest': ['Wake Forest', 'Wake', 'Demon Deacons'],
+
+            # Big 12
+            'Arizona': ['Arizona', 'Wildcats'],
+            'Arizona State': ['Arizona State', 'ASU', 'Sun Devils'],
+            'Baylor': ['Baylor', 'Bears'],
+            'BYU': ['BYU', 'Brigham Young', 'Cougars'],
+            'Cincinnati': ['Cincinnati', 'UC', 'Bearcats'],
+            'Colorado': ['Colorado', 'CU', 'Buffaloes', 'Buffs'],
+            'Houston': ['Houston', 'UH', 'Cougars'],
+            'Iowa State': ['Iowa State', 'ISU', 'Cyclones'],
+            'Kansas': ['Kansas', 'KU', 'Jayhawks'],
+            'Kansas State': ['Kansas State', 'KSU', 'K-State', 'Wildcats'],
+            'Oklahoma State': ['Oklahoma State', 'OSU', 'Cowboys'],
+            'TCU': ['TCU', 'Texas Christian', 'Horned Frogs'],
+            'Texas Tech': ['Texas Tech', 'TTU', 'Red Raiders'],
+            'UCF': ['UCF', 'Central Florida', 'Knights'],
+            'Utah': ['Utah', 'Utes'],
+            'West Virginia': ['West Virginia', 'WVU', 'Mountaineers'],
+
+            # Pac-12 (remaining)
+            'Oregon State': ['Oregon State', 'OSU', 'Beavers'],
+            'Washington State': ['Washington State', 'WSU', 'Cougars'],
+
+            # American Athletic Conference
+            'Army': ['Army', 'Black Knights'],
+            'Charlotte': ['Charlotte', '49ers'],
+            'East Carolina': ['East Carolina', 'ECU', 'Pirates'],
+            'Florida Atlantic': ['Florida Atlantic', 'FAU', 'Owls'],
+            'Memphis': ['Memphis', 'Tigers'],
+            'Navy': ['Navy', 'Midshipmen'],
+            'North Texas': ['North Texas', 'UNT', 'Mean Green'],
+            'Rice': ['Rice', 'Owls'],
+            'South Florida': ['South Florida', 'USF', 'Bulls'],
+            'Temple': ['Temple', 'Owls'],
+            'Tulane': ['Tulane', 'Green Wave'],
+            'Tulsa': ['Tulsa', 'Golden Hurricane'],
+            'UAB': ['UAB', 'Alabama Birmingham', 'Blazers'],
+            'UTSA': ['UTSA', 'Texas San Antonio', 'Roadrunners'],
+
+            # Conference USA
+            'Delaware': ['Delaware', 'Blue Hens'],
+            'Florida Intl': ['Florida Intl', 'FIU', 'Florida International', 'Panthers'],
+            'Jacksonville State': ['Jacksonville State', 'JSU', 'Gamecocks'],
+            'Kennesaw State': ['Kennesaw State', 'Owls'],
+            'LA Tech': ['LA Tech', 'Louisiana Tech', 'Bulldogs'],
+            'Liberty': ['Liberty', 'Flames'],
+            'Middle Tennessee': ['Middle Tennessee', 'MTSU', 'Blue Raiders'],
+            'Missouri State': ['Missouri State', 'Bears'],
+            'New Mexico St': ['New Mexico St', 'New Mexico State', 'NMSU', 'Aggies'],
+            'Sam Houston': ['Sam Houston', 'Sam Houston State', 'SHSU', 'Bearkats'],
+            'UTEP': ['UTEP', 'Texas El Paso', 'Miners'],
+            'Western Kentucky': ['Western Kentucky', 'WKU', 'Hilltoppers'],
+
+            # MAC
+            'Akron': ['Akron', 'Zips'],
+            'Ball State': ['Ball State', 'Cardinals'],
+            'Bowling Green': ['Bowling Green', 'BGSU', 'Falcons'],
+            'Buffalo': ['Buffalo', 'Bulls'],
+            'Central Michigan': ['Central Michigan', 'CMU', 'Chippewas'],
+            'Eastern Michigan': ['Eastern Michigan', 'EMU', 'Eagles'],
+            'Kent State': ['Kent State', 'Golden Flashes'],
+            'UMass': ['UMass', 'Massachusetts', 'Minutemen'],
+            'Miami (OH)': ['Miami (OH)', 'Miami Ohio', 'Miami "Ohio"', 'Miami (Ohio)', 'RedHawks'],
+            'Northern Illinois': ['Northern Illinois', 'NIU', 'Huskies'],
+            'Ohio': ['Ohio', 'Bobcats'],
+            'Toledo': ['Toledo', 'Rockets'],
+            'Western Michigan': ['Western Michigan', 'WMU', 'Broncos'],
+
+            # Mountain West
+            'Air Force': ['Air Force', 'Falcons'],
+            'Boise State': ['Boise State', 'Broncos'],
+            'Colorado State': ['Colorado State', 'CSU', 'Rams'],
+            'Fresno State': ['Fresno State', 'Bulldogs'],
+            'Hawaii': ['Hawaii', 'Rainbow Warriors'],
+            'Nevada': ['Nevada', 'Wolf Pack'],
+            'New Mexico': ['New Mexico', 'UNM', 'Lobos'],
+            'San Diego State': ['San Diego State', 'SDSU', 'Aztecs'],
+            'San Jose State': ['San Jose State', 'SJSU', 'Spartans'],
+            'UNLV': ['UNLV', 'Rebels'],
+            'Utah State': ['Utah State', 'USU', 'Aggies'],
+            'Wyoming': ['Wyoming', 'Cowboys'],
+
+            # Sun Belt
+            'Appalachian St': ['Appalachian St', 'Appalachian State', 'App State', 'Mountaineers'],
+            'Arkansas State': ['Arkansas State', 'A-State', 'Red Wolves'],
+            'Coastal Carolina': ['Coastal Carolina', 'Chanticleers'],
+            'Georgia Southern': ['Georgia Southern', 'Eagles'],
+            'Georgia State': ['Georgia State', 'Panthers'],
+            'James Madison': ['James Madison', 'JMU', 'Dukes'],
+            'UL Monroe': ['UL Monroe', 'ULM', 'Louisiana Monroe', 'Warhawks'],
+            'Louisiana': ['Louisiana', 'UL', 'Ragin Cajuns', 'Louisiana Lafayette'],
+            'Marshall': ['Marshall', 'Thundering Herd'],
+            'Old Dominion': ['Old Dominion', 'ODU', 'Monarchs'],
+            'South Alabama': ['South Alabama', 'USA', 'Jaguars'],
+            'Southern Miss': ['Southern Miss', 'Southern Mississippi', 'USM', 'Golden Eagles'],
+            'Texas State': ['Texas State', 'Bobcats'],
+            'Troy': ['Troy', 'Trojans'],
+
+            # Independents
+            'Connecticut': ['Connecticut', 'UConn', 'Huskies'],
+            'Notre Dame': ['Notre Dame', 'ND', 'Fighting Irish'],
+}
+
+
+
 # Bowl game definitions with tie-ins and selection order
 BOWL_GAMES = {
     # College Football Playoff (handled separately)
@@ -584,6 +747,37 @@ RIVALRIES = {
     'Western Michigan': ['Northern Illinois'],
 }
 
+# Add this date formatting filter
+@app.template_filter('format_date')
+def format_date(date_string):
+    """Format date string for display"""
+    if not date_string:
+        return ""
+    
+    try:
+        # Parse the date string (YYYY-MM-DD format)
+        date_obj = datetime.strptime(date_string, '%Y-%m-%d')
+        
+        # Format as "Sat, Aug 23"
+        return date_obj.strftime('%a, %b %d')
+    except:
+        return date_string  # Return original if parsing fails
+
+@app.template_filter('format_date_header')
+def format_date_header(date_string):
+    """Format date string for section headers"""
+    if not date_string or date_string == 'No Date':
+        return "Date TBD"
+    
+    try:
+        # Parse the date string (YYYY-MM-DD format)
+        date_obj = datetime.strptime(date_string, '%Y-%m-%d')
+        
+        # Format as "Saturday, August 23"
+        return date_obj.strftime('%A, %B %d')
+    except:
+        return date_string  # Return original if parsing fails
+
 
 def get_bowl_eligible_teams():
     """Get all teams with 6+ wins (bowl eligible) - FCS wins don't count"""
@@ -859,6 +1053,12 @@ CONFERENCES = {
     'Sun Belt': SUN_BELT_TEAMS
 }
 
+# Scheduled games storage
+scheduled_games = []
+
+# Team name mappings for unknown teams
+team_mappings = {}
+
 # All teams combined
 TEAMS = (ACC_TEAMS + BIG_TEN_TEAMS + BIG_XII_TEAMS + PAC_12_TEAMS + SEC_TEAMS + 
          INDEPENDENT_TEAMS + AMERICAN_TEAMS + CONFERENCE_USA_TEAMS + MAC_TEAMS + 
@@ -923,11 +1123,11 @@ def is_admin():
 
 @app.context_processor
 def inject_user():
-    return dict(is_admin=is_admin)
+    return dict(
+        is_admin=session.get('admin_logged_in', False),
+        get_team_logo_url=get_team_logo_url
+    )
 
-@app.context_processor
-def inject_logo_function():
-    return dict(get_team_logo_url=get_team_logo_url)
 
 def login_required(f):
     """Decorator to require admin login for routes"""
@@ -961,6 +1161,31 @@ def save_data():
     except Exception as e:
         print(f"Error saving data: {e}")
 
+def save_scheduled_games():
+    """Save scheduled games to JSON file"""
+    try:
+        scheduled_file = os.path.join(DATA_DIR, 'scheduled_games.json')
+        with open(scheduled_file, 'w') as f:
+            json.dump(scheduled_games, f, indent=2)
+    except Exception as e:
+        print(f"Error saving scheduled games: {e}")
+
+def load_scheduled_games():
+    """Load scheduled games from JSON file"""
+    global scheduled_games
+    try:
+        scheduled_file = os.path.join(DATA_DIR, 'scheduled_games.json')
+        with open(scheduled_file, 'r') as f:
+            scheduled_games = json.load(f)
+        print(f"Loaded {len(scheduled_games)} scheduled games")
+    except FileNotFoundError:
+        print("No scheduled games file found, starting fresh")
+        scheduled_games = []
+    except Exception as e:
+        print(f"Error loading scheduled games: {e}")
+        scheduled_games = []
+
+
 def load_data():
     """Load game data and team stats from JSON files"""
     global games_data, team_stats
@@ -984,7 +1209,6 @@ def load_data():
             # Convert back to defaultdict
             team_stats = defaultdict(lambda: {
                 'wins': 0, 'losses': 0, 'points_for': 0, 'points_against': 0,
-                'p4_wins': 0, 'p4_losses': 0, 'g5_wins': 0, 'g5_losses': 0,
                 'home_wins': 0, 'road_wins': 0, 'margin_of_victory_total': 0,
                 'games': []
             })
@@ -997,7 +1221,13 @@ def load_data():
             print("No saved team stats found, starting fresh")
 
         # Load historical data
-        load_historical_data()    
+        load_historical_data()
+        
+        # Load scheduled games
+        load_scheduled_games()
+
+        # Load team mappings
+        load_team_mappings()
             
     except Exception as e:
         print(f"Error loading data: {e}")
@@ -1366,6 +1596,7 @@ def calculate_loss_penalty(game, team_name):
     opp_score = game['opp_score']
     margin = opp_score - team_score  # How much they lost by
     location = game['home_away']
+    is_overtime = game.get('overtime', False)  # NEW: Check for overtime
     
     # 1. Base Loss Penalty
     base_penalty = 3.0  # Every loss starts with 3-point penalty
@@ -1406,14 +1637,17 @@ def calculate_loss_penalty(game, team_name):
     # 5. Calculate Total Penalty
     total_penalty = base_penalty + quality_adjustment + margin_penalty + location_adj
     
+    # 6. NEW: Overtime Loss Reduction
+    if is_overtime:
+        total_penalty *= 0.7  # 30% reduction for overtime losses
+    
     # Ensure penalty is never negative (losses should always hurt something)
     return max(0.5, total_penalty)
 
 def calculate_total_loss_penalty(team_name):
     """Sum up all loss penalties for a team"""
     total_penalty = 0
-    loss_details = []
-    
+    loss_details = []    
     for game in team_stats[team_name]['games']:
         if game['result'] == 'L':
             penalty = calculate_loss_penalty(game, team_name)
@@ -1539,6 +1773,8 @@ def calculate_scientific_ranking(team_name):
             'total_score': 0.0,
             'components': {
                 'victory_value': 0.0,
+                'conference_multiplier': 1.0,
+                'adjusted_victory_value': 0.0,
                 'loss_penalty': 0.0,
                 'temporal_adjustment': 0.0,
                 'consistency_factor': 0.0,
@@ -1549,6 +1785,16 @@ def calculate_scientific_ranking(team_name):
     
     # Component 1: Victory Value (0-100+ range)
     victory_value, victory_details = calculate_total_victory_value(team_name)
+    
+    # NEW: Conference Multiplier for G5 teams
+    team_conf = get_team_conference(team_name)
+    if team_conf in G5_CONFERENCES or team_name in G5_INDEPENDENT_TEAMS:
+        conference_multiplier = 0.85  # G5 teams get 85% credit
+    else:
+        conference_multiplier = 1.0   # P4 teams (and independents like Notre Dame) get full credit
+    
+    # Apply conference multiplier to victory value
+    adjusted_victory_value = victory_value * conference_multiplier
     
     # Component 2: Loss Penalties (0-50+ range, subtracted)
     loss_penalty, loss_details = calculate_total_loss_penalty(team_name)
@@ -1562,9 +1808,9 @@ def calculate_scientific_ranking(team_name):
     # Component 5: Games Played Bonus (rewards full seasons)
     games_bonus = min(2.0, total_games * 0.15)  # Up to 2 points for 13+ games
     
-    # Final Score Calculation
+    # Final Score Calculation - use ADJUSTED victory value
     total_score = (
-        victory_value -           # Higher for quality wins
+        adjusted_victory_value -  # Now uses conference-adjusted victory value
         loss_penalty +           # Lower for bad losses  
         temporal_adj +           # Recent form adjustment
         consistency_factor +     # Reliability bonus/penalty
@@ -1574,7 +1820,9 @@ def calculate_scientific_ranking(team_name):
     return {
         'total_score': round(total_score, 2),
         'components': {
-            'victory_value': round(victory_value, 2),
+            'victory_value': round(victory_value, 2),           # Original victory value
+            'conference_multiplier': conference_multiplier,     # 1.0 for P4, 0.85 for G5
+            'adjusted_victory_value': round(adjusted_victory_value, 2),  # After multiplier
             'loss_penalty': round(loss_penalty, 2),
             'temporal_adjustment': round(temporal_adj, 2),
             'consistency_factor': round(consistency_factor, 2),
@@ -1586,7 +1834,6 @@ def calculate_scientific_ranking(team_name):
             'total_games': total_games
         }
     }
-
 
 
 
@@ -1636,13 +1883,14 @@ def calculate_comprehensive_stats(team_name):
         'totals': scientific_result['components']['victory_value'],
         'total_wins': stats['wins'],
         'total_losses': stats['losses'],
+        'strength_of_record': round(strength_of_schedule * (stats['wins'] / max(1, stats['wins'] + stats['losses'])), 3),
         
         # NEW: Scientific breakdown available for future use
         'scientific_breakdown': scientific_result
     }
 
 
-def update_team_stats_simplified(team, opponent, team_score, opp_score, is_home, is_neutral_site=False):
+def update_team_stats_simplified(team, opponent, team_score, opp_score, is_home, is_neutral_site=False, is_overtime=False):
     """Update team statistics after a game - SIMPLIFIED without game types"""
     
     # Special case: Don't update stats for FCS placeholder team
@@ -1679,13 +1927,14 @@ def update_team_stats_simplified(team, opponent, team_score, opp_score, is_home,
     else:
         location = 'Away'
     
-    # Add game to history - SIMPLIFIED
+    # Add game to history - ADDED overtime field
     team_stats[team]['games'].append({
         'opponent': opponent,
         'team_score': team_score,
         'opp_score': opp_score,
         'result': 'W' if team_score > opp_score else 'L',
-        'home_away': location
+        'home_away': location,
+        'overtime': is_overtime  # NEW: Store overtime status for each game
     })
 
 def analyze_common_opponents(team1_name, team2_name):
@@ -1858,73 +2107,725 @@ def head_to_head_history(team1_name, team2_name):
         'summary': f"Last meeting: {team1_name} {recent_game['result']} {recent_game['team_score']}-{recent_game['opp_score']}"
     }
 
-def predict_matchup(team1_name, team2_name, location='neutral'):
-    """Comprehensive matchup prediction"""
+def predict_matchup_enhanced(team1_name, team2_name, location='neutral'):
+    """
+    ENHANCED comprehensive matchup prediction using scientific ranking system
+    """
+    # Get scientific ranking breakdowns
+    team1_scientific = calculate_scientific_ranking(team1_name)
+    team2_scientific = calculate_scientific_ranking(team2_name)
+    
     team1_stats = calculate_comprehensive_stats(team1_name)
     team2_stats = calculate_comprehensive_stats(team2_name)
     
-    # Base prediction from adjusted totals
-    base_diff = team1_stats['adjusted_total'] - team2_stats['adjusted_total']
-    predicted_margin = base_diff * 2.5  # Scale factor to convert to points
+    # 1. CORE STRENGTH DIFFERENTIAL (Primary Factor - 60% weight)
+    strength_diff = team1_scientific['total_score'] - team2_scientific['total_score']
+    base_prediction = strength_diff * 2.2  # Refined scaling factor
     
-    # Factor adjustments
+    # 2. ENHANCED ADJUSTMENTS
     adjustments = {}
     total_adjustment = 0
     
-    # 1. Common opponents
-    common_analysis = analyze_common_opponents(team1_name, team2_name)
-    if common_analysis['has_common']:
-        common_adj = common_analysis['advantage'] * 0.3  # Weight common opponents
+    # A. Common Opponents Analysis (Enhanced)
+    common_analysis = analyze_common_opponents_enhanced(team1_name, team2_name)
+    if common_analysis['has_common'] and common_analysis['games_count'] >= 2:
+        # Weight by number of common opponents and recency
+        common_weight = min(0.4, common_analysis['games_count'] * 0.15)
+        common_adj = common_analysis['advantage'] * common_weight
         adjustments['Common Opponents'] = round(common_adj, 1)
         total_adjustment += common_adj
     
-    # 2. Recent form
-    team1_form = calculate_recent_form(team1_name)
-    team2_form = calculate_recent_form(team2_name)
-    form_diff = team1_form['avg_margin'] - team2_form['avg_margin']
-    form_adj = form_diff * 0.2  # Weight recent form
-    adjustments['Recent Form'] = round(form_adj, 1)
-    total_adjustment += form_adj
+    # B. Victory Quality Comparison
+    victory_quality_diff = analyze_victory_quality_differential(team1_name, team2_name)
+    if victory_quality_diff['significant']:
+        adjustments['Victory Quality'] = victory_quality_diff['adjustment']
+        total_adjustment += victory_quality_diff['adjustment']
     
-    # 3. Conference context (P4 vs G5 adjustment)
-    team1_conf = get_team_conference(team1_name)
-    team2_conf = get_team_conference(team2_name)
+    # C. Recent Form Analysis (Enhanced)
+    team1_form = calculate_enhanced_recent_form(team1_name)
+    team2_form = calculate_enhanced_recent_form(team2_name)
     
-    conf_adj = 0
-    if team1_conf in P4_CONFERENCES and team2_conf in G5_CONFERENCES:
-        conf_adj = 3  # P4 team gets 3-point boost vs G5
-        adjustments['Conference Level'] = 3.0
-    elif team2_conf in P4_CONFERENCES and team1_conf in G5_CONFERENCES:
-        conf_adj = -3  # G5 team penalized 3 points vs P4
-        adjustments['Conference Level'] = -3.0
+    form_differential = team1_form['momentum_score'] - team2_form['momentum_score']
+    form_adj = form_differential * 0.8  # Increased weight for recent form
+    if abs(form_adj) > 0.3:  # Only apply if significant
+        adjustments['Recent Momentum'] = round(form_adj, 1)
+        total_adjustment += form_adj
     
-    total_adjustment += conf_adj
+    # D. Conference Context (More Nuanced)
+    conf_adj = calculate_conference_matchup_adjustment(team1_name, team2_name)
+    if conf_adj != 0:
+        adjustments['Conference Differential'] = conf_adj
+        total_adjustment += conf_adj
     
-    # 4. Home field advantage
-    if location == 'team1_home':
-        hfa_adj = 3.0
-        adjustments['Home Field'] = 3.0
+    # E. Schedule Strength Comparison
+    schedule_diff = analyze_schedule_strength_differential(team1_name, team2_name)
+    if abs(schedule_diff) > 0.5:
+        adjustments['Schedule Strength'] = round(schedule_diff, 1)
+        total_adjustment += schedule_diff
+    
+    # F. Consistency Factor
+    consistency_diff = (team1_scientific['components']['consistency_factor'] - 
+                       team2_scientific['components']['consistency_factor'])
+    if abs(consistency_diff) > 0.2:
+        consistency_adj = consistency_diff * 2.0  # Amplify consistency impact
+        adjustments['Consistency Edge'] = round(consistency_adj, 1)
+        total_adjustment += consistency_adj
+    
+    # G. Home Field Advantage (Enhanced)
+    hfa_adj = calculate_enhanced_home_field_advantage(team1_name, team2_name, location)
+    if hfa_adj != 0:
+        adjustments['Home Field Advantage'] = hfa_adj
         total_adjustment += hfa_adj
-    elif location == 'team2_home':
-        hfa_adj = -3.0
-        adjustments['Home Field'] = -3.0
-        total_adjustment += hfa_adj
     
-    # Final prediction
-    final_margin = predicted_margin + total_adjustment
+    # 3. FINAL PREDICTION CALCULATION
+    final_margin = base_prediction + total_adjustment
     
-    # Calculate win probability (rough approximation)
-    win_prob = 50 + (final_margin * 2.5)  # Each point = ~2.5% win prob
-    win_prob = max(5, min(95, win_prob))  # Cap between 5-95%
+    # 4. CONFIDENCE AND WIN PROBABILITY
+    confidence_metrics = calculate_prediction_confidence(
+        team1_name, team2_name, final_margin, adjustments
+    )
+    
+    # Enhanced win probability calculation
+    win_prob = calculate_enhanced_win_probability(final_margin, confidence_metrics)
     
     return {
-        'base_margin': round(predicted_margin, 1),
+        'base_margin': round(base_prediction, 1),
         'adjustments': adjustments,
         'final_margin': round(final_margin, 1),
         'win_probability': round(win_prob, 1),
         'winner': team1_name if final_margin > 0 else team2_name,
-        'confidence': 'High' if abs(final_margin) > 10 else 'Medium' if abs(final_margin) > 4 else 'Low'
+        'confidence': confidence_metrics['level'],
+        'confidence_score': confidence_metrics['score'],
+        'key_factors': identify_key_prediction_factors(adjustments, team1_scientific, team2_scientific),
+        'detailed_breakdown': {
+            'team1_scientific': team1_scientific,
+            'team2_scientific': team2_scientific,
+            'strength_differential': round(strength_diff, 2)
+        }
     }
+
+def analyze_common_opponents_enhanced(team1_name, team2_name):
+    """Enhanced common opponent analysis with recency weighting"""
+    team1_games = team_stats[team1_name]['games']
+    team2_games = team_stats[team2_name]['games']
+    
+    # Find common opponents
+    team1_opponents = {game['opponent'] for game in team1_games}
+    team2_opponents = {game['opponent'] for game in team2_games}
+    common_opponents = team1_opponents.intersection(team2_opponents)
+    
+    if not common_opponents:
+        return {'has_common': False, 'advantage': 0, 'games_count': 0}
+    
+    comparisons = []
+    total_advantage = 0
+    weighted_advantage = 0
+    total_weight = 0
+    
+    for opponent in common_opponents:
+        # Find most recent games against this opponent
+        team1_games_vs = [g for g in team1_games if g['opponent'] == opponent]
+        team2_games_vs = [g for g in team2_games if g['opponent'] == opponent]
+        
+        if team1_games_vs and team2_games_vs:
+            team1_game = team1_games_vs[-1]  # Most recent
+            team2_game = team2_games_vs[-1]  # Most recent
+            
+            # Calculate opponent quality for weighting
+            opponent_quality = get_current_opponent_quality(opponent)
+            
+            # Calculate performance differential
+            team1_diff = team1_game['team_score'] - team1_game['opp_score']
+            team2_diff = team2_game['team_score'] - team2_game['opp_score']
+            advantage = team1_diff - team2_diff
+            
+            # Weight by opponent quality (better opponents matter more)
+            weight = max(0.5, opponent_quality / 10.0)
+            
+            weighted_advantage += advantage * weight
+            total_weight += weight
+            total_advantage += advantage
+            
+            comparisons.append({
+                'opponent': opponent,
+                'team1_diff': team1_diff,
+                'team2_diff': team2_diff,
+                'advantage': advantage,
+                'weight': weight,
+                'opponent_quality': opponent_quality
+            })
+    
+    avg_advantage = weighted_advantage / total_weight if total_weight > 0 else 0
+    
+    return {
+        'has_common': True,
+        'advantage': round(avg_advantage, 1),
+        'games_count': len(comparisons),
+        'comparisons': comparisons,
+        'raw_advantage': round(total_advantage / len(comparisons), 1) if comparisons else 0
+    }
+
+def analyze_victory_quality_differential(team1_name, team2_name):
+    """Compare the quality of victories between two teams"""
+    team1_victory_value, team1_details = calculate_total_victory_value(team1_name)
+    team2_victory_value, team2_details = calculate_total_victory_value(team2_name)
+    
+    # Get games count for normalization
+    team1_wins = len(team1_details)
+    team2_wins = len(team2_details)
+    
+    if team1_wins == 0 and team2_wins == 0:
+        return {'significant': False, 'adjustment': 0}
+    
+    # Calculate per-win victory value
+    team1_avg_victory = team1_victory_value / max(1, team1_wins)
+    team2_avg_victory = team2_victory_value / max(1, team2_wins)
+    
+    victory_diff = team1_avg_victory - team2_avg_victory
+    
+    # Only significant if difference is meaningful
+    if abs(victory_diff) < 0.8:
+        return {'significant': False, 'adjustment': 0}
+    
+    # Scale the adjustment (cap at reasonable range)
+    adjustment = max(-3.0, min(3.0, victory_diff * 1.5))
+    
+    return {
+        'significant': True,
+        'adjustment': round(adjustment, 1),
+        'team1_avg_victory': round(team1_avg_victory, 2),
+        'team2_avg_victory': round(team2_avg_victory, 2)
+    }
+
+def calculate_enhanced_recent_form(team_name, games_back=4):
+    """Calculate enhanced recent form with momentum scoring"""
+    games = team_stats[team_name]['games']
+    if len(games) < 2:
+        return {'momentum_score': 0, 'trend': 'insufficient_data'}
+    
+    recent_games = games[-games_back:] if len(games) >= games_back else games
+    
+    momentum_score = 0
+    trend_points = []
+    
+    for i, game in enumerate(recent_games):
+        # Recency weight (more recent games matter more)
+        recency_weight = (i + 1) / len(recent_games)
+        
+        # Performance score for this game
+        margin = game['team_score'] - game['opp_score']
+        opponent_quality = get_current_opponent_quality(game['opponent'])
+        
+        # Expected margin based on opponent quality
+        expected_margin = (5.0 - opponent_quality) * 1.8
+        performance = margin - expected_margin
+        
+        # Weight by recency and add to momentum
+        weighted_performance = performance * recency_weight
+        momentum_score += weighted_performance
+        trend_points.append(performance)
+    
+    # Determine trend
+    if len(trend_points) >= 2:
+        early_avg = sum(trend_points[:len(trend_points)//2]) / (len(trend_points)//2)
+        late_avg = sum(trend_points[len(trend_points)//2:]) / (len(trend_points) - len(trend_points)//2)
+        
+        if late_avg > early_avg + 5:
+            trend = 'improving'
+        elif late_avg < early_avg - 5:
+            trend = 'declining'
+        else:
+            trend = 'stable'
+    else:
+        trend = 'stable'
+    
+    return {
+        'momentum_score': round(momentum_score / len(recent_games), 1),
+        'trend': trend,
+        'recent_performance': trend_points
+    }
+
+def calculate_conference_matchup_adjustment(team1_name, team2_name):
+    """More nuanced conference matchup adjustments"""
+    team1_conf = get_team_conference(team1_name)
+    team2_conf = get_team_conference(team2_name)
+    
+    # P4 vs G5 adjustments based on actual performance differential
+    if team1_conf in P4_CONFERENCES and team2_conf in G5_CONFERENCES:
+        # P4 teams should have some advantage, but not as much if G5 team is strong
+        team2_scientific = calculate_scientific_ranking(team2_name)
+        base_adj = 2.5
+        
+        # Reduce advantage if G5 team has high victory value
+        if team2_scientific['components']['adjusted_victory_value'] > 25:
+            base_adj = 1.5  # Strong G5 team
+        elif team2_scientific['components']['adjusted_victory_value'] > 35:
+            base_adj = 0.8  # Elite G5 team
+        
+        return base_adj
+        
+    elif team2_conf in P4_CONFERENCES and team1_conf in G5_CONFERENCES:
+        # Mirror the above logic
+        team1_scientific = calculate_scientific_ranking(team1_name)
+        base_adj = -2.5
+        
+        if team1_scientific['components']['adjusted_victory_value'] > 25:
+            base_adj = -1.5
+        elif team1_scientific['components']['adjusted_victory_value'] > 35:
+            base_adj = -0.8
+        
+        return base_adj
+    
+    return 0  # Same level conferences
+
+def analyze_schedule_strength_differential(team1_name, team2_name):
+    """Analyze difference in schedule difficulty"""
+    team1_games = team_stats[team1_name]['games']
+    team2_games = team_stats[team2_name]['games']
+    
+    if not team1_games or not team2_games:
+        return 0
+    
+    # Calculate average opponent quality
+    team1_opp_quality = sum(get_current_opponent_quality(g['opponent']) for g in team1_games) / len(team1_games)
+    team2_opp_quality = sum(get_current_opponent_quality(g['opponent']) for g in team2_games) / len(team2_games)
+    
+    quality_diff = team1_opp_quality - team2_opp_quality
+    
+    # Convert to point adjustment (stronger schedule = slight edge)
+    adjustment = quality_diff * 0.8
+    return max(-2.0, min(2.0, adjustment))
+
+def calculate_enhanced_home_field_advantage(team1_name, team2_name, location):
+    """Enhanced home field advantage based on team-specific performance"""
+    if location == 'neutral':
+        return 0
+    
+    base_hfa = 3.0  # Standard home field advantage
+    
+    if location == 'team1_home':
+        # Check team1's home performance
+        home_performance = analyze_home_performance(team1_name)
+        hfa_modifier = home_performance['advantage_modifier']
+        return round(base_hfa * hfa_modifier, 1)
+    
+    elif location == 'team2_home':
+        # Check team2's home performance  
+        home_performance = analyze_home_performance(team2_name)
+        hfa_modifier = home_performance['advantage_modifier']
+        return round(-base_hfa * hfa_modifier, 1)
+    
+    return 0
+
+def analyze_home_performance(team_name):
+    """Analyze how much a team benefits from playing at home"""
+    games = team_stats[team_name]['games']
+    
+    home_games = [g for g in games if g['home_away'] == 'Home']
+    away_games = [g for g in games if g['home_away'] == 'Away']
+    
+    if len(home_games) < 2 or len(away_games) < 2:
+        return {'advantage_modifier': 1.0}  # Default
+    
+    # Calculate average margin at home vs away
+    home_margins = [g['team_score'] - g['opp_score'] for g in home_games]
+    away_margins = [g['team_score'] - g['opp_score'] for g in away_games]
+    
+    home_avg = sum(home_margins) / len(home_margins)
+    away_avg = sum(away_margins) / len(away_margins)
+    
+    home_advantage = home_avg - away_avg
+    
+    # Convert to modifier (1.0 = normal, >1.0 = strong home field, <1.0 = weak home field)
+    if home_advantage > 8:
+        modifier = 1.3  # Strong home field
+    elif home_advantage > 4:
+        modifier = 1.1  # Slight home field advantage
+    elif home_advantage < -4:
+        modifier = 0.8  # Actually worse at home
+    else:
+        modifier = 1.0  # Normal
+    
+    return {'advantage_modifier': modifier}
+
+def calculate_prediction_confidence(team1_name, team2_name, final_margin, adjustments):
+    """Calculate confidence in the prediction"""
+    confidence_factors = []
+    
+    # 1. Sample size (more games = more confidence)
+    team1_games = len(team_stats[team1_name]['games'])
+    team2_games = len(team_stats[team2_name]['games'])
+    min_games = min(team1_games, team2_games)
+    
+    if min_games >= 8:
+        confidence_factors.append(0.3)
+    elif min_games >= 5:
+        confidence_factors.append(0.2)
+    else:
+        confidence_factors.append(0.1)
+    
+    # 2. Margin size (bigger margins = more confidence)
+    if abs(final_margin) > 14:
+        confidence_factors.append(0.3)
+    elif abs(final_margin) > 7:
+        confidence_factors.append(0.2)
+    else:
+        confidence_factors.append(0.1)
+    
+    # 3. Common opponents (more shared opponents = more confidence)
+    common_analysis = analyze_common_opponents_enhanced(team1_name, team2_name)
+    if common_analysis['games_count'] >= 3:
+        confidence_factors.append(0.2)
+    elif common_analysis['games_count'] >= 1:
+        confidence_factors.append(0.1)
+    
+    # 4. Consistency of adjustments (if all point same way = more confidence)
+    positive_adj = sum(1 for adj in adjustments.values() if adj > 0.5)
+    negative_adj = sum(1 for adj in adjustments.values() if adj < -0.5)
+    
+    if len(adjustments) > 0:
+        consistency = max(positive_adj, negative_adj) / len(adjustments)
+        confidence_factors.append(consistency * 0.2)
+    
+    total_confidence = sum(confidence_factors)
+    
+    if total_confidence >= 0.7:
+        level = 'High'
+    elif total_confidence >= 0.4:
+        level = 'Medium'
+    else:
+        level = 'Low'
+    
+    return {
+        'score': round(total_confidence, 2),
+        'level': level,
+        'factors': confidence_factors
+    }
+
+def calculate_enhanced_win_probability(margin, confidence_metrics):
+    """Enhanced win probability calculation"""
+    # Base probability from margin
+    base_prob = 50 + (margin * 2.2)  # Slightly less aggressive than before
+    
+    # Adjust based on confidence
+    confidence_adjustment = (confidence_metrics['score'] - 0.5) * 5
+    
+    final_prob = base_prob + confidence_adjustment
+    
+    # Cap between 5-95%
+    return max(5, min(95, final_prob))
+
+def identify_key_prediction_factors(adjustments, team1_scientific, team2_scientific):
+    """Identify the most important factors in the prediction"""
+    factors = []
+    
+    # Largest adjustments
+    sorted_adj = sorted(adjustments.items(), key=lambda x: abs(x[1]), reverse=True)
+    for factor, value in sorted_adj[:3]:  # Top 3 adjustments
+        if abs(value) > 0.5:
+            factors.append(f"{factor}: {value:+.1f}")
+    
+    # Scientific ranking components
+    team1_components = team1_scientific['components']
+    team2_components = team2_scientific['components']
+    
+    victory_diff = team1_components['adjusted_victory_value'] - team2_components['adjusted_victory_value']
+    if abs(victory_diff) > 5:
+        factors.append(f"Victory Quality Edge: {victory_diff:+.1f}")
+    
+    return factors[:4]  # Return top 4 factors
+# Add this near the top with other global variables
+scheduled_games = []
+
+def parse_schedule_text(schedule_text, week, team_clarifications=None):
+    """Parse pasted schedule text into structured game data with dates, times, and TV"""
+    games = []
+    unknown_teams = set()
+    lines = [line.strip() for line in schedule_text.split('\n') if line.strip()]
+
+    print(f"DEBUG PARSE: Processing {len(lines)} lines")
+    
+    current_date = None
+    current_year = datetime.now().year
+    
+    def resolve_team_name(team_name):
+        """Resolve team name using clarifications or existing mappings"""
+        # NEW: Clean the team name first (remove rankings, etc.)
+        team_name = clean_team_name(team_name)
+
+        original_name = team_name
+        team_name = clean_team_name(team_name)
+        print(f"DEBUG RESOLVE: Original='{original_name}' Cleaned='{team_name}'")
+
+
+        # First check if we have a clarification for this session
+        if team_clarifications and team_name in team_clarifications:
+            print(f"DEBUG RESOLVE: Found in clarifications: {team_name}")
+            return team_clarifications[team_name]
+        
+        # Then check saved mappings
+        if team_name in team_mappings:
+            print(f"DEBUG RESOLVE: Found in saved mappings: {team_name}")
+            return team_mappings[team_name]
+        
+        # Check if it's a known FBS team
+        if team_name in TEAMS:
+            print(f"DEBUG RESOLVE: Found '{team_name}' in TEAMS")
+            return team_name
+            
+        # Check common variations
+        for standard_name, variants in TEAM_VARIATIONS.items():
+            if team_name in variants:
+                print(f"DEBUG RESOLVE: Found '{team_name}' maps to '{standard_name}' via TEAM_VARIATIONS")
+                return standard_name
+        
+        # If we get here, it's unknown
+        print(f"DEBUG RESOLVE: '{team_name}' is UNKNOWN - adding to unknown_teams")
+        unknown_teams.add(team_name)
+        return team_name  # Return as-is for now
+    
+    def parse_date_line(line):
+        """Try to parse a date from a line"""
+        import re
+        
+        # Remove common words
+        line_clean = re.sub(r'\b(matchup|time|tv|mobile|tickets)\b', '', line, flags=re.IGNORECASE).strip()
+        
+        # Pattern 1: "Saturday, August 23" or "Saturday, August 23, 2025"
+        match = re.search(r'(\w+day),?\s+(\w+)\s+(\d{1,2})(?:,?\s+(\d{4}))?', line_clean, re.IGNORECASE)
+        if match:
+            day_name, month_name, day_num, year = match.groups()
+            year = int(year) if year else current_year
+            
+            # Convert month name to number
+            months = {
+                'january': 1, 'february': 2, 'march': 3, 'april': 4, 'may': 5, 'june': 6,
+                'july': 7, 'august': 8, 'september': 9, 'october': 10, 'november': 11, 'december': 12,
+                'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'jun': 6, 'jul': 7, 'aug': 8, 
+                'sep': 9, 'sept': 9, 'oct': 10, 'nov': 11, 'dec': 12
+            }
+            
+            month_num = months.get(month_name.lower())
+            if month_num:
+                try:
+                    return datetime(year, month_num, int(day_num)).strftime('%Y-%m-%d')
+                except:
+                    pass
+        
+        # Pattern 2: "8/23" or "8/23/25" or "8/23/2025"
+        match = re.search(r'(\d{1,2})/(\d{1,2})(?:/(\d{2,4}))?', line_clean)
+        if match:
+            month, day, year = match.groups()
+            if year:
+                year = int(year)
+                if year < 100:  # 2-digit year
+                    year += 2000
+            else:
+                year = current_year
+            
+            try:
+                return datetime(year, int(month), int(day)).strftime('%Y-%m-%d')
+            except:
+                pass
+        
+        return None
+    
+    def extract_time_and_tv(line):
+        """Extract time and TV info from game line"""
+        import re
+        
+        time_match = None
+        tv_info = None
+        
+        # Extract time (12:00pm, 6:30pm, etc.)
+        time_pattern = r'(\d{1,2}):?(\d{2})?\s*(am|pm|AM|PM)'
+        time_search = re.search(time_pattern, line)
+
+
+        if time_search:
+            hour, minute, period = time_search.groups()
+            minute = minute or '00'
+            time_match = f"{hour}:{minute} {period.upper()}"
+        
+        # Extract TV networks
+        tv_networks = ['ESPN', 'FOX', 'CBS', 'NBC', 'ABC', 'FS1', 'FS2', 'BTN', 'SECN', 'ACCN', 
+                      'ESPN2', 'ESPNU', 'CBSSN', 'Paramount+', 'Peacock', 'ESPNEWS']
+        
+        for network in tv_networks:
+            if network.lower() in line.lower():
+                tv_info = network
+                break
+        
+        return time_match, tv_info
+    
+    for i, line in enumerate(lines):
+        try:
+            # AGGRESSIVE SKIP LOGIC - Add this first
+            line_lower = line.lower().strip()
+            
+            # Skip completely empty or very short lines
+            if len(line_lower) < 3:
+                continue
+            
+            # Skip obvious header/table content
+            skip_phrases = [
+                'matchup time', 'time (et)', 'tv/mobile', 'tickets', 'buy tickets',
+                'matchup', 'tv/mobile tickets', 'time (et) tv', 'network', 'channel', 
+                'broadcast', 'status', '(et)', 'mobile tickets'
+            ]
+            
+            if any(phrase in line_lower for phrase in skip_phrases):
+                print(f"SKIPPING: {line}")
+                continue
+            
+            # Skip lines that are just punctuation or symbols
+            if line_lower.replace(' ', '').replace('(', '').replace(')', '').replace('-', '').replace('=', '') == '':
+                continue
+            
+            # Try to parse as date header first
+            parsed_date = parse_date_line(line)
+            if parsed_date:
+                current_date = parsed_date
+                continue
+            
+            # Skip lines that don't have game indicators AND aren't dates
+            if not any(indicator in line_lower for indicator in ['vs', 'at', '@']):
+                print(f"SKIPPING (no game indicators): {line}")
+                continue
+                
+            game = None
+            
+            # NEW: Look ahead to next line for time/TV info
+            next_line = ""
+            if i + 1 < len(lines):
+                next_line = lines[i + 1]
+                # Check if next line looks like time/TV info
+                import re
+                if re.search(r'\d{1,2}:?\d{2}?\s*(am|pm|AM|PM)', next_line) or any(net in next_line.upper() for net in ['ESPN', 'FOX', 'CBS', 'NBC']):
+                    print(f"DEBUG: Found time line: {next_line}")
+                    # Combine current line with next line for parsing
+                    combined_line = f"{line} {next_line}"
+                    game_time, tv_network = extract_time_and_tv(combined_line)
+                else:
+                    game_time, tv_network = extract_time_and_tv(line)
+            else:
+                game_time, tv_network = extract_time_and_tv(line)
+            
+            print(f"DEBUG: Final extracted - time: {game_time}, tv: {tv_network}")
+            
+            # Clean the line for team parsing (remove time/TV info)
+            import re
+            line_clean = re.sub(r'\d{1,2}:?\d{2}?\s*(am|pm|AM|PM)', '', line)  # Remove time
+            line_clean = re.sub(r'\b(ESPN|FOX|CBS|NBC|ABC|FS1|FS2|BTN|SECN|ACCN|ESPN2|ESPNU|CBSSN|Paramount\+|Peacock|ESPNEWS)\b', '', line_clean, flags=re.IGNORECASE)  # Remove TV
+            line_clean = re.sub(r'\s+', ' ', line_clean).strip()  # Clean up spaces
+            
+            # Rest of your parsing logic stays the same...
+            # Format 1: "Team A vs Team B (location)" - neutral site
+            if ' vs ' in line_clean and '(' in line_clean:
+                teams_part = line_clean.split('(')[0].strip()
+                location = line_clean.split('(')[1].split(')')[0].strip()
+                team1, team2 = [t.strip() for t in teams_part.split(' vs ')]
+                
+                team1_resolved = resolve_team_name(team1)
+                team2_resolved = resolve_team_name(team2)
+                
+                game = {
+                    'week': week,
+                    'home_team': team1_resolved,
+                    'away_team': team2_resolved,
+                    'neutral': True,
+                    'completed': False,
+                    'location_note': location,
+                    'original_home': team1,
+                    'original_away': team2,
+                    'game_date': current_date,
+                    'game_time': game_time,
+                    'tv_network': tv_network
+                }
+            
+            # Format 2: "Team A at Team B" - Team B is home
+            elif ' at ' in line_clean:
+                away_team, home_team = [t.strip() for t in line_clean.split(' at ')]
+                
+                home_resolved = resolve_team_name(home_team)
+                away_resolved = resolve_team_name(away_team)
+                
+                game = {
+                    'week': week,
+                    'home_team': home_resolved,
+                    'away_team': away_resolved,
+                    'neutral': False,
+                    'completed': False,
+                    'original_home': home_team,
+                    'original_away': away_team,
+                    'game_date': current_date,
+                    'game_time': game_time,
+                    'tv_network': tv_network
+                }
+            
+            # Format 3: "Team A vs Team B" - Team A is home
+            elif ' vs ' in line_clean:
+                team1, team2 = [t.strip() for t in line_clean.split(' vs ')]
+                
+                team1_resolved = resolve_team_name(team1)
+                team2_resolved = resolve_team_name(team2)
+                
+                game = {
+                    'week': week,
+                    'home_team': team1_resolved,
+                    'away_team': team2_resolved,
+                    'neutral': False,
+                    'completed': False,
+                    'original_home': team1,
+                    'original_away': team2,
+                    'game_date': current_date,
+                    'game_time': game_time,
+                    'tv_network': tv_network
+                }
+            
+            if game:
+                games.append(game)
+                
+        except Exception as e:
+            print(f"Error parsing line '{line}': {e}")
+            continue
+    
+    return games, list(unknown_teams)
+
+def normalize_team_name(team_name):
+    """Normalize team names for matching"""
+    # Handle common variations
+    variations = {
+        'Western Kentucky': ['WKU', 'Western Kentucky'],
+        'Miami': ['Miami', 'Miami (FL)', 'Miami Florida'],
+        'FCS': ['FCS', 'Idaho State']  # Map specific FCS teams to generic FCS
+    }
+    
+    for standard_name, variants in variations.items():
+        if team_name in variants:
+            return standard_name
+    
+    return team_name
+
+def find_matching_scheduled_game(home_team, away_team, week):
+    """Find a scheduled game that matches the completed game"""
+    home_normalized = normalize_team_name(home_team)
+    away_normalized = normalize_team_name(away_team)
+    
+    for i, scheduled in enumerate(scheduled_games):
+        if scheduled['week'] != week or scheduled['completed']:
+            continue
+            
+        sched_home = normalize_team_name(scheduled['home_team'])
+        sched_away = normalize_team_name(scheduled['away_team'])
+        
+        # Check both orientations (home/away might be swapped)
+        if ((sched_home == home_normalized and sched_away == away_normalized) or
+            (sched_home == away_normalized and sched_away == home_normalized)):
+            return i
+    
+    return None
+
 
 @app.route('/compare')
 def team_compare():
@@ -1960,44 +2861,127 @@ def team_bowl_status_detail(team_name):
     </div>
     """, team_name=team_name, status=status)    
 
+
+
+# Replace your compare_teams route with this simpler debug version first
+
 @app.route('/compare_teams', methods=['POST'])
 def compare_teams():
-    """Process team comparison"""
-    team1 = request.form['team1']
-    team2 = request.form['team2']
-    location = request.form.get('location', 'neutral')
-    
-    if team1 == team2:
-        flash('Please select two different teams!', 'error')
+    """Debug version of team comparison"""
+    try:
+        team1 = request.form['team1']
+        team2 = request.form['team2']
+        location = request.form.get('location', 'neutral')
+        
+        print(f"DEBUG: Form data received - team1: {team1}, team2: {team2}, location: {location}")
+        
+        if team1 == team2:
+            flash('Please select two different teams!', 'error')
+            return redirect(url_for('team_compare'))
+        
+        # Check if teams exist
+        if team1 not in team_stats:
+            flash(f'{team1} not found in database!', 'error')
+            return redirect(url_for('team_compare'))
+        
+        if team2 not in team_stats:
+            flash(f'{team2} not found in database!', 'error') 
+            return redirect(url_for('team_compare'))
+        
+        # Check if teams have played games
+        team1_games = len(team_stats[team1]['games'])
+        team2_games = len(team_stats[team2]['games'])
+        
+        print(f"DEBUG: {team1} has {team1_games} games, {team2} has {team2_games} games")
+        
+        if team1_games == 0:
+            flash(f'{team1} has not played any games yet! Please add some games first.', 'error')
+            return redirect(url_for('team_compare'))
+            
+        if team2_games == 0:
+            flash(f'{team2} has not played any games yet! Please add some games first.', 'error')
+            return redirect(url_for('team_compare'))
+        
+        # Get basic stats (using your existing functions)
+        print("DEBUG: Getting comprehensive stats...")
+        team1_stats = calculate_comprehensive_stats(team1)
+        team2_stats = calculate_comprehensive_stats(team2)
+        
+        print("DEBUG: Getting scientific rankings...")
+        team1_scientific = calculate_scientific_ranking(team1)
+        team2_scientific = calculate_scientific_ranking(team2)
+        
+        print("DEBUG: Running prediction...")
+        # Use your ORIGINAL prediction function for now
+        prediction = predict_matchup_enhanced(team1, team2, location)
+        
+        print("DEBUG: Running additional analysis...")
+        # Use your existing analysis functions
+        common_opponents = analyze_common_opponents(team1, team2)
+        team1_form = calculate_recent_form(team1)
+        team2_form = calculate_recent_form(team2)
+        style_matchup = analyze_style_matchup(team1, team2)
+        h2h_history = head_to_head_history(team1, team2)
+        
+        print("DEBUG: Preparing template data...")
+        comparison_data = {
+            'team1': team1,
+            'team2': team2,
+            'team1_stats': team1_stats,
+            'team2_stats': team2_stats,
+            'team1_scientific': team1_scientific,
+            'team2_scientific': team2_scientific,
+            'prediction': prediction,
+            'common_opponents': common_opponents,
+            'team1_form': team1_form,
+            'team2_form': team2_form,
+            'style_matchup': style_matchup,
+            'h2h_history': h2h_history,
+            'location': location
+        }
+        
+        print("DEBUG: Rendering template...")
+        # Use your existing template for now
+        return render_template('comparison_results.html', **comparison_data)
+        
+    except Exception as e:
+        print(f"ERROR in compare_teams: {e}")
+        import traceback
+        traceback.print_exc()
+        flash(f'Error comparing teams: {str(e)}', 'error')
         return redirect(url_for('team_compare'))
-    
-    # Get comprehensive stats
-    team1_stats = calculate_comprehensive_stats(team1)
-    team2_stats = calculate_comprehensive_stats(team2)
-    
-    # Run all analyses
-    prediction = predict_matchup(team1, team2, location)
-    common_opponents = analyze_common_opponents(team1, team2)
-    team1_form = calculate_recent_form(team1)
-    team2_form = calculate_recent_form(team2)
-    style_matchup = analyze_style_matchup(team1, team2)
-    h2h_history = head_to_head_history(team1, team2)
-    
-    comparison_data = {
-        'team1': team1,
-        'team2': team2,
-        'team1_stats': team1_stats,
-        'team2_stats': team2_stats,
-        'prediction': prediction,
-        'common_opponents': common_opponents,
-        'team1_form': team1_form,
-        'team2_form': team2_form,
-        'style_matchup': style_matchup,
-        'h2h_history': h2h_history,
-        'location': location
-    }
-    
-    return render_template('comparison_results.html', **comparison_data)
+
+# Also add this simple team preview route
+@app.route('/team_preview/<team_name>')
+def team_preview(team_name):
+    """Simple team preview for comparison page"""
+    try:
+        if team_name not in team_stats:
+            return {'error': 'Team not found'}, 404
+        
+        stats = calculate_comprehensive_stats(team_name)
+        basic_stats = team_stats[team_name]
+        recent_form = calculate_recent_form(team_name)
+        
+        # Get current rank (simplified)
+        current_rank = "NR"  # Default to Not Ranked
+        
+        preview_data = {
+            'team': team_name,
+            'rank': current_rank,
+            'record': f"{basic_stats['wins']}-{basic_stats['losses']}",
+            'conference': get_team_conference(team_name),
+            'adjusted_total': round(stats['adjusted_total'], 1),
+            'recent_form': recent_form['record'],
+            'trending': recent_form['trending'],
+            'logo_url': get_team_logo_url(team_name)
+        }
+        
+        return preview_data
+        
+    except Exception as e:
+        print(f"ERROR in team_preview: {e}")
+        return {'error': str(e)}, 500
 
 @app.route('/ranking_methodology')
 def ranking_methodology():
@@ -2088,6 +3072,32 @@ def get_recent_rivalry_games():
     
     return rivalry_games
 
+def clean_team_name(team_name):
+    """Clean team name by removing ranking numbers and extra formatting"""
+    import re
+    
+    if not team_name:
+        return team_name
+    
+    # Remove common ranking patterns
+    patterns_to_remove = [
+        r'^\d+\.\s*',           # "1. Alabama"
+        r'^\d+\s+',             # "1 Alabama" 
+        r'\s+\d+$',             # "Alabama 1"
+        r'^\(\d+\)\s*',         # "(1) Alabama"
+        r'\s*\(\d+\)$',         # "Alabama (1)"
+        r'^#\d+\s+',            # "#1 Alabama"
+        r'\s+#\d+$',            # "Alabama #1"
+        r'^\d+\)\s*',           # "1) Alabama"
+        r'^\d+-\s*',            # "1- Alabama"
+    ]
+    
+    cleaned_name = team_name.strip()
+    
+    for pattern in patterns_to_remove:
+        cleaned_name = re.sub(pattern, '', cleaned_name).strip()
+    
+    return cleaned_name
 
 @app.route('/create_snapshot', methods=['POST'])
 @login_required
@@ -2179,7 +3189,7 @@ def public_team_detail(team_name):
     scientific_result = calculate_scientific_ranking(team_name)
     basic_stats = team_stats[team_name]
     
-    # Get opponent details for context
+   # Get opponent details for context
     opponent_details = []
     for game in basic_stats['games']:
         opponent_quality = get_current_opponent_quality(game['opponent'])
@@ -2195,7 +3205,8 @@ def public_team_detail(team_name):
             'margin': game['team_score'] - game['opp_score'],
             'location': game['home_away'],
             'is_rivalry': is_rival,
-            'rivalry_bonus': rivalry_bonus
+            'rivalry_bonus': rivalry_bonus,
+            'overtime': game.get('overtime', False)  # NEW: Include overtime status
         })
     
     # Calculate current ranking
@@ -2243,18 +3254,279 @@ def index():
     
     return render_template('index.html', comprehensive_stats=comprehensive_stats, recent_games=games_data[-10:])
 
+@app.route('/import_schedule', methods=['POST'])
+@login_required
+def import_schedule():
+    """Import schedule from pasted text - with team clarification"""
+    print("DEBUG: import_schedule route was called!")  # Add this line first
+    try:
+        schedule_text = request.form.get('schedule_text', '').strip()
+        week = request.form.get('week', '')
+        print(f"DEBUG: schedule_text length: {len(schedule_text)}")  # Add this too
+        print(f"DEBUG: week: {week}")  # And this
+        
+        if not schedule_text or not week:
+            flash('Please provide both schedule text and week!', 'error')
+            return redirect(url_for('weekly_results', week=week))
+        
+        result = parse_schedule_text(schedule_text, week)
+        print(f"DEBUG: parse_schedule_text returned: {result}")
+        print(f"DEBUG: type of result: {type(result)}")
+        print(f"DEBUG: length of result: {len(result) if hasattr(result, '__len__') else 'No length'}")
+        
+        # Try to unpack and see what happens
+        try:
+            games, unknown_teams = result
+            print(f"DEBUG: Successfully unpacked. Games: {len(games)}, Unknown teams: {unknown_teams}")
+        except Exception as e:
+            print(f"DEBUG: Unpacking failed: {e}")
+            return redirect(url_for('weekly_results', week=week))
+        
+        if not games:
+            flash('No games could be parsed from the text. Please check the format.', 'error')
+            return redirect(url_for('weekly_results', week=week))
+        
+        # If we have unknown teams, go to clarification
+        if unknown_teams:
+            # Store the original text and week in session for clarification
+            session['pending_schedule'] = {
+                'schedule_text': schedule_text,
+                'week': week,
+                'unknown_teams': unknown_teams
+            }
+            return redirect(url_for('clarify_teams'))
+        
+        # No unknown teams - proceed with import
+        return complete_schedule_import(games, week)
+        
+    except Exception as e:
+        flash(f'Error importing schedule: {e}', 'error')
+        return redirect(url_for('weekly_results', week=week))
+
+def complete_schedule_import(games, week):
+    """Complete the schedule import after clarifications"""
+    try:
+        global scheduled_games
+        
+        # Check if there are existing scheduled games for this week
+        existing_games = [g for g in scheduled_games if g['week'] == week and not g.get('completed', False)]
+        
+        if existing_games:
+            # User is importing additional games for a week that already has scheduled games
+            # For now, we'll append (add) rather than replace
+            flash(f'ℹ️ Adding {len(games)} more games to Week {week} (you already had {len(existing_games)} scheduled games)', 'info')
+            
+            # Just add the new games without removing existing ones
+            scheduled_games.extend(games)
+        else:
+            # No existing games for this week, or only completed games
+            # Remove any old scheduled games for this week (but keep completed ones)
+            scheduled_games = [g for g in scheduled_games if g['week'] != week or g.get('completed', False)]
+            
+            # Add new scheduled games
+            scheduled_games.extend(games)
+        
+        # Save to file
+        save_scheduled_games()
+        
+        total_scheduled = len([g for g in scheduled_games if g['week'] == week and not g.get('completed', False)])
+        flash(f'✅ Successfully imported {len(games)} games for Week {week}! (Total scheduled: {total_scheduled})', 'success')
+        return redirect(url_for('weekly_results', week=week))
+        
+    except Exception as e:
+        flash(f'Error completing import: {e}', 'error')
+        return redirect(url_for('weekly_results', week=week))
+
+
+@app.route('/clarify_teams')
+@login_required
+def clarify_teams():
+    """Show team clarification page"""
+    pending = session.get('pending_schedule')
+    if not pending:
+        flash('No pending schedule to clarify!', 'error')
+        return redirect(url_for('weekly_results'))
+    
+    unknown_teams = pending['unknown_teams']
+    team_suggestions = {}
+    team_contexts = {}
+    
+    # Parse the schedule to get game contexts
+    lines = [line.strip() for line in pending['schedule_text'].split('\n') if line.strip()]
+    
+    # Find which games each unknown team appears in
+    for unknown_team in unknown_teams:
+        team_contexts[unknown_team] = []
+        for line in lines:
+            if unknown_team.lower() in line.lower() and any(indicator in line.lower() for indicator in ['vs', 'at', '@']):
+                team_contexts[unknown_team].append(line.strip())
+    
+    # Get suggestions for each unknown team
+    for team in unknown_teams:
+        team_suggestions[team] = get_team_suggestions(team)
+    
+    return render_template('clarify_teams.html', 
+                         unknown_teams=unknown_teams,
+                         team_suggestions=team_suggestions,
+                         team_contexts=team_contexts,
+                         week=pending['week'])
+
+@app.route('/process_clarifications', methods=['POST'])
+@login_required
+def process_clarifications():
+    """Process team clarifications and complete import"""
+    try:
+        pending = session.get('pending_schedule')
+        if not pending:
+            flash('No pending schedule to process!', 'error')
+            return redirect(url_for('weekly_results'))
+        
+        # Get clarifications from form
+        clarifications = {}
+        for unknown_team in pending['unknown_teams']:
+            clarification_type = request.form.get(f'type_{unknown_team}')
+            
+            if clarification_type == 'fcs':
+                clarifications[unknown_team] = 'FCS'
+            elif clarification_type == 'map':
+                mapped_team = request.form.get(f'map_{unknown_team}')
+                if mapped_team and mapped_team in TEAMS:
+                    clarifications[unknown_team] = mapped_team
+                else:
+                    flash(f'Invalid mapping for {unknown_team}', 'error')
+                    return redirect(url_for('clarify_teams'))
+            elif clarification_type == 'custom':
+                custom_name = request.form.get(f'custom_{unknown_team}', '').strip()
+                if custom_name:
+                    clarifications[unknown_team] = custom_name
+                else:
+                    flash(f'Please provide a custom name for {unknown_team}', 'error')
+                    return redirect(url_for('clarify_teams'))
+        
+        # Save mappings for future use
+        global team_mappings
+        for original, mapped in clarifications.items():
+            team_mappings[original] = mapped
+        save_team_mappings()
+        
+        # Re-parse with clarifications
+        games, _ = parse_schedule_text(pending['schedule_text'], pending['week'], clarifications)
+        
+        # Clear pending schedule from session
+        session.pop('pending_schedule', None)
+        
+        # Complete the import
+        return complete_schedule_import(games, pending['week'])
+        
+    except Exception as e:
+        flash(f'Error processing clarifications: {e}', 'error')
+        return redirect(url_for('clarify_teams'))
+
+@app.route('/weekly_results')
+@app.route('/weekly_results/<week>')
+def weekly_results(week=None):
+    # Get all unique weeks from games data
+    weeks_with_games = sorted(set(game['week'] for game in games_data), key=lambda x: (
+        # Sort by numeric value if it's a number, otherwise by string
+        int(x) if x.isdigit() else (100 if x == 'Bowls' else 101 if x == 'CFP' else 999)
+    ))
+    
+    # If no week specified, default to the most recent week with games
+    if not week and weeks_with_games:
+        week = weeks_with_games[-1]
+    elif not week:
+        week = '1'  # Default to week 1 if no games exist
+    
+    # Get scheduled games for the selected week that haven't been completed
+    week_scheduled = [game for game in scheduled_games 
+                     if game['week'] == week and not game.get('completed', False)]
+    
+    # Sort scheduled games by date and time
+    def sort_key(game):
+        game_date = game.get('game_date', '9999-12-31')
+        game_time = game.get('game_time', '11:59 PM')
+        
+        try:
+            if game_time:
+                from datetime import datetime
+                time_obj = datetime.strptime(game_time, '%I:%M %p')
+                time_24h = time_obj.strftime('%H:%M')
+            else:
+                time_24h = '23:59'
+        except:
+            time_24h = '23:59'
+        
+        return f"{game_date} {time_24h}"
+    
+    week_scheduled.sort(key=sort_key)
+    
+    # Group scheduled games by date
+    scheduled_by_date = {}
+    for game in week_scheduled:
+        game_date = game.get('game_date')
+        if game_date:
+            if game_date not in scheduled_by_date:
+                scheduled_by_date[game_date] = []
+            scheduled_by_date[game_date].append(game)
+        else:
+            # Games without dates go in a "TBD" group
+            if 'No Date' not in scheduled_by_date:
+                scheduled_by_date['No Date'] = []
+            scheduled_by_date['No Date'].append(game)
+    
+    # Also group completed games by date
+    week_games = [game for game in games_data if game['week'] == week]
+    completed_by_date = {}
+    
+    for game in week_games:
+        # Try to find corresponding scheduled game to get date
+        game_date = None
+        for scheduled in scheduled_games:
+            if (scheduled['week'] == week and 
+                ((scheduled['home_team'] == game['home_team'] and scheduled['away_team'] == game['away_team']) or
+                 (scheduled['home_team'] == game['away_team'] and scheduled['away_team'] == game['home_team']))):
+                game_date = scheduled.get('game_date')
+                break
+        
+        if not game_date:
+            game_date = 'No Date'
+            
+        if game_date not in completed_by_date:
+            completed_by_date[game_date] = []
+        completed_by_date[game_date].append(game)
+    
+    # Sort dates for display
+    all_dates = set(list(scheduled_by_date.keys()) + list(completed_by_date.keys()))
+    if 'No Date' in all_dates:
+        all_dates.remove('No Date')
+        sorted_dates = sorted([d for d in all_dates if d != 'No Date']) + ['No Date']
+    else:
+        sorted_dates = sorted(all_dates)
+    
+    return render_template('weekly_results.html', 
+                         selected_week=week, 
+                         weeks_with_games=weeks_with_games,
+                         week_games=week_games,
+                         scheduled_games=week_scheduled,
+                         scheduled_by_date=scheduled_by_date,
+                         completed_by_date=completed_by_date,
+                         sorted_dates=sorted_dates,
+                         all_weeks=WEEKS)       
+
+
 @app.route('/add_game', methods=['GET', 'POST'])
 @login_required
 def add_game():
     if request.method == 'POST':
         try:
-            # Get form data - REMOVED game type fields
+            # Get form data - ADDED overtime field
             week = request.form['week']
             home_team = request.form['home_team']
             away_team = request.form['away_team']
             home_score = int(request.form['home_score'])
             away_score = int(request.form['away_score'])
             is_neutral_site = 'neutral_site' in request.form
+            is_overtime = 'overtime' in request.form  # NEW: Check for overtime
             
             # Validate that teams are different
             if home_team == away_team:
@@ -2265,7 +3537,7 @@ def add_game():
             if is_fcs_opponent(home_team) or is_fcs_opponent(away_team):
                 flash('⚠️ FCS game detected - minimal ranking credit will be awarded for this victory', 'warning')
             
-            # Add game to data - REMOVED game type fields
+            # Add game to data - ADDED overtime field
             game = {
                 'week': week,
                 'home_team': home_team,
@@ -2273,13 +3545,21 @@ def add_game():
                 'home_score': home_score,
                 'away_score': away_score,
                 'is_neutral_site': is_neutral_site,
+                'overtime': is_overtime,  # NEW: Store overtime status
                 'date_added': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
             games_data.append(game)
             
+            # NEW: Check if this matches a scheduled game and mark it as completed
+            match_index = find_matching_scheduled_game(home_team, away_team, week)
+            if match_index is not None:
+                scheduled_games[match_index]['completed'] = True
+                save_scheduled_games()
+
+
             # Update team statistics - SIMPLIFIED (no game types needed)
-            update_team_stats_simplified(home_team, away_team, home_score, away_score, True, is_neutral_site)
-            update_team_stats_simplified(away_team, home_team, away_score, home_score, False, is_neutral_site)
+            update_team_stats_simplified(home_team, away_team, home_score, away_score, True, is_neutral_site, is_overtime)
+            update_team_stats_simplified(away_team, home_team, away_score, home_score, False, is_neutral_site, is_overtime)
             
             # Save data after adding game
             save_data()
@@ -2288,7 +3568,9 @@ def add_game():
             session['last_selected_week'] = week
             
             location_text = " (Neutral Site)" if is_neutral_site else ""
-            flash(f'Game added: {home_team} {home_score} - {away_score} {away_team}{location_text}', 'success')
+            overtime_text = " (OT)" if is_overtime else ""
+            scheduled_text = " ✓ Scheduled" if match_index is not None else ""
+            flash(f'Game added: {home_team} {home_score} - {away_score} {away_team}{location_text}{overtime_text}', 'success')
             return redirect(url_for('add_game'))
             
         except ValueError:
@@ -2302,14 +3584,368 @@ def add_game():
                          weeks=WEEKS, 
                          recent_games=games_data[-10:], 
                          selected_week=selected_week)
-  
 
-    return render_template('add_game.html', conferences=CONFERENCES, weeks=WEEKS, game_types=GAME_TYPES, team_classifications=team_classifications, recent_games=games_data[-10:], selected_week=selected_week)
 
 def is_fcs_opponent(opponent_name):
     """Check if opponent is FCS"""
     return opponent_name == 'FCS' or opponent_name.upper() == 'FCS'
 
+
+def save_team_mappings():
+    """Save team mappings to JSON file"""
+    try:
+        mappings_file = os.path.join(DATA_DIR, 'team_mappings.json')
+        with open(mappings_file, 'w') as f:
+            json.dump(team_mappings, f, indent=2)
+    except Exception as e:
+        print(f"Error saving team mappings: {e}")
+
+def load_team_mappings():
+    """Load team mappings from JSON file"""
+    global team_mappings
+    try:
+        mappings_file = os.path.join(DATA_DIR, 'team_mappings.json')
+        with open(mappings_file, 'r') as f:
+            team_mappings = json.load(f)
+        print(f"Loaded {len(team_mappings)} team mappings")
+    except FileNotFoundError:
+        print("No team mappings file found, starting fresh")
+        team_mappings = {}
+    except Exception as e:
+        print(f"Error loading team mappings: {e}")
+        team_mappings = {}
+
+def get_team_suggestions(unknown_team):
+    """Get suggestions for unknown team names with variations check"""
+    suggestions = []
+    unknown_lower = unknown_team.lower().strip()
+    
+    # Remove common punctuation that might interfere
+    unknown_clean = unknown_lower.replace('"', '').replace('(', '').replace(')', '').replace('.', '')
+    
+    # First, check if the unknown team is a variation of any official team
+    variations = {
+        # Your full variations dictionary goes here - copy from the previous artifact
+        'Alabama': ['Alabama', 'Bama', 'Crimson Tide'],
+        'Arkansas': ['Arkansas', 'Ark', 'Razorbacks'],
+        'Auburn': ['Auburn', 'Tigers'],
+        'Florida': ['Florida', 'UF', 'Gators'],
+        'Georgia': ['Georgia', 'UGA', 'Bulldogs'],
+        'Kentucky': ['Kentucky', 'UK', 'Wildcats'],
+        'LSU': ['LSU', 'Louisiana State', 'Tigers'],
+        'Mississippi State': ['Mississippi State', 'MSU', 'Miss State', 'Bulldogs'],
+        'Missouri': ['Missouri', 'Mizzou', 'Tigers'],
+        'Oklahoma': ['Oklahoma', 'OU', 'Sooners'],
+        'Ole Miss': ['Ole Miss', 'Mississippi', 'Rebels'],
+        'South Carolina': ['South Carolina', 'Gamecocks'],
+        'Tennessee': ['Tennessee', 'Tenn', 'UT', 'Volunteers', 'Vols'],
+        'Texas': ['Texas', 'UT', 'Longhorns'],
+        'Texas A&M': ['Texas A&M', 'TAMU', 'A&M', 'Aggies', 'Texas AM'],
+        'Vanderbilt': ['Vanderbilt', 'Vandy', 'Commodores'],
+        'Illinois': ['Illinois', 'Illini', 'Fighting Illini'],
+        'Indiana': ['Indiana', 'IU', 'Hoosiers'],
+        'Iowa': ['Iowa', 'Hawkeyes'],
+        'Maryland': ['Maryland', 'UMD', 'Terrapins', 'Terps'],
+        'Michigan': ['Michigan', 'UM', 'Wolverines'],
+        'Michigan State': ['Michigan State', 'MSU', 'Mich State', 'Spartans'],
+        'Minnesota': ['Minnesota', 'Gophers', 'Golden Gophers'],
+        'Nebraska': ['Nebraska', 'Huskers', 'Cornhuskers'],
+        'Northwestern': ['Northwestern', 'NU', 'Wildcats'],
+        'Ohio State': ['Ohio State', 'OSU', 'tOSU', 'Buckeyes'],
+        'Oregon': ['Oregon', 'Ducks'],
+        'Penn State': ['Penn State', 'PSU', 'Nittany Lions'],
+        'Purdue': ['Purdue', 'Boilermakers'],
+        'Rutgers': ['Rutgers', 'RU', 'Scarlet Knights'],
+        'UCLA': ['UCLA', 'Bruins'],
+        'USC': ['USC', 'Southern Cal', 'Southern California', 'Trojans'],
+        'Washington': ['Washington', 'UW', 'Huskies'],
+        'Wisconsin': ['Wisconsin', 'Badgers'],
+        'Boston College': ['Boston College', 'BC', 'Eagles'],
+        'California': ['California', 'Cal', 'Berkeley', 'Golden Bears'],
+        'Clemson': ['Clemson', 'Tigers'],
+        'Duke': ['Duke', 'Blue Devils'],
+        'Florida State': ['Florida State', 'FSU', 'Seminoles'],
+        'Georgia Tech': ['Georgia Tech', 'GT', 'Yellow Jackets'],
+        'Louisville': ['Louisville', 'Cards', 'Cardinals'],
+        'Miami': ['Miami', 'UM', 'Miami (FL)', 'Miami Florida', 'Miami FL', 'Hurricanes', 'The U'],
+        'NC State': ['NC State', 'North Carolina State', 'NCSU', 'Wolfpack'],
+        'North Carolina': ['North Carolina', 'UNC', 'Tar Heels', 'Carolina'],
+        'Pittsburgh': ['Pittsburgh', 'Pitt', 'Panthers'],
+        'SMU': ['SMU', 'Southern Methodist', 'Mustangs'],
+        'Stanford': ['Stanford', 'Cardinal'],
+        'Syracuse': ['Syracuse', 'Cuse', 'Orange'],
+        'Virginia': ['Virginia', 'UVA', 'Cavaliers'],
+        'Virginia Tech': ['Virginia Tech', 'VT', 'Hokies'],
+        'Wake Forest': ['Wake Forest', 'Wake', 'Demon Deacons'],
+        'Arizona': ['Arizona', 'Wildcats'],
+        'Arizona State': ['Arizona State', 'ASU', 'Sun Devils'],
+        'Baylor': ['Baylor', 'Bears'],
+        'BYU': ['BYU', 'Brigham Young', 'Cougars'],
+        'Cincinnati': ['Cincinnati', 'UC', 'Bearcats'],
+        'Colorado': ['Colorado', 'CU', 'Buffaloes', 'Buffs'],
+        'Houston': ['Houston', 'UH', 'Cougars'],
+        'Iowa State': ['Iowa State', 'ISU', 'Cyclones'],
+        'Kansas': ['Kansas', 'KU', 'Jayhawks'],
+        'Kansas State': ['Kansas State', 'KSU', 'K-State', 'Wildcats'],
+        'Oklahoma State': ['Oklahoma State', 'OSU', 'Cowboys'],
+        'TCU': ['TCU', 'Texas Christian', 'Horned Frogs'],
+        'Texas Tech': ['Texas Tech', 'TTU', 'Red Raiders'],
+        'UCF': ['UCF', 'Central Florida', 'Knights'],
+        'Utah': ['Utah', 'Utes'],
+        'West Virginia': ['West Virginia', 'WVU', 'Mountaineers'],
+        'Oregon State': ['Oregon State', 'OSU', 'Beavers'],
+        'Washington State': ['Washington State', 'WSU', 'Cougars'],
+        'South Florida': ['South Florida', 'USF', 'Bulls'],
+        'UL Monroe': ['UL Monroe', 'ULM', 'Louisiana Monroe', 'Warhawks'],
+        'Miami (OH)': ['Miami (OH)', 'Miami Ohio', 'Miami "Ohio"', 'Miami (Ohio)', 'RedHawks'],
+        'Western Kentucky': ['Western Kentucky', 'WKU', 'Hilltoppers'],
+        'Florida Intl': ['Florida Intl', 'FIU', 'Florida International', 'Panthers'],
+        'UCF': ['UCF', 'Central Florida', 'Knights'],
+        'TCU': ['TCU', 'Texas Christian', 'Horned Frogs'],
+        'LSU': ['LSU', 'Louisiana State', 'Tigers'],
+        'BYU': ['BYU', 'Brigham Young', 'Cougars'],
+        'SMU': ['SMU', 'Southern Methodist', 'Mustangs'],
+        'Texas A&M': ['Texas A&M', 'TAMU', 'A&M', 'Aggies', 'Texas AM'],
+    }
+    
+    # Check variations dictionary - PRIORITY CHECK
+    for official_name, variant_list in variations.items():
+        for variant in variant_list:
+            if unknown_clean == variant.lower():
+                suggestions.insert(0, official_name)  # Put exact matches first
+                break
+            elif unknown_clean in variant.lower() or variant.lower() in unknown_clean:
+                suggestions.append(official_name)
+    
+    # Then look for partial matches in known teams (original logic)
+    for team in TEAMS:
+        team_lower = team.lower()
+        
+        # Skip if we already found this team through variations
+        if team in suggestions:
+            continue
+            
+        # Contains match (either direction)
+        if unknown_clean in team_lower or team_lower in unknown_clean:
+            suggestions.append(team)
+            continue
+            
+        # Word-by-word matching for multi-word teams
+        unknown_words = unknown_clean.split()
+        team_words = team_lower.split()
+        
+        # Check if any significant words match
+        if len(unknown_words) > 0 and len(team_words) > 0:
+            word_matches = 0
+            for u_word in unknown_words:
+                if len(u_word) > 2:  # Only check meaningful words
+                    for t_word in team_words:
+                        if u_word in t_word or t_word in u_word:
+                            word_matches += 1
+                            break
+            
+            # If we matched a good portion of words, suggest it
+            if word_matches >= min(len(unknown_words), len(team_words)) * 0.7:
+                suggestions.append(team)
+    
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_suggestions = []
+    for suggestion in suggestions:
+        if suggestion not in seen:
+            seen.add(suggestion)
+            unique_suggestions.append(suggestion)
+    
+    # Limit to top 5 suggestions
+    return unique_suggestions[:5]
+
+def normalize_team_name(team_name):
+    """Normalize team names for matching"""
+    # Handle common variations
+    variations = {
+            # SEC
+            'Alabama': ['Alabama', 'Bama', 'Crimson Tide'],
+            'Arkansas': ['Arkansas', 'Ark', 'Razorbacks'],
+            'Auburn': ['Auburn', 'Tigers'],
+            'Florida': ['Florida', 'UF', 'Gators'],
+            'Georgia': ['Georgia', 'UGA', 'Bulldogs'],
+            'Kentucky': ['Kentucky', 'UK', 'Wildcats'],
+            'LSU': ['LSU', 'Louisiana State', 'Tigers'],
+            'Mississippi State': ['Mississippi State', 'MSU', 'Miss State', 'Bulldogs'],
+            'Missouri': ['Missouri', 'Mizzou', 'Tigers'],
+            'Oklahoma': ['Oklahoma', 'OU', 'Sooners'],
+            'Ole Miss': ['Ole Miss', 'Mississippi', 'Rebels'],
+            'South Carolina': ['South Carolina', 'Gamecocks'],
+            'Tennessee': ['Tennessee', 'Tenn', 'UT', 'Volunteers', 'Vols'],
+            'Texas': ['Texas', 'UT', 'Longhorns'],
+            'Texas A&M': ['Texas A&M', 'TAMU', 'A&M', 'Aggies', 'Texas AM'],
+            'Vanderbilt': ['Vanderbilt', 'Vandy', 'Commodores'],
+
+            # Big Ten
+            'Illinois': ['Illinois', 'Illini', 'Fighting Illini'],
+            'Indiana': ['Indiana', 'IU', 'Hoosiers'],
+            'Iowa': ['Iowa', 'Hawkeyes'],
+            'Maryland': ['Maryland', 'UMD', 'Terrapins', 'Terps'],
+            'Michigan': ['Michigan', 'UM', 'Wolverines'],
+            'Michigan State': ['Michigan State', 'MSU', 'Mich State', 'Spartans'],
+            'Minnesota': ['Minnesota', 'Gophers', 'Golden Gophers'],
+            'Nebraska': ['Nebraska', 'Huskers', 'Cornhuskers'],
+            'Northwestern': ['Northwestern', 'NU', 'Wildcats'],
+            'Ohio State': ['Ohio State', 'OSU', 'tOSU', 'Buckeyes'],
+            'Oregon': ['Oregon', 'Ducks'],
+            'Penn State': ['Penn State', 'PSU', 'Nittany Lions'],
+            'Purdue': ['Purdue', 'Boilermakers'],
+            'Rutgers': ['Rutgers', 'RU', 'Scarlet Knights'],
+            'UCLA': ['UCLA', 'Bruins'],
+            'USC': ['USC', 'Southern Cal', 'Southern California', 'Trojans'],
+            'Washington': ['Washington', 'UW', 'Huskies'],
+            'Wisconsin': ['Wisconsin', 'Badgers'],
+
+            # ACC
+            'Boston College': ['Boston College', 'BC', 'Eagles'],
+            'California': ['California', 'Cal', 'Berkeley', 'Golden Bears'],
+            'Clemson': ['Clemson', 'Tigers'],
+            'Duke': ['Duke', 'Blue Devils'],
+            'Florida State': ['Florida State', 'FSU', 'Seminoles'],
+            'Georgia Tech': ['Georgia Tech', 'GT', 'Yellow Jackets'],
+            'Louisville': ['Louisville', 'Cards', 'Cardinals'],
+            'Miami': ['Miami', 'UM', 'Miami (FL)', 'Miami Florida', 'Miami FL', 'Hurricanes', 'The U'],
+            'NC State': ['NC State', 'North Carolina State', 'NCSU', 'Wolfpack'],
+            'North Carolina': ['North Carolina', 'UNC', 'Tar Heels', 'Carolina'],
+            'Pittsburgh': ['Pittsburgh', 'Pitt', 'Panthers'],
+            'SMU': ['SMU', 'Southern Methodist', 'Mustangs'],
+            'Stanford': ['Stanford', 'Cardinal'],
+            'Syracuse': ['Syracuse', 'Cuse', 'Orange'],
+            'Virginia': ['Virginia', 'UVA', 'Cavaliers'],
+            'Virginia Tech': ['Virginia Tech', 'VT', 'Hokies'],
+            'Wake Forest': ['Wake Forest', 'Wake', 'Demon Deacons'],
+
+            # Big 12
+            'Arizona': ['Arizona', 'Wildcats'],
+            'Arizona State': ['Arizona State', 'ASU', 'Sun Devils'],
+            'Baylor': ['Baylor', 'Bears'],
+            'BYU': ['BYU', 'Brigham Young', 'Cougars'],
+            'Cincinnati': ['Cincinnati', 'UC', 'Bearcats'],
+            'Colorado': ['Colorado', 'CU', 'Buffaloes', 'Buffs'],
+            'Houston': ['Houston', 'UH', 'Cougars'],
+            'Iowa State': ['Iowa State', 'ISU', 'Cyclones'],
+            'Kansas': ['Kansas', 'KU', 'Jayhawks'],
+            'Kansas State': ['Kansas State', 'KSU', 'K-State', 'Wildcats'],
+            'Oklahoma State': ['Oklahoma State', 'OSU', 'Cowboys'],
+            'TCU': ['TCU', 'Texas Christian', 'Horned Frogs'],
+            'Texas Tech': ['Texas Tech', 'TTU', 'Red Raiders'],
+            'UCF': ['UCF', 'Central Florida', 'Knights'],
+            'Utah': ['Utah', 'Utes'],
+            'West Virginia': ['West Virginia', 'WVU', 'Mountaineers'],
+
+            # Pac-12 (remaining)
+            'Oregon State': ['Oregon State', 'OSU', 'Beavers'],
+            'Washington State': ['Washington State', 'WSU', 'Cougars'],
+
+            # American Athletic Conference
+            'Army': ['Army', 'Black Knights'],
+            'Charlotte': ['Charlotte', '49ers'],
+            'East Carolina': ['East Carolina', 'ECU', 'Pirates'],
+            'Florida Atlantic': ['Florida Atlantic', 'FAU', 'Owls'],
+            'Memphis': ['Memphis', 'Tigers'],
+            'Navy': ['Navy', 'Midshipmen'],
+            'North Texas': ['North Texas', 'UNT', 'Mean Green'],
+            'Rice': ['Rice', 'Owls'],
+            'South Florida': ['South Florida', 'USF', 'Bulls'],
+            'Temple': ['Temple', 'Owls'],
+            'Tulane': ['Tulane', 'Green Wave'],
+            'Tulsa': ['Tulsa', 'Golden Hurricane'],
+            'UAB': ['UAB', 'Alabama Birmingham', 'Blazers'],
+            'UTSA': ['UTSA', 'Texas San Antonio', 'Roadrunners'],
+
+            # Conference USA
+            'Delaware': ['Delaware', 'Blue Hens'],
+            'Florida Intl': ['Florida Intl', 'FIU', 'Florida International', 'Panthers'],
+            'Jacksonville State': ['Jacksonville State', 'JSU', 'Gamecocks'],
+            'Kennesaw State': ['Kennesaw State', 'Owls'],
+            'LA Tech': ['LA Tech', 'Louisiana Tech', 'Bulldogs'],
+            'Liberty': ['Liberty', 'Flames'],
+            'Middle Tennessee': ['Middle Tennessee', 'MTSU', 'Blue Raiders'],
+            'Missouri State': ['Missouri State', 'Bears'],
+            'New Mexico St': ['New Mexico St', 'New Mexico State', 'NMSU', 'Aggies'],
+            'Sam Houston': ['Sam Houston', 'Sam Houston State', 'SHSU', 'Bearkats'],
+            'UTEP': ['UTEP', 'Texas El Paso', 'Miners'],
+            'Western Kentucky': ['Western Kentucky', 'WKU', 'Hilltoppers'],
+
+            # MAC
+            'Akron': ['Akron', 'Zips'],
+            'Ball State': ['Ball State', 'Cardinals'],
+            'Bowling Green': ['Bowling Green', 'BGSU', 'Falcons'],
+            'Buffalo': ['Buffalo', 'Bulls'],
+            'Central Michigan': ['Central Michigan', 'CMU', 'Chippewas'],
+            'Eastern Michigan': ['Eastern Michigan', 'EMU', 'Eagles'],
+            'Kent State': ['Kent State', 'Golden Flashes'],
+            'UMass': ['UMass', 'Massachusetts', 'Minutemen'],
+            'Miami (OH)': ['Miami (OH)', 'Miami Ohio', 'Miami "Ohio"', 'Miami (Ohio)', 'RedHawks'],
+            'Northern Illinois': ['Northern Illinois', 'NIU', 'Huskies'],
+            'Ohio': ['Ohio', 'Bobcats'],
+            'Toledo': ['Toledo', 'Rockets'],
+            'Western Michigan': ['Western Michigan', 'WMU', 'Broncos'],
+
+            # Mountain West
+            'Air Force': ['Air Force', 'Falcons'],
+            'Boise State': ['Boise State', 'Broncos'],
+            'Colorado State': ['Colorado State', 'CSU', 'Rams'],
+            'Fresno State': ['Fresno State', 'Bulldogs'],
+            'Hawaii': ['Hawaii', 'Rainbow Warriors'],
+            'Nevada': ['Nevada', 'Wolf Pack'],
+            'New Mexico': ['New Mexico', 'UNM', 'Lobos'],
+            'San Diego State': ['San Diego State', 'SDSU', 'Aztecs'],
+            'San Jose State': ['San Jose State', 'SJSU', 'Spartans'],
+            'UNLV': ['UNLV', 'Rebels'],
+            'Utah State': ['Utah State', 'USU', 'Aggies'],
+            'Wyoming': ['Wyoming', 'Cowboys'],
+
+            # Sun Belt
+            'Appalachian St': ['Appalachian St', 'Appalachian State', 'App State', 'Mountaineers'],
+            'Arkansas State': ['Arkansas State', 'A-State', 'Red Wolves'],
+            'Coastal Carolina': ['Coastal Carolina', 'Chanticleers'],
+            'Georgia Southern': ['Georgia Southern', 'Eagles'],
+            'Georgia State': ['Georgia State', 'Panthers'],
+            'James Madison': ['James Madison', 'JMU', 'Dukes'],
+            'UL Monroe': ['UL Monroe', 'ULM', 'Louisiana Monroe', 'Warhawks'],
+            'Louisiana': ['Louisiana', 'UL', 'Ragin Cajuns', 'Louisiana Lafayette'],
+            'Marshall': ['Marshall', 'Thundering Herd'],
+            'Old Dominion': ['Old Dominion', 'ODU', 'Monarchs'],
+            'South Alabama': ['South Alabama', 'USA', 'Jaguars'],
+            'Southern Miss': ['Southern Miss', 'Southern Mississippi', 'USM', 'Golden Eagles'],
+            'Texas State': ['Texas State', 'Bobcats'],
+            'Troy': ['Troy', 'Trojans'],
+
+            # Independents
+            'Connecticut': ['Connecticut', 'UConn', 'Huskies'],
+            'Notre Dame': ['Notre Dame', 'ND', 'Fighting Irish'],
+        }
+    
+    for standard_name, variants in variations.items():
+        if team_name in variants:
+            return standard_name
+    
+    return team_name
+
+def find_matching_scheduled_game(home_team, away_team, week):
+    """Find a scheduled game that matches the completed game"""
+    home_normalized = normalize_team_name(home_team)
+    away_normalized = normalize_team_name(away_team)
+    
+    for i, scheduled in enumerate(scheduled_games):
+        if scheduled['week'] != week or scheduled['completed']:
+            continue
+            
+        sched_home = normalize_team_name(scheduled['home_team'])
+        sched_away = normalize_team_name(scheduled['away_team'])
+        
+        # Check both orientations (home/away might be swapped)
+        if ((sched_home == home_normalized and sched_away == away_normalized) or
+            (sched_home == away_normalized and sched_away == home_normalized)):
+            return i
+    
+    return None
 
 
 @app.route('/analyze_fcs_games')
@@ -2513,31 +4149,80 @@ def historical_rankings():
                          current_week=current_week,
                          previous_week=previous_week)
 
-@app.route('/weekly_results')
-@app.route('/weekly_results/<week>')
-def weekly_results(week=None):
-    # Get all unique weeks from games data
-    weeks_with_games = sorted(set(game['week'] for game in games_data), key=lambda x: (
-        # Sort by numeric value if it's a number, otherwise by string
-        int(x) if x.isdigit() else (100 if x == 'Bowls' else 101 if x == 'CFP' else 999)
-    ))
+# Get scheduled games for the selected week that haven't been completed
+    week_scheduled = [game for game in scheduled_games 
+                     if game['week'] == week and not game.get('completed', False)]
     
-    # If no week specified, default to the most recent week with games
-    if not week and weeks_with_games:
-        week = weeks_with_games[-1]
-    elif not week:
-        week = '1'  # Default to week 1 if no games exist
+    # Sort scheduled games by date and time
+    def sort_key(game):
+        game_date = game.get('game_date', '9999-12-31')
+        game_time = game.get('game_time', '11:59 PM')
+        
+        try:
+            if game_time:
+                from datetime import datetime
+                time_obj = datetime.strptime(game_time, '%I:%M %p')
+                time_24h = time_obj.strftime('%H:%M')
+            else:
+                time_24h = '23:59'
+        except:
+            time_24h = '23:59'
+        
+        return f"{game_date} {time_24h}"
     
-    # Get games for the selected week
+    week_scheduled.sort(key=sort_key)
+    
+    # Group scheduled games by date
+    scheduled_by_date = {}
+    for game in week_scheduled:
+        game_date = game.get('game_date')
+        if game_date:
+            if game_date not in scheduled_by_date:
+                scheduled_by_date[game_date] = []
+            scheduled_by_date[game_date].append(game)
+        else:
+            # Games without dates go in a "TBD" group
+            if 'No Date' not in scheduled_by_date:
+                scheduled_by_date['No Date'] = []
+            scheduled_by_date['No Date'].append(game)
+    
+    # Also group completed games by date
     week_games = [game for game in games_data if game['week'] == week]
+    completed_by_date = {}
     
-    # Sort games by date added (most recent first)
-    week_games.sort(key=lambda x: x['date_added'], reverse=True)
+    for game in week_games:
+        # Try to find corresponding scheduled game to get date
+        game_date = None
+        for scheduled in scheduled_games:
+            if (scheduled['week'] == week and 
+                ((scheduled['home_team'] == game['home_team'] and scheduled['away_team'] == game['away_team']) or
+                 (scheduled['home_team'] == game['away_team'] and scheduled['away_team'] == game['home_team']))):
+                game_date = scheduled.get('game_date')
+                break
+        
+        if not game_date:
+            game_date = 'No Date'
+            
+        if game_date not in completed_by_date:
+            completed_by_date[game_date] = []
+        completed_by_date[game_date].append(game)
+    
+    # Sort dates for display
+    all_dates = set(list(scheduled_by_date.keys()) + list(completed_by_date.keys()))
+    if 'No Date' in all_dates:
+        all_dates.remove('No Date')
+        sorted_dates = sorted([d for d in all_dates if d != 'No Date']) + ['No Date']
+    else:
+        sorted_dates = sorted(all_dates)
     
     return render_template('weekly_results.html', 
                          selected_week=week, 
                          weeks_with_games=weeks_with_games,
                          week_games=week_games,
+                         scheduled_games=week_scheduled,
+                         scheduled_by_date=scheduled_by_date,
+                         completed_by_date=completed_by_date,
+                         sorted_dates=sorted_dates,
                          all_weeks=WEEKS)
 
 @app.route('/reset_data', methods=['POST'])
@@ -2751,20 +4436,20 @@ def load_archived_season_details(filename):
 
 def safe_reset_season():
     """Reset current season data (only call after archiving!)"""
-    global games_data, team_stats, historical_rankings
+    global games_data, team_stats, historical_rankings, scheduled_games
     
     games_data = []
     team_stats = defaultdict(lambda: {
         'wins': 0, 'losses': 0, 'points_for': 0, 'points_against': 0,
-        'p4_wins': 0, 'p4_losses': 0, 'g5_wins': 0, 'g5_losses': 0,
         'home_wins': 0, 'road_wins': 0, 'margin_of_victory_total': 0,
         'games': []
     })
     historical_rankings = []
+    scheduled_games = []  # NEW: Reset scheduled games too
     
     # Delete current season files (archives are preserved)
     try:
-        files_to_remove = ['games_data.json', 'team_stats.json', 'historical_rankings.json']
+        files_to_remove = ['games_data.json', 'team_stats.json', 'historical_rankings.json', 'scheduled_games.json', 'team_mappings.json']
         for filename in files_to_remove:
             file_path = os.path.join(DATA_DIR, filename)
             if os.path.exists(file_path):
