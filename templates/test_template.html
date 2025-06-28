@@ -1,0 +1,15 @@
+"""
+{% extends "base.html" %}
+{% block content %}
+<h1>🔥 TEST TEMPLATE WORKS! 🔥</h1>
+<p>Team: {{ team_name }}</p>
+<p>Games: {{ opponent_details|length }}</p>
+<div style="background: red; color: white; padding: 20px;">
+    <h2>🏠 ✈️ ⚖️ 🔥 EMOJI TEST</h2>
+    <span class="badge bg-success">Bootstrap Badge Test</span>
+</div>
+{% for game in opponent_details %}
+    <p>Game: {{ game.opponent }} - {{ game.result }}</p>
+{% endfor %}
+{% endblock %}
+"""

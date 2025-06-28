@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block title %}Clarify Team Names - College Football Rankings{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h3 class="mb-0">🤔 Team Clarification Needed</h3>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <strong>I found {{ unknown_teams|length }} team{{ 's' if unknown_teams|length != 1 else '' }} I don't recognize for Week {{ week }}.</strong><br>
+                    Please help me understand what these teams should be mapped to:
+                </div>
+
+                <form method="POST" action="{{ url_for('process_clarifications') }}">
+                    {% for team in unknown_teams %}
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">❓ What is "{{ team }}"?</h5>
+                            {% if team_contexts[team] %}
+                                <div class="small text-muted mt-1">
+                                    <strong>Found in:</strong> 
+                                    {% for context in team_contexts[team] %}
+                                        <div>• {{ context }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <!-- Option 1: FCS Team -->
+                                <div class="col-md-4 mb-3">
+                                    <div class="card h-100">
+                                        <div class="card-body text-center">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" 
+                                                       name="type_{{ team }}" value="fcs" 
+                                                       id="fcs_{{ loop.index }}"
+                                                       onchange="updateOptions('{{ team }}', 'fcs')">
+                                                <label class="form-check-label" for="fcs_{{ loop.index }}">
+                                                    <h6>🏫 FCS Team</h6>
+                                                    <p class="text-muted small">This is a Division I FCS team (not FBS)</p>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Option 2: Map to Existing Team -->
+                                <div class="col-md-4 mb-3">
+                                    <div class="card h-100">
+                                        <div class="card-body text-center">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" 
+                                                       name="type_{{ team }}" value="map" 
+                                                       id="map_{{ loop.index }}"
+                                                       onchange="updateOptions('{{ team }}', 'map')">
+                                                <label class="form-check-label" for="map_{{ loop.index }}">
+                                                    <h6>🔗 Map to Existing Team</h6>
+                                                    <p class="text-muted small">This is a known FBS team with a different name</p>
+                                                </label>
+                                            </div>
+                                            
+                                            <div class="mt-2" id="mapping_options_{{ team }}" style="display: none;">
+                                                {% if team_suggestions[team] %}
+                                                <label class="form-label small">Suggestions:</label>
+                                                <select class="form-select form-select-sm" name="map_{{ team }}" disabled>
+                                                    <option value="">Select team...</option>
+                                                    {% for suggestion in team_suggestions[team] %}
+                                                    <option value="{{ suggestion }}">{{ suggestion }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                                {% else %}
+                                                <select class="form-select form-select-sm" name="map_{{ team }}" disabled>
+                                                    <option value="">No suggestions found</option>
+                                                </select>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Option 3: Custom Name -->
+                                <div class="col-md-4 mb-3">
+                                    <div class="card h-100">
+                                        <div class="card-body text-center">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" 
+                                                       name="type_{{ team }}" value="custom" 
+                                                       id="custom_{{ loop.index }}"
+                                                       onchange="updateOptions('{{ team }}', 'custom')">
+                                                <label class="form-check-label" for="custom_{{ loop.index }}">
+                                                    <h6>✏️ Custom Name</h6>
+                                                    <p class="text-muted small">Enter a different name for this team</p>
+                                                </label>
+                                            </div>
+                                            
+                                            <div class="mt-2" id="custom_options_{{ team }}" style="display: none;">
+                                                <input type="text" class="form-control form-control-sm" 
+                                                       name="custom_{{ team }}" placeholder="Enter team name..." disabled>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Preview -->
+                            <div class="alert alert-light mt-3" id="preview_{{ team }}">
+                                <small><strong>Preview:</strong> <span id="preview_text_{{ team }}">Please select an option above</span></small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                    <!-- Action Buttons -->
+                    <div class="text-center mt-4">
+                        <button type="submit" class="btn btn-success btn-lg" id="submitBtn" disabled>
+                            ✅ Apply Clarifications & Import Schedule
+                        </button>
+                        <a href="{{ url_for('weekly_results', week=week) }}" class="btn btn-secondary btn-lg">
+                            ❌ Cancel Import
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Help Section -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">💡 Need Help?</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <h6>🏫 FCS Teams</h6>
+                        <p class="small text-muted">
+                            Choose this for Division I FCS schools (formerly Division I-AA). 
+                            These games will give minimal ranking credit.
+                        </p>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>🔗 Map to Existing</h6>
+                        <p class="small text-muted">
+                            Choose this if the team name is just a variation of a known FBS team 
+                            (e.g., "Miami FL" → "Miami").
+                        </p>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>✏️ Custom Name</h6>
+                        <p class="small text-muted">
+                            Use this to rename the team to something more recognizable 
+                            while keeping it as an FBS opponent.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateOptions(team, type) {
+    // Hide all option divs for this team
+    const mappingDiv = document.getElementById(`mapping_options_${team}`);
+    const customDiv = document.getElementById(`custom_options_${team}`);
+    const previewDiv = document.getElementById(`preview_text_${team}`);
+    
+    // Reset all inputs
+    const mapSelect = document.querySelector(`select[name="map_${team}"]`);
+    const customInput = document.querySelector(`input[name="custom_${team}"]`);
+    
+    if (mapSelect) mapSelect.disabled = true;
+    if (customInput) customInput.disabled = true;
+    
+    // Hide all divs
+    if (mappingDiv) mappingDiv.style.display = 'none';
+    if (customDiv) customDiv.style.display = 'none';
+    
+    // Show and enable appropriate div
+    if (type === 'fcs') {
+        previewDiv.textContent = `"${team}" → FCS (Division I FCS team)`;
+    } else if (type === 'map') {
+        mappingDiv.style.display = 'block';
+        if (mapSelect) {
+            mapSelect.disabled = false;
+            mapSelect.addEventListener('change', function() {
+                if (this.value) {
+                    previewDiv.textContent = `"${team}" → ${this.value}`;
+                } else {
+                    previewDiv.textContent = `Please select a team to map to`;
+                }
+                checkFormValid();
+            });
+        }
+        previewDiv.textContent = `Please select a team to map to`;
+    } else if (type === 'custom') {
+        customDiv.style.display = 'block';
+        if (customInput) {
+            customInput.disabled = false;
+            customInput.addEventListener('input', function() {
+                if (this.value.trim()) {
+                    previewDiv.textContent = `"${team}" → ${this.value.trim()}`;
+                } else {
+                    previewDiv.textContent = `Please enter a custom name`;
+                }
+                checkFormValid();
+            });
+        }
+        previewDiv.textContent = `Please enter a custom name`;
+    }
+    
+    checkFormValid();
+}
+
+function checkFormValid() {
+    const unknownTeams = {{ unknown_teams|tojson }};
+    let allValid = true;
+    
+    for (const team of unknownTeams) {
+        const selectedType = document.querySelector(`input[name="type_${team}"]:checked`);
+        
+        if (!selectedType) {
+            allValid = false;
+            break;
+        }
+        
+        if (selectedType.value === 'map') {
+            const mapSelect = document.querySelector(`select[name="map_${team}"]`);
+            if (!mapSelect || !mapSelect.value) {
+                allValid = false;
+                break;
+            }
+        } else if (selectedType.value === 'custom') {
+            const customInput = document.querySelector(`input[name="custom_${team}"]`);
+            if (!customInput || !customInput.value.trim()) {
+                allValid = false;
+                break;
+            }
+        }
+    }
+    
+    document.getElementById('submitBtn').disabled = !allValid;
+}
+
+// Initialize form validation on page load
+document.addEventListener('DOMContentLoaded', function() {
+    checkFormValid();
+});
+</script>
+{% endblock %}
