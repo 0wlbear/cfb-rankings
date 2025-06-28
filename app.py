@@ -2863,7 +2863,7 @@ def debug_production():
         debug_info += "<p>Could not read scheduled_games.json</p>"
     
     return debug_info
-    
+
 
 
 @app.route('/compare')
@@ -4263,6 +4263,17 @@ def historical_rankings():
                          completed_by_date=completed_by_date,
                          sorted_dates=sorted_dates,
                          all_weeks=WEEKS)
+
+@app.route('/reload_data')
+@login_required
+def reload_data():
+    """Force reload all data in production"""
+    try:
+        load_data()  # This calls all your load functions
+        return f"Reloaded! Scheduled games: {len(scheduled_games)}, Games: {len(games_data)}"
+    except Exception as e:
+        return f"Error reloading: {e}"
+    
 
 @app.route('/reset_data', methods=['POST'])
 @login_required
