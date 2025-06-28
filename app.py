@@ -2826,6 +2826,45 @@ def find_matching_scheduled_game(home_team, away_team, week):
     
     return None
 
+@app.route('/debug_production')
+def debug_production():
+    """Debug what data exists in production"""
+    import os
+    
+    debug_info = f"""
+    <h1>Production Debug Info</h1>
+    <p><strong>Current directory:</strong> {os.getcwd()}</p>
+    <p><strong>DATA_DIR:</strong> {DATA_DIR}</p>
+    <p><strong>DATA_DIR exists:</strong> {os.path.exists(DATA_DIR)}</p>
+    
+    <h3>Data Files:</h3>
+    <p>scheduled_games.json exists: {os.path.exists(os.path.join(DATA_DIR, 'scheduled_games.json'))}</p>
+    <p>scheduled_games.json size: {os.path.getsize(os.path.join(DATA_DIR, 'scheduled_games.json')) if os.path.exists(os.path.join(DATA_DIR, 'scheduled_games.json')) else 'N/A'} bytes</p>
+    
+    <h3>Loaded Data:</h3>
+    <p>Scheduled games loaded: {len(scheduled_games)}</p>
+    <p>First few scheduled games: {scheduled_games[:3] if scheduled_games else 'None'}</p>
+    
+    <h3>Directory Contents:</h3>
+    """
+    
+    if os.path.exists(DATA_DIR):
+        files = os.listdir(DATA_DIR)
+        debug_info += f"<p>Files in DATA_DIR: {files}</p>"
+    else:
+        debug_info += "<p>DATA_DIR doesn't exist!</p>"
+    
+    # Check if files have content
+    try:
+        with open(os.path.join(DATA_DIR, 'scheduled_games.json'), 'r') as f:
+            content = f.read()
+            debug_info += f"<h3>scheduled_games.json content (first 500 chars):</h3><pre>{content[:500]}</pre>"
+    except:
+        debug_info += "<p>Could not read scheduled_games.json</p>"
+    
+    return debug_info
+    
+
 
 @app.route('/compare')
 def team_compare():
