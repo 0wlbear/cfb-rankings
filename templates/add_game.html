@@ -15,7 +15,7 @@
                 <h6><i class="fas fa-info-circle"></i> Recent Games Added:</h6>
                 <div class="small">
                     {% for game in recent_games[:3] %}
-                        <div>{{ game.home_team }} {{ game.home_score }} - {{ game.away_score }} {{ game.away_team }} (Week {{ game.week }}){% if game.get('is_neutral_site') %} - Neutral{% endif %}</div>
+                        <div>{{ game.home_team }} {{ game.home_score }} - {{ game.away_score }} {{ game.away_team }} (Week {{ game.week }}){% if game.get('is_neutral_site') %} - Neutral{% endif %}{% if game.get('overtime') %} - OT{% endif %}</div>
                     {% endfor %}
                     {% if recent_games|length > 3 %}
                         <div class="text-muted">... and {{ recent_games|length - 3 }} more</div>
@@ -34,12 +34,19 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-6 d-flex align-items-end">
-                    <div class="form-check">
+                <div class="col-md-6">
+                    <div class="form-check mb-2">
                         <input class="form-check-input" type="checkbox" id="neutral_site" name="neutral_site" onchange="updateNeutralSiteLabels()">
                         <label class="form-check-label" for="neutral_site">
                             <strong>Neutral Site Game</strong><br>
                             <small class="text-muted">Neither team gets home/road win credit</small>
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="overtime" name="overtime">
+                        <label class="form-check-label" for="overtime">
+                            <strong>Overtime?</strong><br>
+                            <small class="text-muted">Reduces penalty for losing team</small>
                         </label>
                     </div>
                 </div>
@@ -142,6 +149,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('home_score').value = '';
         document.getElementById('away_score').value = '';
         document.getElementById('neutral_site').checked = false;
+        document.getElementById('overtime').checked = false;  // NEW: Clear overtime checkbox
         
         // Restore week selection
         document.getElementById('week').value = currentWeek;

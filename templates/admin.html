@@ -44,11 +44,8 @@
                         <th class="sortable-header" onclick="sortTable(6, true)">PD<span class="sort-indicator"></span></th>
                         <th class="sortable-header" onclick="sortTable(7, true)">HW<span class="sort-indicator"></span></th>
                         <th class="sortable-header" onclick="sortTable(8, true)">RW<span class="sort-indicator"></span></th>
-                        <th class="sortable-header" onclick="sortTable(9, true)">P4W<span class="sort-indicator"></span></th>
-                        <th class="sortable-header" onclick="sortTable(10, true)">G5W<span class="sort-indicator"></span></th>
-                        <th class="sortable-header" onclick="sortTable(11, true)">Opp W<span class="sort-indicator"></span></th>
-                        <th class="sortable-header" onclick="sortTable(12, true)">Opp L<span class="sort-indicator"></span></th>
                         <th class="sortable-header" onclick="sortTable(13, true)">SoS<span class="sort-indicator"></span></th>
+                        <th class="sortable-header" onclick="sortTable(9, true)">SoR<span class="sort-indicator"></span></th>
                         <th class="sortable-header" onclick="sortTable(14, true)">Opp W/L Diff<span class="sort-indicator"></span></th>
                         <th class="sortable-header" onclick="sortTable(15, true)">Totals<span class="sort-indicator"></span></th>
                         <th class="sortable-header" onclick="sortTable(16, true)">Total W<span class="sort-indicator"></span></th>
@@ -82,11 +79,8 @@
                         <td>{{ team.point_differential }}</td>
                         <td>{{ team.home_wins }}</td>
                         <td>{{ team.road_wins }}</td>
-                        <td>{{ team.p4_wins }}</td>
-                        <td>{{ team.g5_wins }}</td>
-                        <td>{{ team.opp_w }}</td>
-                        <td>{{ team.opp_l }}</td>
                         <td>{{ team.strength_of_schedule }}</td>
+                        <td>{{ team.get('strength_of_record', 0.000) }}</td>
                         <td>{{ team.opp_wl_differential }}</td>
                         <td><strong>{{ team.totals }}</strong></td>
                         <td>{{ team.total_wins }}</td>

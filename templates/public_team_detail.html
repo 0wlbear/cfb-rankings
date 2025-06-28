@@ -149,7 +149,7 @@
                                 </td>
                                 <td>
                                     <span class="badge {% if game.result == 'W' %}bg-success{% else %}bg-danger{% endif %}">
-                                        {{ game.result }}
+                                        {{ game.result }}{% if game.get('overtime') %} (OT){% endif %}
                                     </span>
                                 </td>
                                 <td>{{ game.team_score }}-{{ game.opp_score }}</td>
@@ -166,6 +166,7 @@
                                         {{ game.opponent_quality }}/10
                                     </span>
                                 </td>
+                               
                                 <td>
                                     <small>
                                         {% if game.margin > 0 %}
@@ -174,6 +175,9 @@
                                             Lost by {{ -game.margin }}
                                         {% else %}
                                             Tie
+                                        {% endif %}
+                                        {% if game.get('overtime') %}
+                                            <span class="badge bg-info ms-1">OT</span>
                                         {% endif %}
                                         {% if game.is_rivalry %}
                                             <span class="badge bg-danger ms-1">🔥 Rivalry</span>

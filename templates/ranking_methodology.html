@@ -1,359 +1,373 @@
-{% extends "base.html" %}
-
-{% block title %}Ranking Methodology - College Football Rankings{% endblock %}
-
-{% block content %}
-<div class="row">
-    <div class="col-md-12">
-        <div class="text-center mb-4">
-            <h2 class="text-primary">🧪 Scientific Ranking Methodology</h2>
-            <p class="text-muted">How our advanced ranking system evaluates college football teams</p>
-        </div>
-
-        <!-- Overview -->
-        <div class="card mb-4">
-            <div class="card-header bg-primary text-white">
-                <h3 class="mb-0">System Goals</h3>
-            </div>
-            <div class="card-body">
-                <p>Our ranking system is designed to:</p>
-                <ul>
-                    <li><strong>Predict head-to-head matchups:</strong> Who would win if two teams played today?</li>
-                    <li><strong>Reward season-long excellence:</strong> Consistent performance over the full season matters</li>
-                    <li><strong>Use pure mathematics:</strong> No subjective opinions, just objective data analysis</li>
-                </ul>
-                <p class="mb-0">Unlike traditional polls that rely on human voters or simple win-loss records, our system analyzes the <em>quality</em> and <em>context</em> of every game played.</p>
-            </div>
-        </div>
-
-        <!-- Main Components -->
-        <div class="card mb-4">
-            <div class="card-header bg-success text-white">
-                <h3 class="mb-0">🏆 Victory Value System</h3>
-            </div>
-            <div class="card-body">
-                <p>Not all wins are created equal. Each victory is scored based on:</p>
-                
-                <div class="row">
-                    <div class="col-md-6">
-                        <h5>Opponent Quality (1-10 scale)</h5>
-                        <ul>
-                            <li>Dynamic rating based on opponent's wins, losses, and who <em>they</em> beat</li>
-                            <li>Beating an 8-1 ranked team worth much more than beating a 2-7 team</li>
-                            <li>Updates throughout season as opponent records develop</li>
-                        </ul>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ranking Methodology - College Football Rankings</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .methodology-section {
+            border-left: 4px solid #007bff;
+            padding-left: 20px;
+            margin: 20px 0;
+        }
+        .formula-box {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+        }
+        .component-positive { color: #28a745; font-weight: bold; }
+        .component-negative { color: #dc3545; font-weight: bold; }
+        .component-neutral { color: #007bff; font-weight: bold; }
+        .example-box {
+            background: #e3f2fd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .tier-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: bold;
+            margin: 2px;
+        }
+        .tier-p4 { background: #28a745; color: white; }
+        .tier-g5 { background: #ffc107; color: black; }
+        .tier-fcs { background: #6c757d; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h1 class="mb-0">🏈 Scientific Ranking Methodology</h1>
+                        <p class="mb-0 text-muted">How our advanced college football ranking system works</p>
                     </div>
-                    <div class="col-md-6">
-                        <h5>Game Context</h5>
-                        <ul>
-                            <li><strong>Location:</strong> Road wins worth 30% more, neutral sites 15% more</li>
-                            <li><strong>Margin:</strong> Winning by 14+ shows dominance, but diminishing returns after 21</li>
-                            <li><strong>Conference:</strong> G5 teams beating P4 teams get major bonus</li>
-                        </ul>
-                    </div>
-                </div>
-                
-                <div class="alert alert-success mt-3">
-                    <strong>Example:</strong> Beating #5 Georgia by 10 points on the road might be worth 12+ points, while beating a 3-5 team by 3 at home might only be worth 4 points.
-                </div>
-            </div>
-        </div>
+                    <div class="card-body">
+                        <!-- Overview -->
+                        <div class="methodology-section">
+                            <h2>📊 System Overview</h2>
+                            <p>Our ranking system uses a <strong>scientific approach</strong> that goes far beyond simple win-loss records. Every victory and loss is analyzed based on opponent quality, game context, recent form, and consistency to produce the most accurate rankings possible.</p>
+                            
+                            <div class="formula-box">
+                                <strong>Final Ranking Score =</strong><br>
+                                <span class="component-positive">+ Victory Value × Conference Multiplier</span><br>
+                                <span class="component-negative">- Loss Penalties</span><br>
+                                <span class="component-neutral">+ Recent Form Adjustment</span><br>
+                                <span class="component-neutral">+ Consistency Factor</span><br>
+                                <span class="component-neutral">+ Games Played Bonus</span>
+                            </div>
+                        </div>
 
-        <!-- Loss Assessment -->
-        <div class="card mb-4">
-            <div class="card-header bg-warning text-dark">
-                <h3 class="mb-0">💔 Loss Quality Assessment</h3>
-            </div>
-            <div class="card-body">
-                <p>How you lose matters as much as whether you lose:</p>
-                
-                <div class="row">
-                    <div class="col-md-6">
-                        <h5>Low-Penalty Losses</h5>
-                        <ul>
-                            <li>Close losses (1-3 points) to top-15 teams</li>
-                            <li>Road losses to quality opponents</li>
-                            <li>Overtime/last-second defeats</li>
-                        </ul>
-                    </div>
-                    <div class="col-md-6">
-                        <h5>High-Penalty Losses</h5>
-                        <ul>
-                            <li>Home losses by large margins</li>
-                            <li>Losses to significantly weaker opponents</li>
-                            <li>Blowout defeats (21+ points)</li>
-                        </ul>
-                    </div>
-                </div>
-                
-                <div class="alert alert-warning mt-3">
-                    <strong>Example:</strong> Losing by 3 to #1 Alabama on the road barely hurts your ranking, while losing by 20 to an unranked team at home is a major penalty.
-                </div>
-            </div>
-        </div>
+                        <!-- Conference Tier System -->
+                        <div class="methodology-section">
+                            <h2>🏆 Conference Tier System & Multipliers</h2>
+                            <p>Teams are classified into tiers that affect their victory value calculations:</p>
+                            
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="card h-100">
+                                        <div class="card-header bg-success text-white">
+                                            <h5 class="mb-0">Power 4 (P4) Teams</h5>
+                                            <span class="tier-badge tier-p4">1.0× Multiplier</span>
+                                        </div>
+                                        <div class="card-body">
+                                            <p><strong>Full Credit (100%)</strong></p>
+                                            <ul class="small">
+                                                <li>ACC</li>
+                                                <li>Big Ten</li>
+                                                <li>Big XII</li>
+                                                <li>SEC</li>
+                                                <li>Notre Dame (Independent)</li>
+                                            </ul>
+                                            <p class="text-success"><strong>Why:</strong> P4 conferences represent the highest level of competition with the best resources, recruiting, and schedule strength.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card h-100">
+                                        <div class="card-header bg-warning text-dark">
+                                            <h5 class="mb-0">Group of 5 (G5) Teams</h5>
+                                            <span class="tier-badge tier-g5">0.85× Multiplier</span>
+                                        </div>
+                                        <div class="card-body">
+                                            <p><strong>Reduced Credit (85%)</strong></p>
+                                            <ul class="small">
+                                                <li>American Athletic</li>
+                                                <li>Conference USA</li>
+                                                <li>MAC</li>
+                                                <li>Mountain West</li>
+                                                <li>Sun Belt</li>
+                                                <li>UConn (Independent)</li>
+                                            </ul>
+                                            <p class="text-warning"><strong>Why:</strong> G5 teams typically face weaker schedules and have fewer resources, so victories are worth 85% of P4 equivalent.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card h-100">
+                                        <div class="card-header bg-secondary text-white">
+                                            <h5 class="mb-0">FCS & Others</h5>
+                                            <span class="tier-badge tier-fcs">Special Rules</span>
+                                        </div>
+                                        <div class="card-body">
+                                            <p><strong>Minimal Credit</strong></p>
+                                            <ul class="small">
+                                                <li>FCS Teams</li>
+                                                <li>Non-FBS Opponents</li>
+                                            </ul>
+                                            <p class="text-muted"><strong>Why:</strong> FCS wins receive minimal credit regardless of margin, with a hard cap at 1.0 total victory points.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
-        <!-- FCS Game Policy -->
-        <div class="card mb-4">
-            <div class="card-header bg-secondary text-white">
-                <h3 class="mb-0">🎓 FCS Game Policy</h3>
-            </div>
-            <div class="card-body">
-                <p>Games against FCS (Football Championship Subdivision) opponents are treated as "gimme" wins with severely limited ranking credit and <strong>do not count toward bowl eligibility</strong>:</p>
-                
-                <div class="row">
-                    <div class="col-md-6">
-                        <h5>FCS Game Penalties</h5>
-                        <ul>
-                            <li><strong>Bowl Eligibility:</strong> FCS wins don't count toward 6-win requirement</li>
-                            <li><strong>Opponent Quality:</strong> Fixed at 0.5/10 (extremely low)</li>
-                            <li><strong>No Location Bonus:</strong> Road wins vs FCS get no extra credit</li>
-                            <li><strong>Minimal Margin Bonus:</strong> Maximum 0.2 points regardless of score</li>
-                            <li><strong>No Conference/Rivalry Bonuses:</strong> FCS games can't be rivalries</li>
-                            <li><strong>Hard Cap:</strong> Maximum 1.0 total victory points</li>
-                        </ul>
-                        
-                        <h5 class="mt-3">Bowl Eligibility Examples</h5>
-                        <table class="table table-sm">
-                            <tr>
-                                <td>Team A: 6-6 (all FBS wins)</td>
-                                <td class="text-success"><strong>Bowl Eligible ✅</strong></td>
-                            </tr>
-                            <tr>
-                                <td>Team B: 6-6 (5 FBS + 1 FCS)</td>
-                                <td class="text-danger"><strong>Not Eligible ❌</strong></td>
-                            </tr>
-                            <tr>
-                                <td>Team C: 7-5 (6 FBS + 1 FCS)</td>
-                                <td class="text-success"><strong>Bowl Eligible ✅</strong></td>
-                            </tr>
-                        </table>
-                    </div>
-                    <div class="col-md-6">
-                        <h5>Victory Value Comparison</h5>
-                        <table class="table table-sm">
-                            <tr>
-                                <td>Beat Top-10 Team (Road)</td>
-                                <td class="text-success"><strong>10+ points</strong></td>
-                            </tr>
-                            <tr>
-                                <td>Beat Average P4 Team (Home)</td>
-                                <td class="text-primary"><strong>5-7 points</strong></td>
-                            </tr>
-                            <tr>
-                                <td>Beat Good G5 Team (Road)</td>
-                                <td class="text-info"><strong>4-6 points</strong></td>
-                            </tr>
-                            <tr>
-                                <td>Beat FCS Team by 50</td>
-                                <td class="text-muted"><strong>0.7 points</strong></td>
-                            </tr>
-                        </table>
-                        
-                        <h5 class="mt-3">FCS Calculation Example</h5>
-                        <div class="small">
-                            <p><strong>Beat FCS 42-7 at home:</strong></p>
-                            <ul class="small">
-                                <li>Base Value: 0.5 (quality) × 1.0 (no location bonus) = 0.5</li>
-                                <li>Margin Bonus: 0.2 (capped regardless of 35-point win)</li>
-                                <li>Conference Bonus: 0.0 (none for FCS)</li>
-                                <li>Rivalry Bonus: 0.0 (FCS can't be rivals)</li>
-                                <li><strong>Total: 0.7 points</strong> (vs 7+ for real teams)</li>
+                            <div class="example-box mt-4">
+                                <h6><strong>Conference Multiplier Examples:</strong></h6>
+                                <p><strong>Alabama (P4) beats quality opponent:</strong> 8.5 base victory value × 1.0 = <span class="component-positive">8.5 final points</span></p>
+                                <p><strong>Boise State (G5) beats same opponent:</strong> 8.5 base victory value × 0.85 = <span class="component-neutral">7.2 final points</span></p>
+                                <p><strong>Result:</strong> Alabama gets 18% more credit (1.3 extra points) for the same quality win, reflecting the different competitive levels.</p>
+                            </div>
+                        </div>
+
+                        <!-- Victory Value System -->
+                        <div class="methodology-section">
+                            <h2>🎯 Victory Value Calculation</h2>
+                            <p>Each victory is worth different amounts based on multiple factors:</p>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5>1. Opponent Quality (1-10 scale)</h5>
+                                    <ul>
+                                        <li><strong>Elite teams (8-10):</strong> High value</li>
+                                        <li><strong>Good teams (6-8):</strong> Solid value</li>
+                                        <li><strong>Average teams (4-6):</strong> Moderate value</li>
+                                        <li><strong>Weak teams (1-4):</strong> Low value</li>
+                                        <li><strong>FCS teams:</strong> Fixed 0.5 (minimal)</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5>2. Location Multiplier</h5>
+                                    <ul>
+                                        <li><strong>Home wins:</strong> 1.0× (baseline)</li>
+                                        <li><strong>Neutral site wins:</strong> 1.15× (+15%)</li>
+                                        <li><strong>Road wins:</strong> 1.3× (+30%)</li>
+                                        <li><strong>Exception:</strong> No location bonus vs FCS</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="row mt-3">
+                                <div class="col-md-6">
+                                    <h5>3. Margin of Victory Bonus</h5>
+                                    <ul>
+                                        <li><strong>0-7 points:</strong> Linear scaling</li>
+                                        <li><strong>7-14 points:</strong> Diminishing returns</li>
+                                        <li><strong>14-21 points:</strong> Slower growth</li>
+                                        <li><strong>21+ points:</strong> Minimal extra benefit</li>
+                                        <li><strong>FCS games:</strong> Max 0.2 bonus regardless of score</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5>4. Rivalry Bonus</h5>
+                                    <ul>
+                                        <li><strong>Tier 1 rivalries:</strong> +1.0 points<br>
+                                            <small>(Alabama-Auburn, Ohio State-Michigan, etc.)</small></li>
+                                        <li><strong>Standard rivalries:</strong> +0.6 points</li>
+                                        <li><strong>Conference context:</strong> Extra points for P4 vs P4</li>
+                                        <li><strong>G5 beating P4:</strong> Major bonus</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="example-box">
+                                <h6><strong>Victory Value Example:</strong></h6>
+                                <p><strong>Georgia (P4) beats Alabama (quality 9.2) on the road by 14 points in rivalry game:</strong></p>
+                                <p>Base Value: 9.2 (opponent) × 1.3 (road) = 11.96<br>
+                                Margin Bonus: +1.26 (14-point win)<br>
+                                Rivalry Bonus: +1.0 (Tier 1 rivalry)<br>
+                                Conference Bonus: +0.3 (P4 vs P4)<br>
+                                <strong>Total Before Multiplier:</strong> 14.52<br>
+                                <strong>Final Value:</strong> 14.52 × 1.0 (P4 multiplier) = <span class="component-positive">14.52 points</span></p>
+                            </div>
+                        </div>
+
+                        <!-- Loss Penalty System -->
+                        <div class="methodology-section">
+                            <h2>⚖️ Loss Penalty System</h2>
+                            <p>Not all losses are equal. Our system differentiates between quality losses and bad losses:</p>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5>Base Penalty Factors</h5>
+                                    <ul>
+                                        <li><strong>Every loss starts:</strong> -3.0 points</li>
+                                        <li><strong>Opponent quality adjustment:</strong></li>
+                                        <ul>
+                                            <li>Elite opponent (7+): -1.5 reduction</li>
+                                            <li>Good opponent (5.5+): -0.5 reduction</li>
+                                            <li>Bad opponent (<4): +2.0 penalty increase</li>
+                                        </ul>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5>Additional Factors</h5>
+                                    <ul>
+                                        <li><strong>Margin penalty:</strong> Blowout losses hurt more</li>
+                                        <li><strong>Location adjustment:</strong> Home losses hurt more</li>
+                                        <li><strong>Overtime reduction:</strong> 30% less penalty for OT losses</li>
+                                        <li><strong>Minimum penalty:</strong> Never less than -0.5 points</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Form & Consistency -->
+                        <div class="methodology-section">
+                            <h2>📈 Recent Form & Consistency</h2>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5>Temporal Adjustment (-2 to +2)</h5>
+                                    <p>Compares recent 4-game performance to season average:</p>
+                                    <ul>
+                                        <li><strong>Improving teams:</strong> Positive adjustment</li>
+                                        <li><strong>Declining teams:</strong> Negative adjustment</li>
+                                        <li><strong>Stable teams:</strong> Minimal change</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5>Consistency Factor (-0.6 to +0.5)</h5>
+                                    <p>Rewards reliable performance:</p>
+                                    <ul>
+                                        <li><strong>Very consistent:</strong> +0.5 bonus</li>
+                                        <li><strong>Average consistency:</strong> 0.0</li>
+                                        <li><strong>Very inconsistent:</strong> -0.6 penalty</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Why G5 Multiplier -->
+                        <div class="methodology-section">
+                            <h2>🤔 Why the 0.85× G5 Multiplier?</h2>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5>Competitive Reality</h5>
+                                    <ul>
+                                        <li><strong>Resource disparity:</strong> P4 schools have significantly larger budgets</li>
+                                        <li><strong>Recruiting advantages:</strong> P4 teams consistently land top recruits</li>
+                                        <li><strong>Schedule strength:</strong> P4 teams face tougher regular competition</li>
+                                        <li><strong>Historical performance:</strong> Head-to-head records favor P4</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5>Fair but Realistic</h5>
+                                    <ul>
+                                        <li><strong>Not punitive:</strong> 85% still rewards G5 excellence</li>
+                                        <li><strong>Elite G5 teams:</strong> Can still rank very highly</li>
+                                        <li><strong>Accounts for level:</strong> Beating similar-level opponents is worth less</li>
+                                        <li><strong>Postseason reality:</strong> Reflects actual playoff/bowl outcomes</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-info">
+                                <h6><strong>Real-World Impact:</strong></h6>
+                                <p>An undefeated G5 team with strong victories can still rank ahead of 1-2 loss P4 teams. The 0.85× multiplier ensures G5 teams are evaluated fairly within their competitive context while acknowledging the different levels of college football.</p>
+                            </div>
+                        </div>
+
+                        <!-- Special Cases -->
+                        <div class="methodology-section">
+                            <h2>🚨 Special Cases & Rules</h2>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5>FCS Games</h5>
+                                    <ul>
+                                        <li><strong>Opponent quality:</strong> Fixed 0.5 (never changes)</li>
+                                        <li><strong>No location bonus:</strong> Road FCS wins get no extra credit</li>
+                                        <li><strong>Minimal margin bonus:</strong> Max 0.2 regardless of score</li>
+                                        <li><strong>Hard cap:</strong> FCS wins never worth more than 1.0 point</li>
+                                        <li><strong>Bowl eligibility:</strong> FCS wins don't count toward 6-win requirement</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5>Conference Adjustments</h5>
+                                    <ul>
+                                        <li><strong>P4 vs P4:</strong> +0.3 bonus for quality matchup</li>
+                                        <li><strong>G5 vs P4:</strong> +0.5 major bonus for G5 team</li>
+                                        <li><strong>Neutral sites:</strong> No conference bonus adjustments</li>
+                                        <li><strong>Notre Dame:</strong> Treated as P4 (1.0× multiplier)</li>
+                                        <li><strong>UConn:</strong> Treated as G5 (0.85× multiplier)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Prediction System -->
+                        <div class="methodology-section">
+                            <h2>🔮 Team Comparison & Predictions</h2>
+                            <p>Our prediction system uses the same scientific principles to forecast game outcomes:</p>
+                            
+                            <ul>
+                                <li><strong>Base prediction:</strong> Scientific ranking score differential</li>
+                                <li><strong>Common opponents:</strong> Head-to-head performance analysis</li>
+                                <li><strong>Recent momentum:</strong> Form and trending adjustments</li>
+                                <li><strong>Schedule strength:</strong> Opponent quality comparison</li>
+                                <li><strong>Home field advantage:</strong> Team-specific venue effects</li>
+                                <li><strong>Conference context:</strong> Nuanced P4/G5 adjustments</li>
                             </ul>
+                        </div>
+
+                        <!-- Summary -->
+                        <div class="methodology-section">
+                            <h2>✅ System Summary</h2>
+                            <p>This methodology creates the most accurate and comprehensive college football rankings by:</p>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <ul>
+                                        <li>✅ <strong>Evaluating every game contextually</strong></li>
+                                        <li>✅ <strong>Accounting for opponent quality</strong></li>
+                                        <li>✅ <strong>Recognizing competitive level differences</strong></li>
+                                        <li>✅ <strong>Rewarding consistency and recent form</strong></li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <ul>
+                                        <li>✅ <strong>Penalizing bad losses appropriately</strong></li>
+                                        <li>✅ <strong>Providing fair but realistic G5 evaluation</strong></li>
+                                        <li>✅ <strong>Creating accurate head-to-head predictions</strong></li>
+                                        <li>✅ <strong>Adapting to changing team performance</strong></li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-success mt-3">
+                                <strong>Result:</strong> A ranking system that values both achievement and context, providing the most accurate representation of team strength while acknowledging the realities of college football's competitive landscape.
+                            </div>
                         </div>
                     </div>
                 </div>
-                
-                <div class="alert alert-warning mt-3">
-                    <strong>Why This Policy:</strong> FCS teams compete at a lower division level with smaller scholarships and budgets. While these games may help win totals, they don't count toward bowl eligibility and provide minimal ranking benefit. Teams must earn 6 wins against FBS-level competition to qualify for bowl games and demonstrate true strength.
-                </div>
-            </div>
-        </div>
 
-        <!-- Rivalry Bonus System -->
-        <div class="card mb-4">
-            <div class="card-header bg-danger text-white">
-                <h3 class="mb-0">🔥 Rivalry Bonus System</h3>
-            </div>
-            <div class="card-body">
-                <p>College football rivalries carry special significance that goes beyond normal games. Our system recognizes this by awarding bonus points for beating traditional rivals.</p>
-                
-                <div class="row">
-                    <div class="col-md-6">
-                        <h5>Tier 1 Rivalries (+1.0 bonus)</h5>
-                        <ul>
-                            <li><strong>Alabama vs Auburn</strong> (Iron Bowl)</li>
-                            <li><strong>Ohio State vs Michigan</strong> (The Game)</li>
-                            <li><strong>Texas vs Oklahoma</strong> (Red River Showdown)</li>
-                            <li><strong>Florida vs Georgia</strong> (World's Largest Outdoor Cocktail Party)</li>
-                            <li><strong>Army vs Navy</strong></li>
-                            <li><strong>USC vs Notre Dame</strong></li>
-                        </ul>
-                    </div>
-                    <div class="col-md-6">
-                        <h5>Regular Rivalries (+0.6 bonus)</h5>
-                        <ul>
-                            <li>Conference rivalries (e.g., NC State vs North Carolina)</li>
-                            <li>Regional matchups (e.g., Virginia vs Virginia Tech)</li>
-                            <li>Historic series (e.g., Stanford vs California)</li>
-                            <li>Trophy games across all conferences</li>
-                        </ul>
-                    </div>
-                </div>
-                
-                <div class="alert alert-danger mt-3">
-                    <strong>Example:</strong> Auburn beating Alabama by 10 on the road gets 8.0 (opponent quality) × 1.3 (road bonus) + 1.2 (margin bonus) + 1.0 (rivalry bonus) = <strong>12.6 total victory points</strong> vs only 11.6 without the rivalry factor.
-                </div>
-                
-                <p class="mb-0"><small class="text-muted">Rivalries are predefined based on traditional matchups, trophy games, and historic significance. The system tracks over 100+ rivalry pairs across all conferences.</small></p>
-            </div>
-        </div>
-
-        <!-- Advanced Factors -->
-        <div class="card mb-4">
-            <div class="card-header bg-info text-white">
-                <h3 class="mb-0">📊 Advanced Factors</h3>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-4">
-                        <h5>Recent Form</h5>
-                        <p>Teams that are "hot" or "cold" get appropriate adjustments. A team winning their last 4 games by larger margins than their season average gets a boost.</p>
-                    </div>
-                    <div class="col-md-4">
-                        <h5>Consistency</h5>
-                        <p>Reliable teams get a small bonus for predictability in head-to-head matchups. Teams with wildly inconsistent performance get a small penalty.</p>
-                    </div>
-                    <div class="col-md-4">
-                        <h5>Games Played</h5>
-                        <p>Teams with more games get a small bonus for having a larger body of work to evaluate (up to 13 games).</p>
+                <!-- Back Button -->
+                <div class="row mt-3">
+                    <div class="col-12 text-center">
+                        <a href="/" class="btn btn-primary">Back to Rankings</a>
+                        <a href="/compare" class="btn btn-secondary">Compare Teams</a>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <!-- How It's Different -->
-        <div class="card mb-4">
-            <div class="card-header bg-secondary text-white">
-                <h3 class="mb-0">🔄 How This Differs from Other Systems</h3>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h5>Traditional Rankings</h5>
-                        <ul>
-                            <li>All P4 wins treated equally</li>
-                            <li>All losses hurt the same</li>
-                            <li>Location doesn't matter much</li>
-                            <li>Recent form ignored</li>
-                            <li>Rivalry games not differentiated</li>
-                            <li>Human bias influences polls</li>
-                        </ul>
-                    </div>
-                    <div class="col-md-6">
-                        <h5>Our Scientific System</h5>
-                        <ul>
-                            <li>Each opponent gets individual quality score</li>
-                            <li>Loss context heavily considered</li>
-                            <li>Road/neutral site games properly weighted</li>
-                            <li>Teams getting hot/cold get adjustments</li>
-                            <li>Rivalry wins receive meaningful bonuses</li>
-                            <li>100% mathematical - no human bias</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Sample Calculation -->
-        <div class="card mb-4">
-            <div class="card-header bg-dark text-white">
-                <h3 class="mb-0">🧮 Sample Team Breakdown</h3>
-            </div>
-            <div class="card-body">
-                <h5>Hypothetical Team: 8-2 Record</h5>
-                <div class="table-responsive">
-                    <table class="table table-sm">
-                        <thead>
-                            <tr>
-                                <th>Component</th>
-                                <th>Value</th>
-                                <th>Explanation</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="table-success">
-                                <td>Victory Value</td>
-                                <td>+44.1</td>
-                                <td>8 wins including quality road victories + 1 rivalry win</td>
-                            </tr>
-                            <tr class="table-danger">
-                                <td>Loss Penalty</td>
-                                <td>-6.8</td>
-                                <td>One close loss to top team, one bad home loss</td>
-                            </tr>
-                            <tr class="table-info">
-                                <td>Recent Form</td>
-                                <td>+1.2</td>
-                                <td>Won last 3 games by increasing margins</td>
-                            </tr>
-                            <tr class="table-warning">
-                                <td>Consistency</td>
-                                <td>+0.3</td>
-                                <td>Reliable performance vs similar opponents</td>
-                            </tr>
-                            <tr class="table-light">
-                                <td>Games Played</td>
-                                <td>+1.5</td>
-                                <td>10 games played so far</td>
-                            </tr>
-                            <tr class="table-primary">
-                                <td><strong>Final Score</strong></td>
-                                <td><strong>40.3</strong></td>
-                                <td>Total ranking score (rivalry win added +1.6 total)</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- FAQ -->
-        <div class="card mb-4">
-            <div class="card-header bg-light">
-                <h3 class="mb-0">❓ Frequently Asked Questions</h3>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6><strong>Q: Why isn't the undefeated team #1?</strong></h6>
-                        <p><small>A: An undefeated team with weak opponents might rank below a 1-loss team with several top-10 wins. Quality matters more than quantity.</small></p>
-                        
-                        <h6><strong>Q: How often do rankings update?</strong></h6>
-                        <p><small>A: Rankings update immediately after each game is entered, including retroactive adjustments as opponent strength changes.</small></p>
-                        
-                        <h6><strong>Q: Which games count as rivalries?</strong></h6>
-                        <p><small>A: Traditional rivalries like Alabama-Auburn, Ohio State-Michigan, plus conference rivals and trophy games. Over 100+ rivalry pairs are tracked across all levels.</small></p>
-                    </div>
-                    <div class="col-md-6">
-                        <h6><strong>Q: Does strength of schedule matter?</strong></h6>
-                        <p><small>A: Yes, but it's built into the opponent quality scores rather than calculated separately. Playing tough opponents naturally increases your victory values.</small></p>
-                        
-                        <h6><strong>Q: Can I see the detailed breakdown?</strong></h6>
-                        <p><small>A: Click on any team name in the rankings to see their detailed game-by-game analysis and component scores.</small></p>
-                        
-                        <h6><strong>Q: How much do rivalry bonuses matter?</strong></h6>
-                        <p><small>A: Rivalry wins provide meaningful but balanced bonuses (0.6-1.0 points). They won't dramatically change rankings but properly reward these important victories.</small></p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Back Link -->
-        <div class="text-center">
-            <a href="{{ url_for('public_rankings') }}" class="btn btn-primary">
-                <i class="fas fa-arrow-left"></i> Back to Rankings
-            </a>
         </div>
     </div>
-</div>
-{% endblock %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

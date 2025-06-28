@@ -33,83 +33,198 @@
         {% endif %}
         
         <div class="card">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h4 class="mb-0">
                     Week {{ selected_week }} Results
-                    {% if week_games %}
-                        <span class="badge bg-secondary ms-2">{{ week_games|length }} game{{ 's' if week_games|length != 1 else '' }}</span>
+                    {% if week_games or scheduled_games %}
+                        {% set total_scheduled = scheduled_games|length %}
+                        {% set completed_games = week_games|length %}
+                        <span class="badge bg-secondary ms-2">
+                            {{ completed_games }} of {{ total_scheduled + completed_games }} games
+                        </span>
                     {% endif %}
                 </h4>
+                {% if is_admin %}
+                <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#scheduleModal">
+                    📅 Import Schedule
+                </button>
+                {% endif %}
             </div>
             <div class="card-body">
-                {% if week_games %}
-                    <div class="row">
-                        {% for game in week_games %}
-                            <div class="col-md-6 col-lg-4 mb-3">
-                                <div class="card h-100">
-                                    <div class="card-body">
-                                        <div class="text-center mb-2">
-                                            {% if game.get('is_neutral_site') %}
-                                                <small class="badge bg-info text-dark mb-2">Neutral Site</small>
+                {% if scheduled_by_date or completed_by_date %}
+                    {% for date in sorted_dates %}
+                        {% set scheduled_for_date = scheduled_by_date.get(date, []) %}
+                        {% set completed_for_date = completed_by_date.get(date, []) %}
+                        
+                        {% if scheduled_for_date or completed_for_date %}
+                            <!-- Date Header -->
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <div class="d-flex align-items-center">
+                                        <hr class="flex-grow-1">
+                                        <h4 class="mx-3 mb-0 text-primary">
+                                            {% if date == 'No Date' %}
+                                                📅 Date TBD
+                                            {% else %}
+                                                📅 {{ date | format_date_header }}
                                             {% endif %}
-                                        </div>
-                                        
-                                        <div class="text-center">
-                                            <!-- Teams and Scores -->
-                                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                                <div class="text-{{ 'success' if game.home_score > game.away_score else 'muted' }}">
-                                                    <strong>{{ game.home_team }}</strong>
-                                                    {% if not game.get('is_neutral_site') %}
-                                                        <small class="text-muted">(H)</small>
-                                                    {% endif %}
-                                                </div>
-                                                <div class="mx-2">
-                                                    <span class="badge bg-{{ 'success' if game.home_score > game.away_score else 'secondary' }} fs-6">
-                                                        {{ game.home_score }}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            
-                                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                                <div class="text-{{ 'success' if game.away_score > game.home_score else 'muted' }}">
-                                                    <strong>{{ game.away_team }}</strong>
-                                                    {% if not game.get('is_neutral_site') %}
-                                                        <small class="text-muted">(A)</small>
-                                                    {% endif %}
-                                                </div>
-                                                <div class="mx-2">
-                                                    <span class="badge bg-{{ 'success' if game.away_score > game.home_score else 'secondary' }} fs-6">
-                                                        {{ game.away_score }}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- Game Types -->
-                                            <div class="small text-muted">
-                                                <div>{{ game.home_team }}: {{ game.home_game_type }} Game</div>
-                                                <div>{{ game.away_team }}: {{ game.away_game_type }} Game</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="card-footer text-center">
-                                        <small class="text-muted">
-                                            Added: {{ game.date_added.split(' ')[0] if ' ' in game.date_added else game.date_added }}
-                                        </small>
+                                        </h4>
+                                        <hr class="flex-grow-1">
                                     </div>
                                 </div>
                             </div>
-                        {% endfor %}
-                    </div>
+                            
+                            <div class="row">
+                                <!-- Scheduled Games for this date -->
+                                {% for game in scheduled_for_date %}
+                                    <div class="col-md-6 col-lg-4 mb-3">
+                                        <div class="card h-100 border-secondary">
+                                            <div class="card-body">
+                                                <div class="text-center mb-2">
+                                                    {% if game.get('neutral') %}
+                                                        <small class="badge bg-info text-dark mb-1">Neutral Site</small><br>
+                                                    {% endif %}
+                                                    <small class="badge bg-secondary mb-2">Scheduled</small>
+                                                    
+                                                    <!-- Time/TV Info -->
+                                                    {% if game.get('game_time') or game.get('tv_network') %}
+                                                        <div class="small text-primary mt-1">
+                                                            {% if game.get('game_time') %}
+                                                                🕐 {{ game.game_time }}
+                                                            {% endif %}
+                                                            {% if game.get('tv_network') %}
+                                                                {% if game.get('game_time') %}<br>{% endif %}
+                                                                📺 {{ game.tv_network }}
+                                                            {% endif %}
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                                
+                                                <div class="text-center">
+                                                    <!-- Teams (no scores yet) -->
+                                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                                        <div class="text-muted d-flex align-items-center">
+                                                            {% set home_logo_url = get_team_logo_url(game.home_team) %}
+                                                            {% if home_logo_url %}
+                                                                <img src="{{ home_logo_url }}" alt="{{ game.home_team }}" style="width: 20px; height: 20px; margin-right: 5px;">
+                                                            {% endif %}
+                                                            <strong>{{ game.home_team }}</strong>
+                                                            {% if not game.get('neutral') %}
+                                                                <small class="text-muted ms-1">(H)</small>
+                                                            {% endif %}
+                                                        </div>
+                                                        <div class="mx-2">
+                                                            <span class="badge bg-light text-dark">vs</span>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                                        <div class="text-muted d-flex align-items-center">
+                                                            {% set away_logo_url = get_team_logo_url(game.away_team) %}
+                                                            {% if away_logo_url %}
+                                                                <img src="{{ away_logo_url }}" alt="{{ game.away_team }}" style="width: 20px; height: 20px; margin-right: 5px;">
+                                                            {% endif %}
+                                                            <strong>{{ game.away_team }}</strong>
+                                                            {% if not game.get('neutral') %}
+                                                                <small class="text-muted ms-1">(A)</small>
+                                                            {% endif %}
+                                                        </div>
+                                                        <div class="mx-2">
+                                                            <span class="badge bg-light text-dark">
+                                                                {% if game.get('game_time') %}
+                                                                    {{ game.game_time }}
+                                                                {% else %}
+                                                                    TBD
+                                                                {% endif %}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="card-footer text-center">
+                                                <small class="text-muted">
+                                                    {% if game.get('tv_network') %}{{ game.tv_network }}{% else %}Awaiting result{% endif %}
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+
+                                <!-- Completed Games for this date -->
+                                {% for game in completed_for_date %}
+                                    <div class="col-md-6 col-lg-4 mb-3">
+                                        <div class="card h-100 border-success">
+                                            <div class="card-body">
+                                                <div class="text-center mb-2">
+                                                    {% if game.get('is_neutral_site') %}
+                                                        <small class="badge bg-info text-dark mb-2">Neutral Site</small><br>
+                                                    {% endif %}
+                                                    {% if game.get('overtime') %}
+                                                        <small class="badge bg-warning text-dark mb-2">OT</small><br>
+                                                    {% endif %}
+                                                    <small class="badge bg-success mb-2">Final</small>
+                                                </div>
+                                                
+                                                <div class="text-center">
+                                                    <!-- Teams and Scores -->
+                                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                                        <div class="text-{{ 'success' if game.home_score > game.away_score else 'muted' }} d-flex align-items-center">
+                                                            {% set home_logo_url = get_team_logo_url(game.home_team) %}
+                                                            {% if home_logo_url %}
+                                                                <img src="{{ home_logo_url }}" alt="{{ game.home_team }}" style="width: 20px; height: 20px; margin-right: 5px;">
+                                                            {% endif %}
+                                                            <strong>{{ game.home_team }}</strong>
+                                                            {% if not game.get('is_neutral_site') %}
+                                                                <small class="text-muted ms-1">(H)</small>
+                                                            {% endif %}
+                                                        </div>
+                                                        <div class="mx-2">
+                                                            <span class="badge bg-{{ 'success' if game.home_score > game.away_score else 'secondary' }} fs-6">
+                                                                {{ game.home_score }}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                                        <div class="text-{{ 'success' if game.away_score > game.home_score else 'muted' }} d-flex align-items-center">
+                                                            {% set away_logo_url = get_team_logo_url(game.away_team) %}
+                                                            {% if away_logo_url %}
+                                                                <img src="{{ away_logo_url }}" alt="{{ game.away_team }}" style="width: 20px; height: 20px; margin-right: 5px;">
+                                                            {% endif %}
+                                                            <strong>{{ game.away_team }}</strong>
+                                                            {% if not game.get('is_neutral_site') %}
+                                                                <small class="text-muted ms-1">(A)</small>
+                                                            {% endif %}
+                                                        </div>
+                                                        <div class="mx-2">
+                                                            <span class="badge bg-{{ 'success' if game.away_score > game.home_score else 'secondary' }} fs-6">
+                                                                {{ game.away_score }}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="card-footer text-center">
+                                                <small class="text-muted">
+                                                    Added: {{ game.date_added.split(' ')[0] if ' ' in game.date_added else game.date_added }}
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
                 {% else %}
                     <div class="text-center text-muted py-5">
-                        <h5>No games recorded for Week {{ selected_week }}</h5>
-                        <p>Check back later for game results.</p>
+                        <h5>No games scheduled for Week {{ selected_week }}</h5>
+                        <p>Import a schedule or check back later for game results.</p>
                     </div>
                 {% endif %}
             </div>
         </div>
         
-        {% if week_games %}
+        {% if week_games or scheduled_games %}
             <div class="mt-4">
                 <h5>Week {{ selected_week }} Summary</h5>
                 <div class="row">
@@ -117,23 +232,23 @@
                         <div class="card text-center">
                             <div class="card-body">
                                 <h6 class="card-title">Total Games</h6>
-                                <h4 class="text-primary">{{ week_games|length }}</h4>
+                                <h4 class="text-primary">{{ (week_games|length) + (scheduled_games|length) }}</h4>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="card text-center">
                             <div class="card-body">
-                                <h6 class="card-title">P4 Games</h6>
-                                <h4 class="text-primary">{{ week_games|selectattr('home_game_type', 'equalto', 'P4')|list|length + week_games|selectattr('away_game_type', 'equalto', 'P4')|list|length }}</h4>
+                                <h6 class="card-title">Completed</h6>
+                                <h4 class="text-success">{{ week_games|length }}</h4>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="card text-center">
                             <div class="card-body">
-                                <h6 class="card-title">G5 Games</h6>
-                                <h4 class="text-primary">{{ week_games|selectattr('home_game_type', 'equalto', 'G5')|list|length + week_games|selectattr('away_game_type', 'equalto', 'G5')|list|length }}</h4>
+                                <h6 class="card-title">Remaining</h6>
+                                <h4 class="text-warning">{{ scheduled_games|length }}</h4>
                             </div>
                         </div>
                     </div>
@@ -141,7 +256,7 @@
                         <div class="card text-center">
                             <div class="card-body">
                                 <h6 class="card-title">Neutral Site</h6>
-                                <h4 class="text-primary">{{ week_games|selectattr('is_neutral_site', 'equalto', true)|list|length }}</h4>
+                                <h4 class="text-info">{{ week_games|selectattr('is_neutral_site', 'equalto', true)|list|length + scheduled_games|selectattr('neutral', 'equalto', true)|list|length }}</h4>
                             </div>
                         </div>
                     </div>
@@ -151,10 +266,91 @@
     </div>
 </div>
 
+{% if is_admin %}
+<!-- Schedule Import Modal -->
+<div class="modal fade" id="scheduleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">📅 Import Week {{ selected_week }} Schedule</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('import_schedule') }}">
+    <div class="modal-body">
+        <div class="mb-3">
+            <label for="schedule_text" class="form-label">Paste Schedule</label>
+            <textarea class="form-control" id="schedule_text" name="schedule_text" rows="10" 
+                                  placeholder="Paste games with dates and times:
+
+Saturday, August 23
+Kansas State vs Iowa State (Dublin, Ireland) 12:00pm ESPN
+Fresno State at Kansas 6:30pm FOX
+Sam Houston at Western Kentucky 7:00pm CBSSN
+
+Sunday, August 24
+Stanford at Hawaii 7:30pm CBS
+Idaho State at UNLV 10:00pm
+
+Supported formats:
+• Saturday, August 23 (date headers)
+• Team A vs Team B (location) 12:00pm ESPN
+• Team A at Team B 6:30pm FOX
+• Team A vs Team B"></textarea>
+            <input type="hidden" name="week" value="{{ selected_week }}">
+        </div>
+    </div>
+
+    <div class="alert alert-info">
+            <small>
+                <strong>Enhanced Parsing Rules:</strong><br>
+                • <strong>Date headers:</strong> "Saturday, August 23" or "8/23" apply to games below<br>
+                • <strong>Times:</strong> "12:00pm", "6:30pm" are automatically detected<br>
+                • <strong>TV networks:</strong> ESPN, FOX, CBS, etc. are recognized<br>
+                • <strong>Neutral sites:</strong> "vs" with location in parentheses<br>
+                • <strong>Home/Away:</strong> "at" = away team at home team<br>
+                • <strong>FCS teams:</strong> Use "FCS" for any FCS opponents
+            </small>
+        </div>
+    
+
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary">📅 Import Schedule</button>
+    </div>
+</form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <script>
 function changeWeek() {
     const selectedWeek = document.getElementById('week_selector').value;
     window.location.href = "{{ url_for('weekly_results') }}/" + selectedWeek;
 }
+// Debug form submission
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form[action*="import_schedule"]');
+    if (form) {
+        console.log('📅 Found import form');
+        form.addEventListener('submit', function(e) {
+            console.log('🚨 Form being submitted!');
+            console.log('Form action:', this.action);
+            console.log('Form method:', this.method);
+            
+            const scheduleText = document.getElementById('schedule_text').value;
+            console.log('Schedule text length:', scheduleText.length);
+            
+            if (!scheduleText.trim()) {
+                console.log('❌ No schedule text entered!');
+                e.preventDefault();
+                alert('Please enter some schedule text!');
+                return false;
+            }
+        });
+    } else {
+        console.log('❌ Import form not found!');
+    }
+});
 </script>
 {% endblock %}
