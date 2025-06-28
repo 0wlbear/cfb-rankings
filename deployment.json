@@ -1,0 +1,26 @@
+{
+  "containers": {
+    "cfb-app": {
+      "image": "249154182031.dkr.ecr.us-east-1.amazonaws.com/cfb-rankings:latest",
+      "ports": {
+        "5000": "HTTP"
+      },
+      "environment": {
+        "FLASK_ENV": "production",
+        "SECRET_KEY": "uJfXVHxApqCo39CFEiJ6O9iODD+uVTuHzgguD+I74OU="
+      }
+    }
+  },
+  "publicEndpoint": {
+    "containerName": "cfb-app",
+    "containerPort": 5000,
+    "healthCheck": {
+      "healthyThreshold": 2,
+      "unhealthyThreshold": 5,
+      "timeoutSeconds": 10,
+      "intervalSeconds": 60,
+      "path": "/health",
+      "successCodes": "200"
+    }
+  }
+}
