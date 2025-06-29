@@ -85,18 +85,6 @@
 }
 }
 
-/* Dark Mode Variables */
-[data-theme="dark"] {
-  --surface-primary: #0f172a;
-  --surface-secondary: #1e293b;
-  --surface-tertiary: #334155;
-  --surface-card: #1e293b;
-  --text-primary: #f8fafc;
-  --text-secondary: #cbd5e1;
-  --text-muted: #64748b;
-  --text-inverse: #ffffff; /* Ensure white text stays white in dark mode */
-  --gradient-surface: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-}
 
 /* Reset and Base Styles */
 * {
@@ -899,29 +887,6 @@ ul {
   }
 }
 
-/* Dark Mode Toggle */
-.theme-toggle {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 1000;
-  background: var(--surface-card);
-  border: 1px solid rgb(0 0 0 / 0.1);
-  border-radius: 50%;
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: var(--shadow-lg);
-  transition: var(--transition-normal);
-}
-
-.theme-toggle:hover {
-  transform: scale(1.1);
-  box-shadow: var(--shadow-xl);
-}
 
 /* Animations */
 @keyframes fadeInUp {
