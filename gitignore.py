@@ -1,5 +1,9 @@
 # Add this to .gitignore (or create the file if it doesn't exist)
 
+# Data persistence - don't track data files
+/data/
+*.json
+
 # Python
 __pycache__/
 *.pyc
