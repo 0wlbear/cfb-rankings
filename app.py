@@ -12,7 +12,11 @@ app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-here')
 app.permanent_session_lifetime = 86400  # Session lasts 24 hours
 
 # Data directory for persistence
-DATA_DIR = os.environ.get('DATA_DIR', './data')
+if os.environ.get('AWS_ENVIRONMENT'):  # Production on AWS
+    DATA_DIR = '/opt/data'  # Or /home/bitnami/data for Lightsail
+else:  # Local development
+    DATA_DIR = os.path.expanduser('~/cfb_rankings_data')
+
 os.makedirs(DATA_DIR, exist_ok=True)
 
 # Conference Teams
