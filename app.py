@@ -4432,6 +4432,9 @@ def reset_data():
         # Clear all team stats from database
         TeamStats.query.delete()
         
+        # NEW: Clear all scheduled games from database
+        ScheduledGame.query.delete()
+        
         # Commit the deletions
         db.session.commit()
         
@@ -4805,24 +4808,26 @@ def safe_reset_data():
         # Count current data
         game_count = Game.query.count()
         team_count = TeamStats.query.count()
+        scheduled_count = ScheduledGame.query.count()  # NEW: Count scheduled games
         
-        if game_count > 0:
-            flash(f'⚠️ You have {game_count} games and {team_count} teams. Are you sure you want to delete everything?', 'warning')
+        if game_count > 0 or scheduled_count > 0:
+            flash(f'⚠️ You have {game_count} games, {team_count} teams, and {scheduled_count} scheduled games. Are you sure you want to delete everything?', 'warning')
         
         # Clear all data from database
         Game.query.delete()
         TeamStats.query.delete()
+        ScheduledGame.query.delete()  # NEW: Clear scheduled games
         
         # Commit the deletions
         db.session.commit()
         
-        flash(f'🗑️ Successfully deleted {game_count} games and {team_count} teams from database!', 'success')
+        flash(f'🗑️ Successfully deleted {game_count} games, {team_count} teams, and {scheduled_count} scheduled games from database!', 'success')
         
     except Exception as e:
         db.session.rollback()
         flash(f'Error resetting data: {e}', 'error')
     
-    return redirect(url_for('admin'))  
+    return redirect(url_for('admin'))
 
 @app.route('/import_csv', methods=['GET', 'POST'])
 @login_required
