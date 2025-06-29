@@ -5,7 +5,7 @@ from datetime import datetime
 from collections import defaultdict
 from functools import wraps
 import os
-from models import db, Game, TeamStats
+from models import db, Game, TeamStats, ScheduledGame
 
 
 app = Flask(__name__)
@@ -2949,6 +2949,50 @@ def update_team_stats_in_db(team, opponent, team_score, opp_score, is_home, is_n
         print(f"Error updating team stats for {team}: {e}")
         raise e
 
+def complete_schedule_import_db(games, week):
+    """Complete the schedule import to database"""
+    try:
+        # Check if there are existing scheduled games for this week
+        existing_games = ScheduledGame.query.filter_by(week=week, completed=False).count()
+        
+        if existing_games > 0:
+            flash(f'ℹ️ Adding {len(games)} more games to Week {week} (you already had {existing_games} scheduled games)', 'info')
+        
+        # Add new scheduled games to database
+        games_added = 0
+        for game_data in games:
+            try:
+                scheduled_game = ScheduledGame(
+                    week=game_data['week'],
+                    home_team=game_data['home_team'],
+                    away_team=game_data['away_team'],
+                    neutral=game_data.get('neutral', False),
+                    completed=game_data.get('completed', False),
+                    game_date=datetime.strptime(game_data['game_date'], '%Y-%m-%d').date() if game_data.get('game_date') else None,
+                    game_time=game_data.get('game_time'),
+                    tv_network=game_data.get('tv_network'),
+                    location_note=game_data.get('location_note'),
+                    original_home=game_data.get('original_home'),
+                    original_away=game_data.get('original_away')
+                )
+                db.session.add(scheduled_game)
+                games_added += 1
+            except Exception as e:
+                print(f"Error adding scheduled game {game_data}: {e}")
+                continue
+        
+        # Save to database
+        db.session.commit()
+        
+        total_scheduled = ScheduledGame.query.filter_by(week=week, completed=False).count()
+        flash(f'✅ Successfully imported {games_added} games for Week {week}! (Total scheduled: {total_scheduled})', 'success')
+        return redirect(url_for('weekly_results', week=week))
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error completing import: {e}', 'error')
+        return redirect(url_for('weekly_results', week=week))
+
 
 @app.route('/debug_production')
 def debug_production():
@@ -3428,29 +3472,22 @@ def index():
 @app.route('/import_schedule', methods=['POST'])
 @login_required
 def import_schedule():
-    """Import schedule from pasted text - with team clarification"""
-    print("DEBUG: import_schedule route was called!")  # Add this line first
+    """Import schedule from pasted text - DATABASE VERSION"""
     try:
         schedule_text = request.form.get('schedule_text', '').strip()
         week = request.form.get('week', '')
-        print(f"DEBUG: schedule_text length: {len(schedule_text)}")  # Add this too
-        print(f"DEBUG: week: {week}")  # And this
         
         if not schedule_text or not week:
             flash('Please provide both schedule text and week!', 'error')
             return redirect(url_for('weekly_results', week=week))
         
+        # Parse the schedule text (your existing function should work)
         result = parse_schedule_text(schedule_text, week)
-        print(f"DEBUG: parse_schedule_text returned: {result}")
-        print(f"DEBUG: type of result: {type(result)}")
-        print(f"DEBUG: length of result: {len(result) if hasattr(result, '__len__') else 'No length'}")
         
-        # Try to unpack and see what happens
         try:
             games, unknown_teams = result
-            print(f"DEBUG: Successfully unpacked. Games: {len(games)}, Unknown teams: {unknown_teams}")
         except Exception as e:
-            print(f"DEBUG: Unpacking failed: {e}")
+            flash(f'Error parsing schedule: {e}', 'error')
             return redirect(url_for('weekly_results', week=week))
         
         if not games:
@@ -3459,7 +3496,6 @@ def import_schedule():
         
         # If we have unknown teams, go to clarification
         if unknown_teams:
-            # Store the original text and week in session for clarification
             session['pending_schedule'] = {
                 'schedule_text': schedule_text,
                 'week': week,
@@ -3467,46 +3503,16 @@ def import_schedule():
             }
             return redirect(url_for('clarify_teams'))
         
-        # No unknown teams - proceed with import
-        return complete_schedule_import(games, week)
+        # No unknown teams - save to database
+        return complete_schedule_import_db(games, week)
         
     except Exception as e:
         flash(f'Error importing schedule: {e}', 'error')
         return redirect(url_for('weekly_results', week=week))
 
 def complete_schedule_import(games, week):
-    """Complete the schedule import after clarifications"""
-    try:
-        global scheduled_games
-        
-        # Check if there are existing scheduled games for this week
-        existing_games = [g for g in scheduled_games if g['week'] == week and not g.get('completed', False)]
-        
-        if existing_games:
-            # User is importing additional games for a week that already has scheduled games
-            # For now, we'll append (add) rather than replace
-            flash(f'ℹ️ Adding {len(games)} more games to Week {week} (you already had {len(existing_games)} scheduled games)', 'info')
-            
-            # Just add the new games without removing existing ones
-            scheduled_games.extend(games)
-        else:
-            # No existing games for this week, or only completed games
-            # Remove any old scheduled games for this week (but keep completed ones)
-            scheduled_games = [g for g in scheduled_games if g['week'] != week or g.get('completed', False)]
-            
-            # Add new scheduled games
-            scheduled_games.extend(games)
-        
-        # Save to file
-        save_scheduled_games()
-        
-        total_scheduled = len([g for g in scheduled_games if g['week'] == week and not g.get('completed', False)])
-        flash(f'✅ Successfully imported {len(games)} games for Week {week}! (Total scheduled: {total_scheduled})', 'success')
-        return redirect(url_for('weekly_results', week=week))
-        
-    except Exception as e:
-        flash(f'Error completing import: {e}', 'error')
-        return redirect(url_for('weekly_results', week=week))
+    """Complete the schedule import after clarifications - DATABASE VERSION"""
+    return complete_schedule_import_db(games, week)
 
 
 @app.route('/clarify_teams')
@@ -4118,13 +4124,13 @@ def find_matching_scheduled_game(home_team, away_team, week):
     return None
 
 def get_scheduled_games_list():
-    """Get scheduled games from database (if you have them)"""
-    # For now, return empty list since you might not have scheduled games in database yet
-    # TODO: If you have ScheduledGame table, uncomment the next two lines:
-    # scheduled = ScheduledGame.query.order_by(ScheduledGame.game_date, ScheduledGame.game_time).all()
-    # return [game.to_dict() for game in scheduled]
-    
-    return []  # Empty for now    
+    """Get scheduled games from database"""
+    try:
+        scheduled = ScheduledGame.query.order_by(ScheduledGame.game_date, ScheduledGame.game_time).all()
+        return [game.to_dict() for game in scheduled]
+    except Exception as e:
+        print(f"Error getting scheduled games: {e}")
+        return []   
 
 
 @app.route('/analyze_fcs_games')

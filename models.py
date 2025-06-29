@@ -83,3 +83,37 @@ class TeamStats(db.Model):
             'margin_of_victory_total': self.margin_of_victory_total,
             'games': self.games  # This automatically uses the @property above
         }
+
+class ScheduledGame(db.Model):
+    __tablename__ = 'scheduled_games'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    week = db.Column(db.String(10), nullable=False, index=True)
+    home_team = db.Column(db.String(100), nullable=False)
+    away_team = db.Column(db.String(100), nullable=False)
+    neutral = db.Column(db.Boolean, default=False)
+    completed = db.Column(db.Boolean, default=False)
+    game_date = db.Column(db.Date, nullable=True)
+    game_time = db.Column(db.String(20), nullable=True)
+    tv_network = db.Column(db.String(50), nullable=True)
+    location_note = db.Column(db.String(200), nullable=True)
+    original_home = db.Column(db.String(100), nullable=True)
+    original_away = db.Column(db.String(100), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'week': self.week,
+            'home_team': self.home_team,
+            'away_team': self.away_team,
+            'neutral': self.neutral,
+            'completed': self.completed,
+            'game_date': self.game_date.strftime('%Y-%m-%d') if self.game_date else None,
+            'game_time': self.game_time,
+            'tv_network': self.tv_network,
+            'location_note': self.location_note,
+            'original_home': self.original_home,
+            'original_away': self.original_away
+        }
+        
