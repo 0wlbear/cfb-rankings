@@ -3293,6 +3293,10 @@ def index():
     
     return render_template('index.html', comprehensive_stats=comprehensive_stats, recent_games=games_data[-10:])
 
+
+
+
+
 @app.route('/import_schedule', methods=['POST'])
 @login_required
 def import_schedule():
@@ -4273,7 +4277,7 @@ def reload_data():
         return f"Reloaded! Scheduled games: {len(scheduled_games)}, Games: {len(games_data)}"
     except Exception as e:
         return f"Error reloading: {e}"
-    
+
 
 @app.route('/reset_data', methods=['POST'])
 @login_required
@@ -4434,7 +4438,7 @@ def archive_current_season(season_name):
         return False
 
 def load_archived_seasons():
-    """Load list of all archived seasons"""
+    """Load list of all archived seasons - FIXED VERSION"""
     try:
         archives_dir = os.path.join(DATA_DIR, 'archives')
         if not os.path.exists(archives_dir):
@@ -4448,23 +4452,49 @@ def load_archived_seasons():
                     with open(archive_path, 'r') as f:
                         archive_data = json.load(f)
                     
-                    # Extract summary info
+                    # FIXED: More robust champion extraction
+                    champion_name = 'No Champion'
+                    try:
+                        season_summary = archive_data.get('season_summary', {})
+                        if season_summary:
+                            champion_data = season_summary.get('champion')
+                            if champion_data:
+                                if isinstance(champion_data, dict):
+                                    champion_name = champion_data.get('team', 'Unknown Champion')
+                                elif isinstance(champion_data, str):
+                                    champion_name = champion_data
+                                else:
+                                    champion_name = str(champion_data)
+                    except Exception as e:
+                        print(f"Error extracting champion from {filename}: {e}")
+                        champion_name = 'Error Loading Champion'
+                    
+                    # Extract summary info with better error handling
                     season_info = {
                         'filename': filename,
                         'season_name': archive_data.get('season_name', 'Unknown Season'),
                         'archived_date': archive_data.get('archived_date', 'Unknown Date'),
                         'total_games': archive_data.get('total_games', 0),
                         'total_teams': archive_data.get('total_teams_with_games', 0),
-                        'champion': archive_data.get('season_summary', {}).get('champion', {}).get('team', 'Unknown') if archive_data.get('season_summary', {}).get('champion') else 'No Champion',
-                        'total_weeks': archive_data.get('season_summary', {}).get('total_weeks', 0)
+                        'champion': champion_name,
+                        'total_weeks': archive_data.get('season_summary', {}).get('total_weeks', 0) if archive_data.get('season_summary') else 0
                     }
                     archived_seasons.append(season_info)
+                    
+                except json.JSONDecodeError as e:
+                    print(f"JSON decode error reading archive {filename}: {e}")
+                    continue
                 except Exception as e:
                     print(f"Error reading archive {filename}: {e}")
                     continue
         
-        # Sort by archived date (newest first)
-        archived_seasons.sort(key=lambda x: x['archived_date'], reverse=True)
+        # Sort by archived date (newest first) with error handling
+        try:
+            archived_seasons.sort(key=lambda x: x['archived_date'], reverse=True)
+        except Exception as e:
+            print(f"Error sorting archived seasons: {e}")
+            # If sorting fails, just return unsorted
+        
         return archived_seasons
         
     except Exception as e:

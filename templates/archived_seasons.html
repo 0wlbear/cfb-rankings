@@ -8,7 +8,7 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2>🗂️ Archived Seasons</h2>
             <div>
-                {% if is_admin() %}
+                {% if is_admin %}
                     <a href="{{ url_for('import_csv') }}" class="btn btn-success me-2">📤 Import CSV</a>
                 {% endif %}
                 <a href="{{ url_for('admin') }}" class="btn btn-secondary">Back to Admin</a>
