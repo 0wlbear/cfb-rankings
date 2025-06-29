@@ -5,19 +5,24 @@ from datetime import datetime
 from collections import defaultdict
 from functools import wraps
 import os
+from models import db, Game, TeamStats
 
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-here')
 app.permanent_session_lifetime = 86400  # Session lasts 24 hours
 
-# Data directory for persistence
-if os.environ.get('AWS_ENVIRONMENT'):  # Production on AWS
-    DATA_DIR = '/opt/data'  # Or /home/bitnami/data for Lightsail
-else:  # Local development
-    DATA_DIR = os.path.expanduser('~/cfb_rankings_data')
+# Database configuration
+DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://cfb_admin:CFBRankings2025!@cfb-rankings-db.c0x628i8m5pg.us-east-1.rds.amazonaws.com:5432/cfb_rankings')
 
-os.makedirs(DATA_DIR, exist_ok=True)
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_pre_ping': True,
+    'pool_recycle': 300,
+}
+
+db.init_app(app)
 
 # Conference Teams
 ACC_TEAMS = [
@@ -1145,25 +1150,8 @@ def login_required(f):
 
 # Data persistence functions
 def save_data():
-    """Save game data and team stats to JSON files"""
-    try:
-        # Save games data
-        games_file = os.path.join(DATA_DIR, 'games_data.json')
-        with open(games_file, 'w') as f:
-            json.dump(games_data, f, indent=2)
-        
-        # Convert team_stats defaultdict to regular dict for JSON serialization
-        team_stats_dict = {}
-        for team, stats in team_stats.items():
-            team_stats_dict[team] = dict(stats)
-        
-        stats_file = os.path.join(DATA_DIR, 'team_stats.json')
-        with open(stats_file, 'w') as f:
-            json.dump(team_stats_dict, f, indent=2)
-        
-        print("Data saved successfully!")
-    except Exception as e:
-        print(f"Error saving data: {e}")
+    """Database auto-saves, so this function now does nothing"""
+    pass  # Database automatically saves when we commit transactions
 
 def save_scheduled_games():
     """Save scheduled games to JSON file"""
@@ -1191,51 +1179,32 @@ def load_scheduled_games():
 
 
 def load_data():
-    """Load game data and team stats from JSON files"""
-    global games_data, team_stats
+    """Initialize database if needed - replaces JSON loading"""
     try:
-        # Load games data
-        try:
-            games_file = os.path.join(DATA_DIR, 'games_data.json')
-            with open(games_file, 'r') as f:
-                games_data = json.load(f)
-            print(f"Loaded {len(games_data)} games from saved data")
-        except FileNotFoundError:
-            print("No saved games data found, starting fresh")
-            games_data = []
-        
-        # Load team stats
-        try:
-            stats_file = os.path.join(DATA_DIR, 'team_stats.json')
-            with open(stats_file, 'r') as f:
-                saved_stats = json.load(f)
-            
-            # Convert back to defaultdict
-            team_stats = defaultdict(lambda: {
-                'wins': 0, 'losses': 0, 'points_for': 0, 'points_against': 0,
-                'home_wins': 0, 'road_wins': 0, 'margin_of_victory_total': 0,
-                'games': []
-            })
-            
-            for team, stats in saved_stats.items():
-                team_stats[team] = stats
-            
-            print(f"Loaded stats for {len(saved_stats)} teams")
-        except FileNotFoundError:
-            print("No saved team stats found, starting fresh")
-
-        # Load historical data
-        load_historical_data()
-        
-        # Load scheduled games
-        load_scheduled_games()
-
-        # Load team mappings
-        load_team_mappings()
-            
+        with app.app_context():
+            db.create_all()
+            print("Database tables initialized")
     except Exception as e:
-        print(f"Error loading data: {e}")
-        print("Starting with fresh data")
+        print(f"Error initializing database: {e}")
+
+def get_games_data():
+    """Get all games from database"""
+    games = Game.query.order_by(Game.date_added).all()
+    return [game.to_dict() for game in games]
+
+def get_team_stats_dict():
+    """Get team stats from database"""
+    stats_dict = defaultdict(lambda: {
+        'wins': 0, 'losses': 0, 'points_for': 0, 'points_against': 0,
+        'home_wins': 0, 'road_wins': 0, 'margin_of_victory_total': 0,
+        'games': []
+    })
+    
+    team_stats_records = TeamStats.query.all()
+    for record in team_stats_records:
+        stats_dict[record.team_name] = record.to_dict()
+    
+    return stats_dict
 
 
 def get_conference_champions():
@@ -1559,13 +1528,20 @@ def get_team_bowl_status(team_name):
     }
 
 def calculate_total_victory_value(team_name):
-    """Sum up all victory values for a team - UPDATED for rivalry bonus"""
+    """Sum up all victory values for a team - DATABASE VERSION"""
+    # Get team stats from database
+    team_stats_record = TeamStats.query.filter_by(team_name=team_name).first()
+    
+    if not team_stats_record:
+        return 0, []
+    
+    team_stats = team_stats_record.to_dict()
     total_value = 0
     victory_details = []
     
-    for game in team_stats[team_name]['games']:
+    for game in team_stats['games']:
         if game['result'] == 'W':
-            value = calculate_victory_value_with_rivalry(game, team_name)  # Use new function
+            value = calculate_victory_value_with_rivalry(game, team_name)  # Use existing function
             total_value += value
             
             # Check if this was a rivalry win for display
@@ -1649,12 +1625,20 @@ def calculate_loss_penalty(game, team_name):
     return max(0.5, total_penalty)
 
 def calculate_total_loss_penalty(team_name):
-    """Sum up all loss penalties for a team"""
+    """Sum up all loss penalties for a team - DATABASE VERSION"""
+    # Get team stats from database
+    team_stats_record = TeamStats.query.filter_by(team_name=team_name).first()
+    
+    if not team_stats_record:
+        return 0, []
+    
+    team_stats = team_stats_record.to_dict()
     total_penalty = 0
     loss_details = []    
-    for game in team_stats[team_name]['games']:
+    
+    for game in team_stats['games']:
         if game['result'] == 'L':
-            penalty = calculate_loss_penalty(game, team_name)
+            penalty = calculate_loss_penalty(game, team_name)  # Use existing function
             total_penalty += penalty
             loss_details.append({
                 'opponent': game['opponent'],
@@ -1671,10 +1655,16 @@ def calculate_total_loss_penalty(team_name):
 
 def calculate_temporal_adjustment(team_name):
     """
-    Adjust for recent form vs season-long performance.
+    Adjust for recent form vs season-long performance - DATABASE VERSION
     Returns adjustment factor for current strength (-2 to +2 range).
     """
-    games = team_stats[team_name]['games']
+    # Get team stats from database
+    team_stats_record = TeamStats.query.filter_by(team_name=team_name).first()
+    
+    if not team_stats_record:
+        return 0
+    
+    games = team_stats_record.to_dict()['games']
     if len(games) < 4:
         return 0  # Not enough games for temporal analysis
     
@@ -1716,10 +1706,16 @@ def calculate_temporal_adjustment(team_name):
 
 def calculate_consistency_factor(team_name):
     """
-    Measure team consistency/reliability.
+    Measure team consistency/reliability - DATABASE VERSION
     Returns adjustment based on performance variance (-0.6 to +0.5 range).
     """
-    games = team_stats[team_name]['games']
+    # Get team stats from database
+    team_stats_record = TeamStats.query.filter_by(team_name=team_name).first()
+    
+    if not team_stats_record:
+        return 0
+    
+    games = team_stats_record.to_dict()['games']
     if len(games) < 4:
         return 0  # Need multiple games for consistency analysis
     
@@ -1766,10 +1762,29 @@ def calculate_consistency_factor(team_name):
 
 def calculate_scientific_ranking(team_name):
     """
-    Combine all modules into final scientific ranking score.
+    Combine all modules into final scientific ranking score - DATABASE VERSION
     Higher score = better ranking.
     """
-    stats = team_stats[team_name]
+    # Get team stats from database instead of global variable
+    team_stats_record = TeamStats.query.filter_by(team_name=team_name).first()
+    
+    if not team_stats_record:
+        return {
+            'total_score': 0.0,
+            'components': {
+                'victory_value': 0.0,
+                'conference_multiplier': 1.0,
+                'adjusted_victory_value': 0.0,
+                'loss_penalty': 0.0,
+                'temporal_adjustment': 0.0,
+                'consistency_factor': 0.0,
+                'games_bonus': 0.0
+            },
+            'basic_stats': {'wins': 0, 'losses': 0}
+        }
+    
+    # Convert to the format your existing code expects
+    stats = team_stats_record.to_dict()
     total_games = stats['wins'] + stats['losses']
     
     if total_games == 0:
@@ -1786,7 +1801,7 @@ def calculate_scientific_ranking(team_name):
             },
             'basic_stats': {'wins': 0, 'losses': 0}
         }
-    
+
     # Component 1: Victory Value (0-100+ range)
     victory_value, victory_details = calculate_total_victory_value(team_name)
     
@@ -1843,51 +1858,74 @@ def calculate_scientific_ranking(team_name):
 
 def calculate_comprehensive_stats(team_name):
     """
-    Calculate comprehensive stats - UPDATED to remove P4/G5 legacy fields
+    Calculate comprehensive stats - UPDATED to use database
     """
+    # Get team stats from database instead of global variable
+    team_stats_record = TeamStats.query.filter_by(team_name=team_name).first()
+    
+    if not team_stats_record:
+        # Return default stats for teams with no games
+        return {
+            'adjusted_total': 0.0,
+            'points_fielded': 0,
+            'points_allowed': 0,
+            'margin_of_victory': 0,
+            'point_differential': 0,
+            'home_wins': 0,
+            'road_wins': 0,
+            'total_wins': 0,
+            'total_losses': 0,
+            'strength_of_schedule': 0.0,
+            'totals': 0.0,
+            'scientific_breakdown': {'total_score': 0.0, 'components': {}}
+        }
+    
+    # Convert database record to the format your existing code expects
+    team_stats = team_stats_record.to_dict()
+    
+    # Continue with your existing calculation logic...
     scientific_result = calculate_scientific_ranking(team_name)
     
-    # Map to old format for backward compatibility
-    stats = team_stats[team_name]
-    total_games = stats['wins'] + stats['losses']
-    
     # Calculate some legacy fields that other parts of code might expect
+    total_games = team_stats['wins'] + team_stats['losses']
+    
+    # Calculate opponent stats for strength of schedule
     opponent_total_wins = 0
     opponent_total_losses = 0
     opponent_total_games = 0
     
-    for game in stats['games']:
+    for game in team_stats['games']:
         opponent = game['opponent']
-        if opponent in team_stats:
-            opp_stats = team_stats[opponent]
+        opp_stats_record = TeamStats.query.filter_by(team_name=opponent).first()
+        if opp_stats_record:
+            opp_stats = opp_stats_record.to_dict()
             opponent_total_wins += opp_stats['wins']
             opponent_total_losses += opp_stats['losses']
             opponent_total_games += (opp_stats['wins'] + opp_stats['losses'])
     
     strength_of_schedule = opponent_total_wins / opponent_total_games if opponent_total_games > 0 else 0
-    point_differential = stats['points_for'] - stats['points_against']
+    point_differential = team_stats['points_for'] - team_stats['points_against']
     opp_wl_differential = opponent_total_wins - opponent_total_losses
     
     return {
         # NEW: Scientific score as main ranking
         'adjusted_total': scientific_result['total_score'],
         
-        # LEGACY: Keep all old fields for template compatibility (except P4/G5)
-        'points_fielded': stats['points_for'],
-        'points_allowed': stats['points_against'],
-        'margin_of_victory': stats['margin_of_victory_total'],
+        # LEGACY: Keep all old fields for template compatibility
+        'points_fielded': team_stats['points_for'],
+        'points_allowed': team_stats['points_against'],
+        'margin_of_victory': team_stats['margin_of_victory_total'],
         'point_differential': point_differential,
-        'home_wins': stats['home_wins'],
-        'road_wins': stats['road_wins'],
-        # REMOVED: 'p4_wins': stats['p4_wins'], 'g5_wins': stats['g5_wins'],
+        'home_wins': team_stats['home_wins'],
+        'road_wins': team_stats['road_wins'],
         'opp_w': opponent_total_wins,
         'opp_l': opponent_total_losses,
         'strength_of_schedule': round(strength_of_schedule, 3),
         'opp_wl_differential': opp_wl_differential,
         'totals': scientific_result['components']['victory_value'],
-        'total_wins': stats['wins'],
-        'total_losses': stats['losses'],
-        'strength_of_record': round(strength_of_schedule * (stats['wins'] / max(1, stats['wins'] + stats['losses'])), 3),
+        'total_wins': team_stats['wins'],
+        'total_losses': team_stats['losses'],
+        'strength_of_record': round(strength_of_schedule * (team_stats['wins'] / max(1, team_stats['wins'] + team_stats['losses'])), 3),
         
         # NEW: Scientific breakdown available for future use
         'scientific_breakdown': scientific_result
@@ -2830,6 +2868,88 @@ def find_matching_scheduled_game(home_team, away_team, week):
     
     return None
 
+def update_team_stats_in_db(team, opponent, team_score, opp_score, is_home, is_neutral_site, is_overtime):
+    """Update team statistics in database after a game"""
+    
+    # Special case: Don't update stats for FCS placeholder team
+    if team == 'FCS' or team.upper() == 'FCS':
+        return
+    
+    try:
+        # Get existing team stats or create new record
+        team_stats = TeamStats.query.filter_by(team_name=team).first()
+        if not team_stats:
+            team_stats = TeamStats(team_name=team)
+            db.session.add(team_stats)
+            # Flush to get the ID and ensure defaults are applied
+            db.session.flush()
+        
+        # SAFETY: Ensure all fields have integer values (not None)
+        if team_stats.wins is None:
+            team_stats.wins = 0
+        if team_stats.losses is None:
+            team_stats.losses = 0
+        if team_stats.points_for is None:
+            team_stats.points_for = 0
+        if team_stats.points_against is None:
+            team_stats.points_against = 0
+        if team_stats.home_wins is None:
+            team_stats.home_wins = 0
+        if team_stats.road_wins is None:
+            team_stats.road_wins = 0
+        if team_stats.margin_of_victory_total is None:
+            team_stats.margin_of_victory_total = 0
+        if team_stats.games_json is None:
+            team_stats.games_json = '[]'
+        
+        # Determine win/loss and update stats
+        if team_score > opp_score:
+            team_stats.wins += 1
+            # Add margin of victory (only for wins)
+            team_stats.margin_of_victory_total += (team_score - opp_score)
+            
+            # Track home/road wins (only if NOT neutral site)
+            if not is_neutral_site:
+                if is_home:
+                    team_stats.home_wins += 1
+                else:
+                    team_stats.road_wins += 1
+        else:
+            team_stats.losses += 1
+        
+        # Update points
+        team_stats.points_for += team_score
+        team_stats.points_against += opp_score
+        
+        # Determine game location for display
+        if is_neutral_site:
+            location = 'Neutral'
+        elif is_home:
+            location = 'Home'
+        else:
+            location = 'Away'
+        
+        # Add game to history
+        games_list = team_stats.games  # This uses the @property from models.py
+        games_list.append({
+            'opponent': opponent,
+            'team_score': team_score,
+            'opp_score': opp_score,
+            'result': 'W' if team_score > opp_score else 'L',
+            'home_away': location,
+            'overtime': is_overtime
+        })
+        team_stats.games = games_list  # This triggers the JSON serialization
+        
+        # Save to database
+        db.session.commit()
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error updating team stats for {team}: {e}")
+        raise e
+
+
 @app.route('/debug_production')
 def debug_production():
     """Debug what data exists in production"""
@@ -3171,10 +3291,13 @@ def admin():
     # Sort by Adjusted Total (highest first)
     comprehensive_stats.sort(key=lambda x: x['adjusted_total'], reverse=True)
     
+    recent_games = get_games_data()[-10:]  # Use database function
+    all_games = get_games_data()  # Use database function
+    
     return render_template('admin.html', 
                          comprehensive_stats=comprehensive_stats, 
-                         recent_games=games_data[-10:],
-                         games_data=games_data,
+                         recent_games=recent_games,
+                         games_data=all_games,
                          historical_rankings=historical_rankings)
 
 
@@ -3295,7 +3418,8 @@ def index():
     # Sort by Adjusted Total (highest first)
     comprehensive_stats.sort(key=lambda x: x['adjusted_total'], reverse=True)
     
-    return render_template('index.html', comprehensive_stats=comprehensive_stats, recent_games=games_data[-10:])
+    recent_games = get_games_data()[-10:]  # Use database function
+    return render_template('index.html', comprehensive_stats=comprehensive_stats, recent_games=recent_games)
 
 
 
@@ -3472,8 +3596,10 @@ def process_clarifications():
 @app.route('/weekly_results')
 @app.route('/weekly_results/<week>')
 def weekly_results(week=None):
-    # Get all unique weeks from games data
-    weeks_with_games = sorted(set(game['week'] for game in games_data), key=lambda x: (
+    # Get all unique weeks from DATABASE instead of games_data
+    all_games = get_games_data()  # Use our database function
+    
+    weeks_with_games = sorted(set(game['week'] for game in all_games), key=lambda x: (
         # Sort by numeric value if it's a number, otherwise by string
         int(x) if x.isdigit() else (100 if x == 'Bowls' else 101 if x == 'CFP' else 999)
     ))
@@ -3485,7 +3611,8 @@ def weekly_results(week=None):
         week = '1'  # Default to week 1 if no games exist
     
     # Get scheduled games for the selected week that haven't been completed
-    week_scheduled = [game for game in scheduled_games 
+    week_scheduled = get_scheduled_games_list()  # Use database function
+    week_scheduled = [game for game in week_scheduled 
                      if game['week'] == week and not game.get('completed', False)]
     
     # Sort scheduled games by date and time
@@ -3521,14 +3648,14 @@ def weekly_results(week=None):
                 scheduled_by_date['No Date'] = []
             scheduled_by_date['No Date'].append(game)
     
-    # Also group completed games by date
-    week_games = [game for game in games_data if game['week'] == week]
+    # Also group completed games by date - USE DATABASE
+    week_games = [game for game in all_games if game['week'] == week]
     completed_by_date = {}
     
     for game in week_games:
         # Try to find corresponding scheduled game to get date
         game_date = None
-        for scheduled in scheduled_games:
+        for scheduled in week_scheduled:
             if (scheduled['week'] == week and 
                 ((scheduled['home_team'] == game['home_team'] and scheduled['away_team'] == game['away_team']) or
                  (scheduled['home_team'] == game['away_team'] and scheduled['away_team'] == game['home_team']))):
@@ -3566,14 +3693,14 @@ def weekly_results(week=None):
 def add_game():
     if request.method == 'POST':
         try:
-            # Get form data - ADDED overtime field
+            # Get form data
             week = request.form['week']
             home_team = request.form['home_team']
             away_team = request.form['away_team']
             home_score = int(request.form['home_score'])
             away_score = int(request.form['away_score'])
             is_neutral_site = 'neutral_site' in request.form
-            is_overtime = 'overtime' in request.form  # NEW: Check for overtime
+            is_overtime = 'overtime' in request.form
             
             # Validate that teams are different
             if home_team == away_team:
@@ -3584,52 +3711,46 @@ def add_game():
             if is_fcs_opponent(home_team) or is_fcs_opponent(away_team):
                 flash('⚠️ FCS game detected - minimal ranking credit will be awarded for this victory', 'warning')
             
-            # Add game to data - ADDED overtime field
-            game = {
-                'week': week,
-                'home_team': home_team,
-                'away_team': away_team,
-                'home_score': home_score,
-                'away_score': away_score,
-                'is_neutral_site': is_neutral_site,
-                'overtime': is_overtime,  # NEW: Store overtime status
-                'date_added': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            }
-            games_data.append(game)
+            # Add game to DATABASE instead of games_data list
+            game = Game(
+                week=week,
+                home_team=home_team,
+                away_team=away_team,
+                home_score=home_score,
+                away_score=away_score,
+                is_neutral_site=is_neutral_site,
+                overtime=is_overtime
+            )
+            db.session.add(game)
+            db.session.commit()
             
-            # NEW: Check if this matches a scheduled game and mark it as completed
-            match_index = find_matching_scheduled_game(home_team, away_team, week)
-            if match_index is not None:
-                scheduled_games[match_index]['completed'] = True
-                save_scheduled_games()
-
-
-            # Update team statistics - SIMPLIFIED (no game types needed)
-            update_team_stats_simplified(home_team, away_team, home_score, away_score, True, is_neutral_site, is_overtime)
-            update_team_stats_simplified(away_team, home_team, away_score, home_score, False, is_neutral_site, is_overtime)
+            # Update team statistics in database
+            update_team_stats_in_db(home_team, away_team, home_score, away_score, True, is_neutral_site, is_overtime)
+            update_team_stats_in_db(away_team, home_team, away_score, home_score, False, is_neutral_site, is_overtime)
             
-            # Save data after adding game
-            save_data()
-
             # Remember the selected week for next time
             session['last_selected_week'] = week
             
             location_text = " (Neutral Site)" if is_neutral_site else ""
             overtime_text = " (OT)" if is_overtime else ""
-            scheduled_text = " ✓ Scheduled" if match_index is not None else ""
             flash(f'Game added: {home_team} {home_score} - {away_score} {away_team}{location_text}{overtime_text}', 'success')
             return redirect(url_for('add_game'))
             
         except ValueError:
             flash('Please enter valid scores (numbers only)', 'error')
             return redirect(url_for('add_game'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error adding game: {e}', 'error')
+            return redirect(url_for('add_game'))
     
     # GET request - render the form
     selected_week = request.args.get('selected_week') or session.get('last_selected_week', '')
+    recent_games = get_games_data()[-10:]  # Get last 10 games from database
     return render_template('add_game.html', 
                          conferences=CONFERENCES, 
                          weeks=WEEKS, 
-                         recent_games=games_data[-10:], 
+                         recent_games=recent_games, 
                          selected_week=selected_week)
 
 
@@ -3805,6 +3926,8 @@ def get_team_suggestions(unknown_team):
     
     # Limit to top 5 suggestions
     return unique_suggestions[:5]
+
+
 
 def normalize_team_name(team_name):
     """Normalize team names for matching"""
@@ -3993,6 +4116,15 @@ def find_matching_scheduled_game(home_team, away_team, week):
             return i
     
     return None
+
+def get_scheduled_games_list():
+    """Get scheduled games from database (if you have them)"""
+    # For now, return empty list since you might not have scheduled games in database yet
+    # TODO: If you have ScheduledGame table, uncomment the next two lines:
+    # scheduled = ScheduledGame.query.order_by(ScheduledGame.game_date, ScheduledGame.game_time).all()
+    # return [game.to_dict() for game in scheduled]
+    
+    return []  # Empty for now    
 
 
 @app.route('/analyze_fcs_games')
@@ -4286,30 +4418,21 @@ def reload_data():
 @app.route('/reset_data', methods=['POST'])
 @login_required
 def reset_data():
-    """Reset all data - useful for testing or starting over"""
-    global games_data, team_stats, historical_rankings
-    games_data = []
-    team_stats = defaultdict(lambda: {
-        'wins': 0, 'losses': 0, 'points_for': 0, 'points_against': 0,
-    'home_wins': 0, 'road_wins': 0, 'margin_of_victory_total': 0,
-    'games': []
-    })
-    historical_rankings = []
-    
-    # Delete saved files
+    """Reset all data - DATABASE VERSION"""
     try:
-        games_file = os.path.join(DATA_DIR, 'games_data.json')
-        stats_file = os.path.join(DATA_DIR, 'team_stats.json')
-        historical_file = os.path.join(DATA_DIR, 'historical_rankings.json')
+        # Clear all games from database
+        Game.query.delete()
         
-        if os.path.exists(games_file):
-            os.remove(games_file)
-        if os.path.exists(stats_file):
-            os.remove(stats_file)
-        if os.path.exists(historical_file):
-            os.remove(historical_file)
+        # Clear all team stats from database
+        TeamStats.query.delete()
+        
+        # Commit the deletions
+        db.session.commit()
+        
         flash('All data has been reset!', 'success')
+        
     except Exception as e:
+        db.session.rollback()
         flash(f'Error resetting data: {e}', 'error')
     
     return redirect(url_for('admin'))
@@ -4666,37 +4789,34 @@ def delete_archived_season():
 @app.route('/safe_reset_data', methods=['POST'])
 @login_required
 def safe_reset_data():
-    """Safely reset data with archive confirmation"""
+    """Safely reset data with confirmation - DATABASE VERSION"""
     try:
         confirm_text = request.form.get('reset_confirm', '').strip()
         if confirm_text != 'RESET':
             flash('Reset confirmation failed. Please type RESET exactly.', 'error')
             return redirect(url_for('admin'))
         
-        # Check if current season has been archived
-        current_games_count = len(games_data)
-        if current_games_count > 0:
-            archived_seasons_list = load_archived_seasons()
-            if not archived_seasons_list:
-                flash('⚠️ You have games but no archived seasons! Please archive the current season first before resetting.', 'error')
-                return redirect(url_for('admin'))
-            
-            # Check if latest archive is recent and has similar game count
-            latest_archive = archived_seasons_list[0] if archived_seasons_list else None
-            if latest_archive and abs(latest_archive['total_games'] - current_games_count) > 5:
-                flash('⚠️ Current data differs significantly from latest archive. Please create a new archive first.', 'error')
-                return redirect(url_for('admin'))
+        # Count current data
+        game_count = Game.query.count()
+        team_count = TeamStats.query.count()
         
-        # Perform the reset
-        if safe_reset_season():
-            flash('🗑️ Season data reset successfully! All previous seasons remain archived.', 'success')
-        else:
-            flash('❌ Error resetting season data.', 'error')
-            
+        if game_count > 0:
+            flash(f'⚠️ You have {game_count} games and {team_count} teams. Are you sure you want to delete everything?', 'warning')
+        
+        # Clear all data from database
+        Game.query.delete()
+        TeamStats.query.delete()
+        
+        # Commit the deletions
+        db.session.commit()
+        
+        flash(f'🗑️ Successfully deleted {game_count} games and {team_count} teams from database!', 'success')
+        
     except Exception as e:
+        db.session.rollback()
         flash(f'Error resetting data: {e}', 'error')
     
-    return redirect(url_for('admin'))   
+    return redirect(url_for('admin'))  
 
 @app.route('/import_csv', methods=['GET', 'POST'])
 @login_required
