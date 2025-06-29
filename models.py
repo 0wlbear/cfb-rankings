@@ -84,11 +84,13 @@ class TeamStats(db.Model):
             'games': self.games  # This automatically uses the @property above
         }
 
+# Add these fields to your existing ScheduledGame model in models.py
+
 class ScheduledGame(db.Model):
     __tablename__ = 'scheduled_games'
     
     id = db.Column(db.Integer, primary_key=True)
-    week = db.Column(db.String(10), nullable=False, index=True)
+    week = db.Column(db.String(10), nullable=False)
     home_team = db.Column(db.String(100), nullable=False)
     away_team = db.Column(db.String(100), nullable=False)
     neutral = db.Column(db.Boolean, default=False)
@@ -99,7 +101,11 @@ class ScheduledGame(db.Model):
     location_note = db.Column(db.String(200), nullable=True)
     original_home = db.Column(db.String(100), nullable=True)
     original_away = db.Column(db.String(100), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # NEW: Add these fields for final scores
+    final_home_score = db.Column(db.Integer, nullable=True)
+    final_away_score = db.Column(db.Integer, nullable=True)
+    overtime = db.Column(db.Boolean, default=False)
     
     def to_dict(self):
         return {
@@ -114,6 +120,9 @@ class ScheduledGame(db.Model):
             'tv_network': self.tv_network,
             'location_note': self.location_note,
             'original_home': self.original_home,
-            'original_away': self.original_away
+            'original_away': self.original_away,
+            'final_home_score': self.final_home_score,
+            'final_away_score': self.final_away_score,
+            'overtime': self.overtime
         }
         

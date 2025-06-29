@@ -2683,20 +2683,67 @@ def parse_schedule_text(schedule_text, week, team_clarifications=None):
         time_pattern = r'(\d{1,2}):?(\d{2})?\s*(am|pm|AM|PM)'
         time_search = re.search(time_pattern, line)
 
-
         if time_search:
             hour, minute, period = time_search.groups()
             minute = minute or '00'
             time_match = f"{hour}:{minute} {period.upper()}"
         
-        # Extract TV networks
-        tv_networks = ['ESPN', 'FOX', 'CBS', 'NBC', 'ABC', 'FS1', 'FS2', 'BTN', 'SECN', 'ACCN', 
-                      'ESPN2', 'ESPNU', 'CBSSN', 'Paramount+', 'Peacock', 'ESPNEWS']
+        # Extract TV networks - Sort by length (longest first) to avoid partial matches
+        tv_networks = [
+            'Big Ten Network',
+            'SEC Network', 
+            'ACC Network',
+            'Amazon Prime',
+            'YouTube TV',
+            'Apple TV+',
+            'Paramount+',
+            'ESPNEWS',
+            'ESPN+',
+            'ESPN2', 
+            'ESPNU',
+            'CBSSN',
+            'Sling TV',
+            'ESPN',
+            'FOX',
+            'CBS',
+            'NBC',
+            'ABC', 
+            'FS1', 
+            'FS2',
+            'BTN', 
+            'SECN', 
+            'ACCN',
+            'Peacock',
+            'Netflix',
+            'Hulu'
+        ]
         
-        for network in tv_networks:
-            if network.lower() in line.lower():
+        # Sort by length descending to check longer names first
+        tv_networks_sorted = sorted(tv_networks, key=len, reverse=True)
+        
+        tv_info = None
+        line_upper = line.upper()  # Use uppercase for case-insensitive matching
+        
+        for network in tv_networks_sorted:
+            network_upper = network.upper()
+            if network_upper in line_upper:
                 tv_info = network
                 break
+        
+        # Fallback: if no exact match found, try partial matching for edge cases
+        if not tv_info:
+            for network in tv_networks:
+                if network.lower() in line.lower():
+                    # Additional check: make sure we're not getting a partial match
+                    # For example, don't match "ESPN" if "ESPN+" is in the line
+                    if network == 'ESPN' and 'espn+' in line.lower():
+                        continue
+                    if network == 'CBS' and 'cbssn' in line.lower():
+                        continue
+                    if network == 'FOX' and ('fs1' in line.lower() or 'fs2' in line.lower()):
+                        continue
+                    tv_info = network
+                    break
         
         return time_match, tv_info
     
@@ -3190,6 +3237,48 @@ def team_preview(team_name):
         print(f"ERROR in team_preview: {e}")
         return {'error': str(e)}, 500
 
+
+
+# Add this route to your app.py to run the migration
+@app.route('/migrate_scheduled_games')
+@login_required  
+def migrate_scheduled_games():
+    """Add new columns to scheduled_games table"""
+    try:
+        # For PostgreSQL - add columns one by one with error handling
+        migration_queries = [
+            "ALTER TABLE scheduled_games ADD COLUMN IF NOT EXISTS final_home_score INTEGER;",
+            "ALTER TABLE scheduled_games ADD COLUMN IF NOT EXISTS final_away_score INTEGER;", 
+            "ALTER TABLE scheduled_games ADD COLUMN IF NOT EXISTS overtime BOOLEAN DEFAULT FALSE;"
+        ]
+        
+        for query in migration_queries:
+            try:
+                db.engine.execute(query)
+                print(f"✅ Executed: {query}")
+            except Exception as e:
+                if "already exists" in str(e).lower():
+                    print(f"ℹ️ Column already exists: {query}")
+                else:
+                    raise e
+        
+        db.session.commit()
+        flash('✅ Database migration completed successfully!', 'success')
+        return redirect(url_for('admin'))
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Migration error: {e}', 'error')
+        return redirect(url_for('admin'))
+
+# OR run these SQL commands directly in your PostgreSQL database:
+"""
+ALTER TABLE scheduled_games ADD COLUMN IF NOT EXISTS final_home_score INTEGER;
+ALTER TABLE scheduled_games ADD COLUMN IF NOT EXISTS final_away_score INTEGER;
+ALTER TABLE scheduled_games ADD COLUMN IF NOT EXISTS overtime BOOLEAN DEFAULT FALSE;
+"""
+
+
 @app.route('/ranking_methodology')
 def ranking_methodology():
     """Explain how the scientific ranking system works"""
@@ -3616,10 +3705,12 @@ def weekly_results(week=None):
     elif not week:
         week = '1'  # Default to week 1 if no games exist
     
-    # Get scheduled games for the selected week that haven't been completed
-    week_scheduled = get_scheduled_games_list()  # Use database function
-    week_scheduled = [game for game in week_scheduled 
+    # NEW: Get scheduled games for the selected week - separate completed from uncompleted
+    all_scheduled = get_scheduled_games_list()  # Use database function
+    week_scheduled = [game for game in all_scheduled 
                      if game['week'] == week and not game.get('completed', False)]
+    week_completed_scheduled = [game for game in all_scheduled 
+                               if game['week'] == week and game.get('completed', False)]
     
     # Sort scheduled games by date and time
     def sort_key(game):
@@ -3639,6 +3730,7 @@ def weekly_results(week=None):
         return f"{game_date} {time_24h}"
     
     week_scheduled.sort(key=sort_key)
+    week_completed_scheduled.sort(key=sort_key)
     
     # Group scheduled games by date
     scheduled_by_date = {}
@@ -3654,26 +3746,57 @@ def weekly_results(week=None):
                 scheduled_by_date['No Date'] = []
             scheduled_by_date['No Date'].append(game)
     
-    # Also group completed games by date - USE DATABASE
-    week_games = [game for game in all_games if game['week'] == week]
+    # NEW: Group completed scheduled games by date
     completed_by_date = {}
+    for game in week_completed_scheduled:
+        game_date = game.get('game_date')
+        if game_date:
+            if game_date not in completed_by_date:
+                completed_by_date[game_date] = []
+            # Convert completed scheduled game to look like a regular completed game
+            completed_game = {
+                'home_team': game['home_team'],
+                'away_team': game['away_team'],
+                'home_score': game.get('final_home_score', 0),
+                'away_score': game.get('final_away_score', 0),
+                'is_neutral_site': game.get('neutral', False),
+                'overtime': game.get('overtime', False),
+                'date_added': 'Scheduled Game',
+                'week': game['week']
+            }
+            completed_by_date[game_date].append(completed_game)
+        else:
+            if 'No Date' not in completed_by_date:
+                completed_by_date['No Date'] = []
+            completed_game = {
+                'home_team': game['home_team'],
+                'away_team': game['away_team'],
+                'home_score': game.get('final_home_score', 0),
+                'away_score': game.get('final_away_score', 0),
+                'is_neutral_site': game.get('neutral', False),
+                'overtime': game.get('overtime', False),
+                'date_added': 'Scheduled Game',
+                'week': game['week']
+            }
+            completed_by_date['No Date'].append(completed_game)
     
+    # Also add any manually added games (not from schedule) - these might be from before the schedule system
+    week_games = [game for game in all_games if game['week'] == week]
     for game in week_games:
-        # Try to find corresponding scheduled game to get date
-        game_date = None
-        for scheduled in week_scheduled:
-            if (scheduled['week'] == week and 
-                ((scheduled['home_team'] == game['home_team'] and scheduled['away_team'] == game['away_team']) or
-                 (scheduled['home_team'] == game['away_team'] and scheduled['away_team'] == game['home_team']))):
-                game_date = scheduled.get('game_date')
+        # Check if this game is already represented by a completed scheduled game
+        found_scheduled = False
+        for scheduled in week_completed_scheduled:
+            if ((scheduled['home_team'] == game['home_team'] and scheduled['away_team'] == game['away_team']) or
+                (scheduled['home_team'] == game['away_team'] and scheduled['away_team'] == game['home_team'])):
+                found_scheduled = True
                 break
         
-        if not game_date:
-            game_date = 'No Date'
-            
-        if game_date not in completed_by_date:
-            completed_by_date[game_date] = []
-        completed_by_date[game_date].append(game)
+        # Only add if not already represented by scheduled game
+        if not found_scheduled:
+            game_date = 'No Date'  # Manual games don't have scheduled dates
+            if game_date not in completed_by_date:
+                completed_by_date[game_date] = []
+            completed_by_date[game_date].append(game)
     
     # Sort dates for display
     all_dates = set(list(scheduled_by_date.keys()) + list(completed_by_date.keys()))
@@ -3686,12 +3809,12 @@ def weekly_results(week=None):
     return render_template('weekly_results.html', 
                          selected_week=week, 
                          weeks_with_games=weeks_with_games,
-                         week_games=week_games,
+                         week_games=week_games,  # Keep for backwards compatibility
                          scheduled_games=week_scheduled,
                          scheduled_by_date=scheduled_by_date,
                          completed_by_date=completed_by_date,
                          sorted_dates=sorted_dates,
-                         all_weeks=WEEKS)       
+                         all_weeks=WEEKS)    
 
 
 @app.route('/add_game', methods=['GET', 'POST'])
@@ -3717,7 +3840,33 @@ def add_game():
             if is_fcs_opponent(home_team) or is_fcs_opponent(away_team):
                 flash('⚠️ FCS game detected - minimal ranking credit will be awarded for this victory', 'warning')
             
-            # Add game to DATABASE instead of games_data list
+            # NEW: Check for matching scheduled game and mark it completed
+            try:
+                # Find the scheduled game that matches this completed game
+                scheduled_game = ScheduledGame.query.filter_by(
+                    week=week,
+                    completed=False
+                ).filter(
+                    db.or_(
+                        db.and_(ScheduledGame.home_team == home_team, ScheduledGame.away_team == away_team),
+                        db.and_(ScheduledGame.home_team == away_team, ScheduledGame.away_team == home_team)
+                    )
+                ).first()
+                
+                if scheduled_game:
+                    # Mark the scheduled game as completed
+                    scheduled_game.completed = True
+                    scheduled_game.final_home_score = home_score if scheduled_game.home_team == home_team else away_score
+                    scheduled_game.final_away_score = away_score if scheduled_game.away_team == away_team else home_score
+                    print(f"✅ Found matching scheduled game and marked as completed: {scheduled_game.home_team} vs {scheduled_game.away_team}")
+                else:
+                    print(f"ℹ️ No matching scheduled game found for {home_team} vs {away_team} in week {week}")
+                    
+            except Exception as e:
+                print(f"Error finding/updating scheduled game: {e}")
+                # Don't let this error stop the game from being added
+            
+            # Add game to DATABASE (existing logic)
             game = Game(
                 week=week,
                 home_team=home_team,
