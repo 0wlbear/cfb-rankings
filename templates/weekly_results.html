@@ -81,20 +81,20 @@
                                         <div class="card h-100 border-secondary">
                                             <div class="card-body">
                                                 <div class="text-center mb-2">
-                                                    {% if game.get('neutral') %}
-                                                        <small class="badge bg-info text-dark mb-1">Neutral Site</small><br>
-                                                    {% endif %}
                                                     <small class="badge bg-secondary mb-2">Scheduled</small>
                                                     
-                                                    <!-- Time/TV Info -->
+                                                    <!-- Time/TV Info - FIXED TO BE ON SAME LINE -->
                                                     {% if game.get('game_time') or game.get('tv_network') %}
-                                                        <div class="small text-primary mt-1">
+                                                        <div class="small text-primary mt-1 d-flex justify-content-between align-items-center">
                                                             {% if game.get('game_time') %}
-                                                                🕐 {{ game.game_time }}
+                                                                <span>🕐 {{ game.game_time }}</span>
+                                                            {% else %}
+                                                                <span></span>
                                                             {% endif %}
                                                             {% if game.get('tv_network') %}
-                                                                {% if game.get('game_time') %}<br>{% endif %}
-                                                                📺 {{ game.tv_network }}
+                                                                <span>📺 {{ game.tv_network }}</span>
+                                                            {% else %}
+                                                                <span></span>
                                                             {% endif %}
                                                         </div>
                                                     {% endif %}
@@ -114,12 +114,12 @@
                                                             {% endif %}
                                                         </div>
                                                         <div class="mx-2">
-                                                            <span class="badge bg-light text-dark">at</span>
+                                                            <span class="badge bg-light text-dark">{% if game.get('neutral') %}vs{% else %}at{% endif %}</span>
                                                         </div>
                                                     </div>
                                                     
                                                     <!-- HOME TEAM SECOND -->
-                                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                                    <div class="d-flex justify-content-between align-items-center mb-2">
                                                         <div class="text-muted d-flex align-items-center">
                                                             {% set home_logo_url = get_team_logo_url(game.home_team) %}
                                                             {% if home_logo_url %}
@@ -140,6 +140,13 @@
                                                             </span>
                                                         </div>
                                                     </div>
+                                                    
+                                                    <!-- Neutral Site Badge - Moved here -->
+                                                    {% if game.get('neutral') %}
+                                                        <div class="mb-2">
+                                                            <small class="badge bg-info text-dark">Neutral Site</small>
+                                                        </div>
+                                                    {% endif %}
                                                 </div>
                                             </div>
                                             <div class="card-footer text-center">
