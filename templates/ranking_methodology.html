@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ranking Methodology - College Football Rankings</title>
+    <title>Advanced Ranking Methodology - College Football Rankings</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         .methodology-section {
@@ -22,8 +22,16 @@
         .component-positive { color: #28a745; font-weight: bold; }
         .component-negative { color: #dc3545; font-weight: bold; }
         .component-neutral { color: #007bff; font-weight: bold; }
+        .component-warning { color: #ff6b35; font-weight: bold; }
         .example-box {
             background: #e3f2fd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .warning-box {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
             border-radius: 8px;
             padding: 15px;
             margin: 10px 0;
@@ -39,6 +47,19 @@
         .tier-p4 { background: #28a745; color: white; }
         .tier-g5 { background: #ffc107; color: black; }
         .tier-fcs { background: #6c757d; color: white; }
+        .module-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0 10px 0;
+        }
+        .advanced-feature {
+            background: #f8f9fa;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
@@ -46,31 +67,433 @@
         <div class="row">
             <div class="col-12">
                 <div class="card">
-                    <div class="card-header">
-                        <h1 class="mb-0">🏈 Scientific Ranking Methodology</h1>
-                        <p class="mb-0 text-muted">How our advanced college football ranking system works</p>
+                    <div class="card-header bg-primary text-white">
+                        <h1 class="mb-0">🏈 Advanced Scientific Ranking Methodology</h1>
+                        <p class="mb-0">The most comprehensive college football ranking system ever created</p>
                     </div>
                     <div class="card-body">
-                        <!-- Overview -->
+                        
+                        <!-- System Overview -->
                         <div class="methodology-section">
-                            <h2>📊 System Overview</h2>
-                            <p>Our ranking system uses a <strong>scientific approach</strong> that goes far beyond simple win-loss records. Every victory and loss is analyzed based on opponent quality, game context, recent form, and consistency to produce the most accurate rankings possible.</p>
+                            <h2>🎯 System Overview</h2>
+                            <p>Our ranking system uses an <strong>8-module scientific approach</strong> that analyzes every aspect of team performance. Unlike simple polls or basic computer rankings, our system considers opponent quality, game context, recent form, schedule strength, travel factors, and dozens of other variables to produce the most accurate rankings possible.</p>
                             
                             <div class="formula-box">
-                                <strong>Final Ranking Score =</strong><br>
-                                <span class="component-positive">+ Victory Value × Conference Multiplier</span><br>
-                                <span class="component-negative">- Loss Penalties</span><br>
-                                <span class="component-neutral">+ Recent Form Adjustment</span><br>
+                                <strong>Enhanced Final Ranking Score =</strong><br>
+                                <span class="component-positive">+ Enhanced Victory Value × Conference Multiplier</span><br>
+                                <span class="component-negative">- Enhanced Loss Penalties</span><br>
+                                <span class="component-negative">- Schedule Quality Penalties</span><br>
+                                <span class="component-neutral">+ Temporal Form Adjustment</span><br>
                                 <span class="component-neutral">+ Consistency Factor</span><br>
+                                <span class="component-neutral">+ Strength of Schedule Bonus</span><br>
                                 <span class="component-neutral">+ Games Played Bonus</span>
+                            </div>
+
+                            <div class="alert alert-info">
+                                <h5><strong>🧪 What Makes This System Different:</strong></h5>
+                                <ul class="mb-0">
+                                    <li><strong>8 Distinct Analytical Modules</strong> working together</li>
+                                    <li><strong>50+ Variables</strong> considered for each game</li>
+                                    <li><strong>Iterative Calculations</strong> that account for circular dependencies</li>
+                                    <li><strong>Real-time Adaptation</strong> as teams improve or decline</li>
+                                    <li><strong>Context-Aware Analysis</strong> that understands game situations</li>
+                                </ul>
                             </div>
                         </div>
 
-                        <!-- Conference Tier System -->
+                        <!-- Module 1: Enhanced Opponent Quality -->
+                        <div class="module-header">
+                            <h3>📊 MODULE 1: Enhanced Opponent Quality Engine</h3>
+                        </div>
                         <div class="methodology-section">
-                            <h2>🏆 Conference Tier System & Multipliers</h2>
-                            <p>Teams are classified into tiers that affect their victory value calculations:</p>
+                            <p>Every opponent is rated on a 1-10 scale using iterative calculations and conference strength multipliers:</p>
                             
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5>Conference Strength Multipliers</h5>
+                                    <ul>
+                                        <li><strong>SEC:</strong> 1.05× (strongest conference)</li>
+                                        <li><strong>Big Ten:</strong> 1.03× (strong top to bottom)</li>
+                                        <li><strong>Big XII:</strong> 1.00× (baseline P4)</li>
+                                        <li><strong>ACC:</strong> 0.98× (slightly weaker P4)</li>
+                                        <li><strong>Pac 12:</strong> 0.95× (depleted by departures)</li>
+                                        <li><strong>American:</strong> 0.85× (best G5)</li>
+                                        <li><strong>Mountain West:</strong> 0.83× (competitive G5)</li>
+                                        <li><strong>Sun Belt/MAC:</strong> 0.80-0.82× (average G5)</li>
+                                        <li><strong>Conference USA:</strong> 0.78× (weakest G5)</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5>Iterative Quality Calculation</h5>
+                                    <ul>
+                                        <li><strong>Base strength:</strong> Win percentage + performance vs. opponents</li>
+                                        <li><strong>Conference adjustment:</strong> Multiplied by conference strength</li>
+                                        <li><strong>Recent form factor:</strong> Last 4 games weighted</li>
+                                        <li><strong>Opponent quality impact:</strong> Teams that beat good teams get higher ratings</li>
+                                        <li><strong>Maximum iterations:</strong> 3 levels deep to prevent circular references</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="advanced-feature">
+                                <h6><strong>🔄 Advanced Feature: Iterative Opponent Strength</strong></h6>
+                                <p>Unlike simple systems that use static ratings, our system continuously recalculates opponent quality based on their performance against other opponents, creating a dynamic web of interconnected team strengths.</p>
+                            </div>
+                        </div>
+
+                        <!-- Module 2: Enhanced Victory Value -->
+                        <div class="module-header">
+                            <h3>🏆 MODULE 2: Enhanced Victory Value Calculator</h3>
+                        </div>
+                        <div class="methodology-section">
+                            <p>Every victory is analyzed using 8+ factors with advanced context awareness:</p>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5>1. Team-Specific Home Field Advantages</h5>
+                                    <ul>
+                                        <li><strong>Oregon (Autzen):</strong> 1.4× multiplier</li>
+                                        <li><strong>LSU (Death Valley):</strong> 1.35× multiplier</li>
+                                        <li><strong>Penn State (White Out):</strong> 1.35× multiplier</li>
+                                        <li><strong>Texas A&M (12th Man):</strong> 1.3× multiplier</li>
+                                        <li><strong>Alabama, Ohio State, Georgia:</strong> 1.25× multiplier</li>
+                                        <li><strong>Most other teams:</strong> 1.0× (standard)</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5>2. Quality-Based Margin Caps</h5>
+                                    <ul>
+                                        <li><strong>vs Elite teams (7+ quality):</strong> No margin cap</li>
+                                        <li><strong>vs Good teams (5-7 quality):</strong> 35-point cap</li>
+                                        <li><strong>vs Average teams (3-5 quality):</strong> 24-point cap</li>
+                                        <li><strong>vs Weak teams (<3 quality):</strong> 17-point cap</li>
+                                        <li><strong>vs FCS teams:</strong> Max 0.2 bonus regardless of score</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5>3. Cross-Country Travel Adjustments</h5>
+                                    <ul>
+                                        <li><strong>3+ time zone travel:</strong> ±0.4 points</li>
+                                        <li><strong>2 time zone travel:</strong> ±0.2 points</li>
+                                        <li><strong>Road wins with travel:</strong> Bonus points</li>
+                                        <li><strong>Road losses with travel:</strong> Penalty reduction</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5>4. Game Context Bonuses</h5>
+                                    <ul>
+                                        <li><strong>Conference Championships:</strong> +1.2 points</li>
+                                        <li><strong>CFP Games:</strong> +1.5 points</li>
+                                        <li><strong>Bowl Games:</strong> +0.5 points</li>
+                                        <li><strong>Rivalry Week (Week 12):</strong> +0.3 points</li>
+                                        <li><strong>Late-season conference games:</strong> +0.2 points</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="example-box">
+                                <h6><strong>Enhanced Victory Value Example:</strong></h6>
+                                <p><strong>Oregon beats Ohio State 35-21 in Week 13 Conference Championship at neutral site:</strong></p>
+                                <p>• Base: 8.5 (Ohio State quality) × 1.15 (neutral) = 9.78<br>
+                                • Margin: +1.54 (14-point win with cap)<br>
+                                • Context: +1.2 (conference championship)<br>
+                                • Conference: +0.3 (P4 vs P4)<br>
+                                • Temporal: ×1.15 (Week 13 weight)<br>
+                                <strong>Total:</strong> (9.78 + 1.54 + 1.2 + 0.3) × 1.15 = <span class="component-positive">14.65 points</span></p>
+                            </div>
+                        </div>
+
+                        <!-- Module 3: Enhanced Loss Penalties -->
+                        <div class="module-header">
+                            <h3>⚖️ MODULE 3: Enhanced Loss Quality Assessment</h3>
+                        </div>
+                        <div class="methodology-section">
+                            <div class="warning-box">
+                                <h5><strong>🚨 CATASTROPHIC FCS LOSS PENALTIES</strong></h5>
+                                <p>Losing to an FCS team is treated as one of the worst possible outcomes:</p>
+                                <ul>
+                                    <li><strong>Base penalty:</strong> -10.0 points (vs -3.0 for normal losses)</li>
+                                    <li><strong>Blowout FCS loss:</strong> Up to -16.0 total penalty</li>
+                                    <li><strong>Home FCS loss:</strong> Extra penalties based on home field strength</li>
+                                    <li><strong>Minimum FCS loss penalty:</strong> -12.0 points (no matter what)</li>
+                                    <li><strong>Ranking impact:</strong> Single FCS loss drops team 10+ spots instantly</li>
+                                </ul>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5>Enhanced Regular Loss Penalties</h5>
+                                    <ul>
+                                        <li><strong>vs Elite teams (8+ quality):</strong> -1.0 to -2.0 penalty</li>
+                                        <li><strong>vs Good teams (6-8 quality):</strong> -1.5 to -2.5 penalty</li>
+                                        <li><strong>vs Average teams (4-6 quality):</strong> -3.0 to -4.0 penalty</li>
+                                        <li><strong>vs Bad teams (2-4 quality):</strong> -4.5 to -6.0 penalty</li>
+                                        <li><strong>vs Terrible teams (<2 quality):</strong> -6.0 to -8.5 penalty</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5>Enhanced Penalty Factors</h5>
+                                    <ul>
+                                        <li><strong>Margin scaling:</strong> 28+ point losses get massive penalties</li>
+                                        <li><strong>Enhanced home field penalty:</strong> Worse if you have strong home field</li>
+                                        <li><strong>Travel considerations:</strong> Cross-country losses penalized less</li>
+                                        <li><strong>Overtime reduction:</strong> 35% less penalty for OT losses</li>
+                                        <li><strong>Context penalties:</strong> Championship game losses hurt more</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Module 4: Temporal Weighting -->
+                        <div class="module-header">
+                            <h3>⏰ MODULE 4: Enhanced Temporal Weighting Engine</h3>
+                        </div>
+                        <div class="methodology-section">
+                            <p>Games are weighted differently based on when they occur, recognizing that teams develop throughout the season:</p>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5>Seasonal Game Weights</h5>
+                                    <ul>
+                                        <li><strong>Week 1:</strong> 0.65× (rust, limited prep)</li>
+                                        <li><strong>Week 2-3:</strong> 0.75-0.8× (still developing)</li>
+                                        <li><strong>Week 4-6:</strong> 0.85-0.95× (finding identity)</li>
+                                        <li><strong>Week 7-10:</strong> 1.0× (peak evaluation)</li>
+                                        <li><strong>Week 11-12:</strong> 1.05-1.1× (heightened stakes)</li>
+                                        <li><strong>Week 13:</strong> 1.15× (conference championships)</li>
+                                        <li><strong>CFP:</strong> 1.25× (playoff games)</li>
+                                        <li><strong>Championship:</strong> 1.3× (national title)</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5>Enhanced Recent Form Analysis</h5>
+                                    <ul>
+                                        <li><strong>Three-period analysis:</strong> Early/Mid/Recent seasons</li>
+                                        <li><strong>Weighted improvement:</strong> Recent games count more</li>
+                                        <li><strong>Sustained improvement bonus:</strong> +0.5 for consistent growth</li>
+                                        <li><strong>Temporal weights applied:</strong> Even recent form considers game timing</li>
+                                        <li><strong>Range:</strong> -3.0 to +3.0 adjustment</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="advanced-feature">
+                                <h6><strong>📈 Advanced Feature: Multi-Period Trend Analysis</strong></h6>
+                                <p>Instead of simple recent vs. early comparison, our system analyzes improvement trends across early season, mid-season, and recent games, rewarding teams that show sustained development patterns.</p>
+                            </div>
+                        </div>
+
+                        <!-- Module 5: Consistency Analyzer -->
+                        <div class="module-header">
+                            <h3>📊 MODULE 5: Consistency Analyzer</h3>
+                        </div>
+                        <div class="methodology-section">
+                            <p>This module measures team reliability and performance variance to reward consistent teams and penalize volatile ones:</p>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5>Performance Variance Analysis</h5>
+                                    <ul>
+                                        <li><strong>Game-by-game performance scores:</strong> Actual margin vs expected margin</li>
+                                        <li><strong>Opponent quality normalization:</strong> Adjusts expectations based on opponent strength</li>
+                                        <li><strong>Standard deviation calculation:</strong> Measures consistency of performance</li>
+                                        <li><strong>Sample size requirements:</strong> Minimum 4 games for meaningful analysis</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5>Consistency Rewards & Penalties</h5>
+                                    <ul>
+                                        <li><strong>Very consistent (≤10 std dev):</strong> +0.5 bonus</li>
+                                        <li><strong>Somewhat consistent (≤15 std dev):</strong> +0.2 bonus</li>
+                                        <li><strong>Average consistency (≤20 std dev):</strong> 0.0 adjustment</li>
+                                        <li><strong>Inconsistent (≤25 std dev):</strong> -0.3 penalty</li>
+                                        <li><strong>Very inconsistent (>25 std dev):</strong> -0.6 penalty</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="example-box">
+                                <h6><strong>Consistency Analysis Example:</strong></h6>
+                                <p><strong>Team A:</strong> Consistently beats expected margins by 3-7 points (low variance)<br>
+                                <strong>Result:</strong> +0.5 consistency bonus for reliability</p>
+                                <p><strong>Team B:</strong> Alternates between 21-point wins and 14-point losses (high variance)<br>
+                                <strong>Result:</strong> -0.6 consistency penalty for unpredictability</p>
+                            </div>
+
+                            <div class="advanced-feature">
+                                <h6><strong>🎯 Advanced Feature: Expected Performance Modeling</strong></h6>
+                                <p>Rather than simple win-loss consistency, our system creates expected performance models based on opponent quality, then measures how consistently teams meet, exceed, or fall short of those expectations.</p>
+                            </div>
+                        </div>
+
+                        <!-- Module 6: Enhanced Final Ranking Composer -->
+                        <div class="module-header">
+                            <h3>🏗️ MODULE 6: Enhanced Final Ranking Composer</h3>
+                        </div>
+                        <div class="methodology-section">
+                            <p>This module combines all previous analyses into the final ranking score with sophisticated weighting and integration:</p>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5>Component Integration Process</h5>
+                                    <ul>
+                                        <li><strong>Step 1:</strong> Calculate enhanced victory value from Module 2</li>
+                                        <li><strong>Step 2:</strong> Apply conference multiplier (P4: 1.0×, G5: 0.85×)</li>
+                                        <li><strong>Step 3:</strong> Subtract enhanced loss penalties from Module 3</li>
+                                        <li><strong>Step 4:</strong> Subtract schedule quality penalties from Module 8</li>
+                                        <li><strong>Step 5:</strong> Add temporal adjustments from Module 4</li>
+                                        <li><strong>Step 6:</strong> Add consistency factors from Module 5</li>
+                                        <li><strong>Step 7:</strong> Add strength of schedule bonuses</li>
+                                        <li><strong>Step 8:</strong> Add games played bonuses</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5>Final Score Components</h5>
+                                    <ul>
+                                        <li><strong>Enhanced victory value:</strong> 0-100+ points (main component)</li>
+                                        <li><strong>Loss penalties:</strong> 0-50+ points (subtracted)</li>
+                                        <li><strong>Schedule penalties:</strong> 0-5+ points (subtracted)</li>
+                                        <li><strong>Temporal adjustment:</strong> -3 to +3 points</li>
+                                        <li><strong>Consistency factor:</strong> -0.6 to +0.5 points</li>
+                                        <li><strong>SoS bonus:</strong> -2 to +2 points</li>
+                                        <li><strong>Games bonus:</strong> 0 to +2.5 points</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="formula-box">
+                                <strong>Final Enhanced Ranking Score =</strong><br>
+                                <span class="component-positive">(Victory Value × Conference Multiplier)</span><br>
+                                <span class="component-negative">- Loss Penalties</span><br>
+                                <span class="component-negative">- Schedule Quality Penalties</span><br>
+                                <span class="component-neutral">+ Temporal Adjustment</span><br>
+                                <span class="component-neutral">+ Consistency Factor</span><br>
+                                <span class="component-neutral">+ Strength of Schedule Bonus</span><br>
+                                <span class="component-neutral">+ Games Played Bonus</span>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5>Advanced Integration Features</h5>
+                                    <ul>
+                                        <li><strong>Circular dependency resolution:</strong> Iterative calculations prevent infinite loops</li>
+                                        <li><strong>Component balancing:</strong> No single factor dominates the ranking</li>
+                                        <li><strong>Scale normalization:</strong> All components properly weighted</li>
+                                        <li><strong>Minimum/maximum bounds:</strong> Prevents extreme outliers</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5>Quality Assurance Checks</h5>
+                                    <ul>
+                                        <li><strong>Sanity checking:</strong> Validates results make logical sense</li>
+                                        <li><strong>Component contribution tracking:</strong> Shows what drives each ranking</li>
+                                        <li><strong>Historical comparison:</strong> Ensures rankings evolve logically</li>
+                                        <li><strong>Edge case handling:</strong> Manages unusual scenarios gracefully</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="example-box">
+                                <h6><strong>Complete Final Ranking Example:</strong></h6>
+                                <p><strong>Georgia (P4) with strong season:</strong></p>
+                                <p>• Enhanced Victory Value: 45.8 points<br>
+                                • Conference Multiplier: ×1.0 (P4) = 45.8<br>
+                                • Loss Penalties: -8.2 points<br>
+                                • Schedule Penalties: -0.5 points (played some weak teams)<br>
+                                • Temporal Adjustment: +1.2 points (improving lately)<br>
+                                • Consistency Factor: +0.3 points (reliable performance)<br>
+                                • SoS Bonus: +1.1 points (strong schedule)<br>
+                                • Games Bonus: +2.2 points (played full season)<br>
+                                <strong>Final Score:</strong> 45.8 - 8.2 - 0.5 + 1.2 + 0.3 + 1.1 + 2.2 = <span class="component-positive">41.9 points</span></p>
+                            </div>
+
+                            <div class="advanced-feature">
+                                <h6><strong>🔧 Advanced Feature: Dynamic Component Weighting</strong></h6>
+                                <p>The system automatically adjusts component weights based on sample size and data quality. Teams with more games get different weighting than teams with fewer games, ensuring fair comparisons across different sample sizes.</p>
+                            </div>
+                        </div>
+
+
+
+
+
+                        <!-- Module 7: Game Context Analyzer -->
+                        <div class="module-header">
+                            <h3>🎮 MODULE 7: Game Context Analyzer</h3>
+                        </div>
+                        <div class="methodology-section">
+                            <p>This module understands the stakes and context of different games:</p>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5>High-Stakes Game Bonuses</h5>
+                                    <ul>
+                                        <li><strong>Conference Championships:</strong> Extra victory value and loss penalties</li>
+                                        <li><strong>Rivalry Week:</strong> Enhanced emotional stakes</li>
+                                        <li><strong>Late-season conference games:</strong> Division title implications</li>
+                                        <li><strong>Bowl games:</strong> Meaningful postseason matchups</li>
+                                        <li><strong>CFP games:</strong> Highest-stakes competition</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5>Contextual Adjustments</h5>
+                                    <ul>
+                                        <li><strong>Cross-country travel impact:</strong> Time zone considerations</li>
+                                        <li><strong>Bye week advantages:</strong> Rest vs. rust factors</li>
+                                        <li><strong>Conference opponent detection:</strong> Late-season divisional games</li>
+                                        <li><strong>Neutral site considerations:</strong> Bowl game environments</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Module 8: Schedule Quality Assessor -->
+                        <div class="module-header">
+                            <h3>📅 MODULE 8: Schedule Quality Assessor</h3>
+                        </div>
+                        <div class="methodology-section">
+                            <p>This module prevents teams from gaming the system with weak schedules:</p>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5>Weak Opponent Penalties</h5>
+                                    <ul>
+                                        <li><strong>Multiple FCS games:</strong> -1.5 penalty</li>
+                                        <li><strong>4+ very weak opponents (<2.5 quality):</strong> -2.5 penalty</li>
+                                        <li><strong>6+ combined weak opponents:</strong> -2.0 penalty</li>
+                                        <li><strong>P4 teams held to higher standard:</strong> 1.2× multiplier on penalties</li>
+                                        <li><strong>Late-season cupcakes:</strong> Extra penalties for Week 10+ weak games</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5>Strong Schedule Rewards</h5>
+                                    <ul>
+                                        <li><strong>6+ elite opponents:</strong> -1.0 penalty reduction</li>
+                                        <li><strong>4+ elite opponents:</strong> -0.5 penalty reduction</li>
+                                        <li><strong>Comprehensive SoS rating:</strong> 1-10 scale with bonuses</li>
+                                        <li><strong>Schedule manipulation detection:</strong> Flags suspicious patterns</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="warning-box">
+                                <h6><strong>⚠️ Schedule Manipulation Detection</strong></h6>
+                                <p>Our system automatically flags potential schedule manipulation:</p>
+                                <ul class="mb-0">
+                                    <li>Multiple weak opponents late in season</li>
+                                    <li>Excessive home game loading (>75% home games)</li>
+                                    <li>Multiple FCS opponents scheduled</li>
+                                    <li>Avoiding quality opponents within reasonable travel distance</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Conference Multiplier System -->
+                        <div class="methodology-section">
+                            <h2>🏆 Conference Tier & Multiplier System</h2>
                             <div class="row">
                                 <div class="col-md-4">
                                     <div class="card h-100">
@@ -81,13 +504,13 @@
                                         <div class="card-body">
                                             <p><strong>Full Credit (100%)</strong></p>
                                             <ul class="small">
-                                                <li>ACC</li>
-                                                <li>Big Ten</li>
-                                                <li>Big XII</li>
-                                                <li>SEC</li>
+                                                <li>SEC (1.05× internal)</li>
+                                                <li>Big Ten (1.03× internal)</li>
+                                                <li>Big XII (1.0× internal)</li>
+                                                <li>ACC (0.98× internal)</li>
+                                                <li>Pac 12 (0.95× internal)</li>
                                                 <li>Notre Dame (Independent)</li>
                                             </ul>
-                                            <p class="text-success"><strong>Why:</strong> P4 conferences represent the highest level of competition with the best resources, recruiting, and schedule strength.</p>
                                         </div>
                                     </div>
                                 </div>
@@ -100,268 +523,179 @@
                                         <div class="card-body">
                                             <p><strong>Reduced Credit (85%)</strong></p>
                                             <ul class="small">
-                                                <li>American Athletic</li>
-                                                <li>Conference USA</li>
-                                                <li>MAC</li>
-                                                <li>Mountain West</li>
-                                                <li>Sun Belt</li>
+                                                <li>American (0.85× internal)</li>
+                                                <li>Mountain West (0.83× internal)</li>
+                                                <li>Sun Belt (0.82× internal)</li>
+                                                <li>MAC (0.80× internal)</li>
+                                                <li>Conference USA (0.78× internal)</li>
                                                 <li>UConn (Independent)</li>
                                             </ul>
-                                            <p class="text-warning"><strong>Why:</strong> G5 teams typically face weaker schedules and have fewer resources, so victories are worth 85% of P4 equivalent.</p>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="card h-100">
-                                        <div class="card-header bg-secondary text-white">
+                                        <div class="card-header bg-danger text-white">
                                             <h5 class="mb-0">FCS & Others</h5>
-                                            <span class="tier-badge tier-fcs">Special Rules</span>
+                                            <span class="tier-badge tier-fcs">Special Penalties</span>
                                         </div>
                                         <div class="card-body">
-                                            <p><strong>Minimal Credit</strong></p>
+                                            <p><strong>Minimal Credit / Major Penalties</strong></p>
                                             <ul class="small">
-                                                <li>FCS Teams</li>
-                                                <li>Non-FBS Opponents</li>
+                                                <li><strong>Beating FCS:</strong> Max 1.0 point</li>
+                                                <li><strong>Losing to FCS:</strong> Min -12.0 penalty</li>
+                                                <li>No location bonuses vs FCS</li>
+                                                <li>Minimal margin credit vs FCS</li>
+                                                <li>FCS wins don't count for bowl eligibility</li>
                                             </ul>
-                                            <p class="text-muted"><strong>Why:</strong> FCS wins receive minimal credit regardless of margin, with a hard cap at 1.0 total victory points.</p>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-
-                            <div class="example-box mt-4">
-                                <h6><strong>Conference Multiplier Examples:</strong></h6>
-                                <p><strong>Alabama (P4) beats quality opponent:</strong> 8.5 base victory value × 1.0 = <span class="component-positive">8.5 final points</span></p>
-                                <p><strong>Boise State (G5) beats same opponent:</strong> 8.5 base victory value × 0.85 = <span class="component-neutral">7.2 final points</span></p>
-                                <p><strong>Result:</strong> Alabama gets 18% more credit (1.3 extra points) for the same quality win, reflecting the different competitive levels.</p>
-                            </div>
                         </div>
 
-                        <!-- Victory Value System -->
+                        <!-- Advanced Prediction System -->
                         <div class="methodology-section">
-                            <h2>🎯 Victory Value Calculation</h2>
-                            <p>Each victory is worth different amounts based on multiple factors:</p>
+                            <h2>🔮 Enhanced Prediction & Comparison System</h2>
+                            <p>Our prediction system uses all 8 modules to forecast game outcomes with confidence ratings:</p>
                             
                             <div class="row">
                                 <div class="col-md-6">
-                                    <h5>1. Opponent Quality (1-10 scale)</h5>
+                                    <h5>Prediction Components</h5>
                                     <ul>
-                                        <li><strong>Elite teams (8-10):</strong> High value</li>
-                                        <li><strong>Good teams (6-8):</strong> Solid value</li>
-                                        <li><strong>Average teams (4-6):</strong> Moderate value</li>
-                                        <li><strong>Weak teams (1-4):</strong> Low value</li>
-                                        <li><strong>FCS teams:</strong> Fixed 0.5 (minimal)</li>
+                                        <li><strong>Base strength differential:</strong> Scientific ranking gap</li>
+                                        <li><strong>Enhanced common opponents:</strong> Quality-weighted comparisons</li>
+                                        <li><strong>Multi-period momentum analysis:</strong> Recent form trajectories</li>
+                                        <li><strong>Schedule strength comparison:</strong> Who's been tested more</li>
+                                        <li><strong>Team-specific home field:</strong> Venue-specific advantages</li>
+                                        <li><strong>Travel impact assessment:</strong> Cross-country game effects</li>
+                                        <li><strong>Conference context analysis:</strong> Nuanced P4/G5 adjustments</li>
                                     </ul>
                                 </div>
                                 <div class="col-md-6">
-                                    <h5>2. Location Multiplier</h5>
+                                    <h5>Confidence Rating System</h5>
                                     <ul>
-                                        <li><strong>Home wins:</strong> 1.0× (baseline)</li>
-                                        <li><strong>Neutral site wins:</strong> 1.15× (+15%)</li>
-                                        <li><strong>Road wins:</strong> 1.3× (+30%)</li>
-                                        <li><strong>Exception:</strong> No location bonus vs FCS</li>
+                                        <li><strong>Sample size factor:</strong> More games = higher confidence</li>
+                                        <li><strong>Margin size factor:</strong> Bigger predicted margins = higher confidence</li>
+                                        <li><strong>Common opponent count:</strong> More shared opponents = higher confidence</li>
+                                        <li><strong>Consistency factor:</strong> Aligned indicators = higher confidence</li>
+                                        <li><strong>Final confidence levels:</strong> High/Medium/Low with percentages</li>
+                                        <li><strong>Win probability calculation:</strong> Enhanced algorithm with confidence weighting</li>
                                     </ul>
                                 </div>
-                            </div>
-
-                            <div class="row mt-3">
-                                <div class="col-md-6">
-                                    <h5>3. Margin of Victory Bonus</h5>
-                                    <ul>
-                                        <li><strong>0-7 points:</strong> Linear scaling</li>
-                                        <li><strong>7-14 points:</strong> Diminishing returns</li>
-                                        <li><strong>14-21 points:</strong> Slower growth</li>
-                                        <li><strong>21+ points:</strong> Minimal extra benefit</li>
-                                        <li><strong>FCS games:</strong> Max 0.2 bonus regardless of score</li>
-                                    </ul>
-                                </div>
-                                <div class="col-md-6">
-                                    <h5>4. Rivalry Bonus</h5>
-                                    <ul>
-                                        <li><strong>Tier 1 rivalries:</strong> +1.0 points<br>
-                                            <small>(Alabama-Auburn, Ohio State-Michigan, etc.)</small></li>
-                                        <li><strong>Standard rivalries:</strong> +0.6 points</li>
-                                        <li><strong>Conference context:</strong> Extra points for P4 vs P4</li>
-                                        <li><strong>G5 beating P4:</strong> Major bonus</li>
-                                    </ul>
-                                </div>
-                            </div>
-
-                            <div class="example-box">
-                                <h6><strong>Victory Value Example:</strong></h6>
-                                <p><strong>Georgia (P4) beats Alabama (quality 9.2) on the road by 14 points in rivalry game:</strong></p>
-                                <p>Base Value: 9.2 (opponent) × 1.3 (road) = 11.96<br>
-                                Margin Bonus: +1.26 (14-point win)<br>
-                                Rivalry Bonus: +1.0 (Tier 1 rivalry)<br>
-                                Conference Bonus: +0.3 (P4 vs P4)<br>
-                                <strong>Total Before Multiplier:</strong> 14.52<br>
-                                <strong>Final Value:</strong> 14.52 × 1.0 (P4 multiplier) = <span class="component-positive">14.52 points</span></p>
                             </div>
                         </div>
 
-                        <!-- Loss Penalty System -->
+                        <!-- System Advantages -->
                         <div class="methodology-section">
-                            <h2>⚖️ Loss Penalty System</h2>
-                            <p>Not all losses are equal. Our system differentiates between quality losses and bad losses:</p>
+                            <h2>🎯 Why This System is Superior</h2>
                             
                             <div class="row">
                                 <div class="col-md-6">
-                                    <h5>Base Penalty Factors</h5>
+                                    <h5>vs. Human Polls (AP/Coaches)</h5>
                                     <ul>
-                                        <li><strong>Every loss starts:</strong> -3.0 points</li>
-                                        <li><strong>Opponent quality adjustment:</strong></li>
-                                        <ul>
-                                            <li>Elite opponent (7+): -1.5 reduction</li>
-                                            <li>Good opponent (5.5+): -0.5 reduction</li>
-                                            <li>Bad opponent (<4): +2.0 penalty increase</li>
-                                        </ul>
+                                        <li>✅ <strong>Zero human bias</strong> - no preconceptions or brand preferences</li>
+                                        <li>✅ <strong>Processes every game</strong> - analyzes all 1000+ games per season</li>
+                                        <li>✅ <strong>Consistent methodology</strong> - same criteria applied to every team</li>
+                                        <li>✅ <strong>Real-time updates</strong> - rankings change instantly when games complete</li>
+                                        <li>✅ <strong>Complete transparency</strong> - every component explained and visible</li>
                                     </ul>
                                 </div>
                                 <div class="col-md-6">
-                                    <h5>Additional Factors</h5>
+                                    <h5>vs. CFP Selection Committee</h5>
                                     <ul>
-                                        <li><strong>Margin penalty:</strong> Blowout losses hurt more</li>
-                                        <li><strong>Location adjustment:</strong> Home losses hurt more</li>
-                                        <li><strong>Overtime reduction:</strong> 30% less penalty for OT losses</li>
-                                        <li><strong>Minimum penalty:</strong> Never less than -0.5 points</li>
+                                        <li>✅ <strong>Objective criteria</strong> - no "eye test" or subjective evaluation</li>
+                                        <li>✅ <strong>No political influence</strong> - immune to TV deals and conference pressure</li>
+                                        <li>✅ <strong>Ranks all teams</strong> - comprehensive 130+ team evaluation</li>
+                                        <li>✅ <strong>Predictive capability</strong> - forecasts future matchups with confidence</li>
+                                        <li>✅ <strong>Context awareness</strong> - understands game situations and stakes</li>
                                     </ul>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Recent Form & Consistency -->
-                        <div class="methodology-section">
-                            <h2>📈 Recent Form & Consistency</h2>
                             <div class="row">
                                 <div class="col-md-6">
-                                    <h5>Temporal Adjustment (-2 to +2)</h5>
-                                    <p>Compares recent 4-game performance to season average:</p>
+                                    <h5>vs. Other Computer Systems</h5>
                                     <ul>
-                                        <li><strong>Improving teams:</strong> Positive adjustment</li>
-                                        <li><strong>Declining teams:</strong> Negative adjustment</li>
-                                        <li><strong>Stable teams:</strong> Minimal change</li>
+                                        <li>✅ <strong>Multi-module architecture</strong> - 8 specialized components vs. simple math</li>
+                                        <li>✅ <strong>Context awareness</strong> - understands FCS games, rivalries, championships</li>
+                                        <li>✅ <strong>Temporal sophistication</strong> - accounts for team development over time</li>
+                                        <li>✅ <strong>Schedule quality analysis</strong> - prevents manipulation and rewards strength</li>
+                                        <li>✅ <strong>Interactive features</strong> - team comparisons, bowl projections, CFP brackets</li>
                                     </ul>
                                 </div>
                                 <div class="col-md-6">
-                                    <h5>Consistency Factor (-0.6 to +0.5)</h5>
-                                    <p>Rewards reliable performance:</p>
+                                    <h5>Real-World Accuracy</h5>
                                     <ul>
-                                        <li><strong>Very consistent:</strong> +0.5 bonus</li>
-                                        <li><strong>Average consistency:</strong> 0.0</li>
-                                        <li><strong>Very inconsistent:</strong> -0.6 penalty</li>
+                                        <li>✅ <strong>Handles edge cases</strong> - FCS games, conference realignment, neutral sites</li>
+                                        <li>✅ <strong>Prevents stat padding</strong> - margin caps and quality-based scaling</li>
+                                        <li>✅ <strong>Rewards difficult schedules</strong> - proper credit for strength of schedule</li>
+                                        <li>✅ <strong>Recognizes improvement</strong> - teams get credit for getting better</li>
+                                        <li>✅ <strong>Conference-aware</strong> - understands different competitive levels</li>
                                     </ul>
                                 </div>
                             </div>
+
+                            <div class="alert alert-success mt-4">
+                                <h5><strong>🏆 The Result:</strong></h5>
+                                <p class="mb-0">The most comprehensive, accurate, and sophisticated college football ranking system ever created. Our 8-module approach considers every meaningful factor while maintaining objectivity and transparency. This isn't just a ranking system - it's a complete analytical framework for understanding college football performance.</p>
+                            </div>
                         </div>
 
-                        <!-- Why G5 Multiplier -->
+                        <!-- System Summary -->
                         <div class="methodology-section">
-                            <h2>🤔 Why the 0.85× G5 Multiplier?</h2>
+                            <h2>📋 Complete System Architecture</h2>
                             <div class="row">
                                 <div class="col-md-6">
-                                    <h5>Competitive Reality</h5>
-                                    <ul>
-                                        <li><strong>Resource disparity:</strong> P4 schools have significantly larger budgets</li>
-                                        <li><strong>Recruiting advantages:</strong> P4 teams consistently land top recruits</li>
-                                        <li><strong>Schedule strength:</strong> P4 teams face tougher regular competition</li>
-                                        <li><strong>Historical performance:</strong> Head-to-head records favor P4</li>
-                                    </ul>
+                                    <div class="card">
+                                        <div class="card-header bg-info text-white">
+                                            <h6 class="mb-0">Analytical Modules (1-8)</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <ol class="small mb-0">
+                                                <li>Enhanced Opponent Quality Engine</li>
+                                                <li>Enhanced Victory Value Calculator</li>
+                                                <li>Enhanced Loss Quality Assessment</li>
+                                                <li>Enhanced Temporal Weighting Engine</li>
+                                                <li>Consistency Analyzer</li>
+                                                <li>Enhanced Final Ranking Composer</li>
+                                                <li>Game Context Analyzer</li>
+                                                <li>Schedule Quality Assessor</li>
+                                            </ol>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="col-md-6">
-                                    <h5>Fair but Realistic</h5>
-                                    <ul>
-                                        <li><strong>Not punitive:</strong> 85% still rewards G5 excellence</li>
-                                        <li><strong>Elite G5 teams:</strong> Can still rank very highly</li>
-                                        <li><strong>Accounts for level:</strong> Beating similar-level opponents is worth less</li>
-                                        <li><strong>Postseason reality:</strong> Reflects actual playoff/bowl outcomes</li>
-                                    </ul>
+                                    <div class="card">
+                                        <div class="card-header bg-warning text-dark">
+                                            <h6 class="mb-0">Key Features</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <ul class="small mb-0">
+                                                <li>50+ variables per game analysis</li>
+                                                <li>Iterative opponent quality calculation</li>
+                                                <li>Team-specific home field advantages</li>
+                                                <li>Cross-country travel adjustments</li>
+                                                <li>Quality-based margin caps</li>
+                                                <li>Catastrophic FCS loss penalties</li>
+                                                <li>Multi-period trend analysis</li>
+                                                <li>Schedule manipulation detection</li>
+                                            </ul>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-
-                            <div class="alert alert-info">
-                                <h6><strong>Real-World Impact:</strong></h6>
-                                <p>An undefeated G5 team with strong victories can still rank ahead of 1-2 loss P4 teams. The 0.85× multiplier ensures G5 teams are evaluated fairly within their competitive context while acknowledging the different levels of college football.</p>
-                            </div>
-                        </div>
-
-                        <!-- Special Cases -->
-                        <div class="methodology-section">
-                            <h2>🚨 Special Cases & Rules</h2>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h5>FCS Games</h5>
-                                    <ul>
-                                        <li><strong>Opponent quality:</strong> Fixed 0.5 (never changes)</li>
-                                        <li><strong>No location bonus:</strong> Road FCS wins get no extra credit</li>
-                                        <li><strong>Minimal margin bonus:</strong> Max 0.2 regardless of score</li>
-                                        <li><strong>Hard cap:</strong> FCS wins never worth more than 1.0 point</li>
-                                        <li><strong>Bowl eligibility:</strong> FCS wins don't count toward 6-win requirement</li>
-                                    </ul>
-                                </div>
-                                <div class="col-md-6">
-                                    <h5>Conference Adjustments</h5>
-                                    <ul>
-                                        <li><strong>P4 vs P4:</strong> +0.3 bonus for quality matchup</li>
-                                        <li><strong>G5 vs P4:</strong> +0.5 major bonus for G5 team</li>
-                                        <li><strong>Neutral sites:</strong> No conference bonus adjustments</li>
-                                        <li><strong>Notre Dame:</strong> Treated as P4 (1.0× multiplier)</li>
-                                        <li><strong>UConn:</strong> Treated as G5 (0.85× multiplier)</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Prediction System -->
-                        <div class="methodology-section">
-                            <h2>🔮 Team Comparison & Predictions</h2>
-                            <p>Our prediction system uses the same scientific principles to forecast game outcomes:</p>
-                            
-                            <ul>
-                                <li><strong>Base prediction:</strong> Scientific ranking score differential</li>
-                                <li><strong>Common opponents:</strong> Head-to-head performance analysis</li>
-                                <li><strong>Recent momentum:</strong> Form and trending adjustments</li>
-                                <li><strong>Schedule strength:</strong> Opponent quality comparison</li>
-                                <li><strong>Home field advantage:</strong> Team-specific venue effects</li>
-                                <li><strong>Conference context:</strong> Nuanced P4/G5 adjustments</li>
-                            </ul>
-                        </div>
-
-                        <!-- Summary -->
-                        <div class="methodology-section">
-                            <h2>✅ System Summary</h2>
-                            <p>This methodology creates the most accurate and comprehensive college football rankings by:</p>
-                            
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <ul>
-                                        <li>✅ <strong>Evaluating every game contextually</strong></li>
-                                        <li>✅ <strong>Accounting for opponent quality</strong></li>
-                                        <li>✅ <strong>Recognizing competitive level differences</strong></li>
-                                        <li>✅ <strong>Rewarding consistency and recent form</strong></li>
-                                    </ul>
-                                </div>
-                                <div class="col-md-6">
-                                    <ul>
-                                        <li>✅ <strong>Penalizing bad losses appropriately</strong></li>
-                                        <li>✅ <strong>Providing fair but realistic G5 evaluation</strong></li>
-                                        <li>✅ <strong>Creating accurate head-to-head predictions</strong></li>
-                                        <li>✅ <strong>Adapting to changing team performance</strong></li>
-                                    </ul>
-                                </div>
-                            </div>
-
-                            <div class="alert alert-success mt-3">
-                                <strong>Result:</strong> A ranking system that values both achievement and context, providing the most accurate representation of team strength while acknowledging the realities of college football's competitive landscape.
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Back Button -->
+                <!-- Navigation -->
                 <div class="row mt-3">
                     <div class="col-12 text-center">
                         <a href="/" class="btn btn-primary">Back to Rankings</a>
                         <a href="/compare" class="btn btn-secondary">Compare Teams</a>
+                        <a href="/cfp_bracket" class="btn btn-info">CFP Bracket</a>
+                        <a href="/bowl_projections" class="btn btn-warning">Bowl Projections</a>
                     </div>
                 </div>
             </div>

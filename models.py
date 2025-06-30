@@ -27,6 +27,15 @@ class Game(db.Model):
     date_added = db.Column(db.DateTime, default=datetime.utcnow)  # When game was added
     game_date = db.Column(db.Date, nullable=True)  # When game was actually played
     
+    # ADD THESE LINES FOR PERFORMANCE (right before def to_dict):
+    __table_args__ = (
+        db.Index('idx_games_week_teams', 'week', 'home_team', 'away_team'),
+        db.Index('idx_games_teams_lookup', 'home_team', 'away_team'),
+        db.Index('idx_games_date_added', 'date_added'),
+        db.Index('idx_games_week_date', 'week', 'game_date'),
+    )
+
+
     def to_dict(self):
         """Convert database row back to the format your app expects"""
         return {
@@ -61,6 +70,16 @@ class TeamStats(db.Model):
     games_json = db.Column(db.Text, default='[]')  # Store individual games as JSON text
     last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
+    # ADD THESE LINES FOR PERFORMANCE (right before @property):
+    __table_args__ = (
+        db.Index('idx_team_stats_record', 'wins', 'losses'),
+        db.Index('idx_team_stats_games_played', 'wins', 'losses', 'team_name'),
+        db.Index('idx_team_stats_updated', 'last_updated'),
+        db.Index('idx_team_stats_points', 'points_for', 'points_against'),
+    )
+
+
+
     @property
     def games(self):
         """Get the games list (converts JSON text back to Python list)"""
@@ -106,6 +125,14 @@ class ScheduledGame(db.Model):
     final_home_score = db.Column(db.Integer, nullable=True)
     final_away_score = db.Column(db.Integer, nullable=True)
     overtime = db.Column(db.Boolean, default=False)
+
+    # ADD THESE LINES FOR PERFORMANCE (right before def to_dict):
+    __table_args__ = (
+        db.Index('idx_scheduled_week_completed', 'week', 'completed'),
+        db.Index('idx_scheduled_teams', 'home_team', 'away_team'),
+        db.Index('idx_scheduled_date_time', 'game_date', 'game_time'),
+        db.Index('idx_scheduled_completed_lookup', 'completed', 'week'),
+    )
     
     def to_dict(self):
         return {
@@ -140,6 +167,13 @@ class ArchivedSeason(db.Model):
     
     # Store the complete archive data as JSON text
     archive_data_json = db.Column(db.Text)
+
+    # ADD THESE LINES FOR PERFORMANCE (right before def to_dict):
+    __table_args__ = (
+        db.Index('idx_archived_season_name', 'season_name'),
+        db.Index('idx_archived_date_desc', 'archived_date'),
+        db.Index('idx_archived_champion', 'champion'),
+    )
     
     def to_dict(self):
         return {

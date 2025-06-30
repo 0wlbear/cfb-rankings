@@ -47,6 +47,245 @@
                  </div>
              </div>
          </div>
+
+
+         <!-- Add these visualizations to your team detail template -->
+<!-- Include Chart.js CDN in your template head -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+
+<div class="row">
+    <!-- Victory Value Trend Chart -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>📈 Victory Value Trend</h5>
+                <small class="text-muted">How impressive have your wins been over time?</small>
+            </div>
+            <div class="card-body">
+                <canvas id="victoryValueChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Win/Loss Record Breakdown -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>🏈 Win/Loss Breakdown</h5>
+                <small class="text-muted">Performance by game location</small>
+            </div>
+            <div class="card-body">
+                <canvas id="winLossChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Opponent Quality Distribution -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>🎯 Opponent Quality Distribution</h5>
+                <small class="text-muted">Strength of teams you've faced</small>
+            </div>
+            <div class="card-body">
+                <canvas id="opponentQualityChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Victory Margins -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>📊 Victory Margins</h5>
+                <small class="text-muted">How convincing were your wins?</small>
+            </div>
+            <div class="card-body">
+                <canvas id="victoryMarginsChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center bg-primary text-white">
+            <div class="card-body">
+                <h3>{{ team_stats.avg_victory_value|round(1) }}</h3>
+                <p class="mb-0">Avg Victory Value</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center bg-success text-white">
+            <div class="card-body">
+                <h3>{{ team_stats.avg_margin|round(1) }}</h3>
+                <p class="mb-0">Avg Win Margin</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center bg-info text-white">
+            <div class="card-body">
+                <h3>{{ team_stats.strongest_win.opponent }}</h3>
+                <p class="mb-0">Best Win</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center bg-warning text-white">
+            <div class="card-body">
+                <h3>{{ team_stats.avg_opp_quality|round(1) }}/10</h3>
+                <p class="mb-0">Avg Opponent</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Form Visualization -->
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>🔥 Recent Form (Last 5 Games)</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-center">
+                    {% for game in recent_games %}
+                    <div class="mx-2 text-center">
+                        <div class="badge badge-{% if game.result == 'W' %}success{% else %}danger{% endif %} p-3 mb-2" style="font-size: 1.2em;">
+                            {{ game.result }}
+                        </div>
+                        <div style="font-size: 0.8em;">
+                            vs {{ game.opponent }}<br>
+                            {{ game.team_score }}-{{ game.opp_score }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- REPLACE YOUR CURRENT SCRIPT SECTION WITH THIS -->
+<script>
+// Victory Value Trend Chart
+if (document.getElementById('victoryChart')) {
+    const ctx = document.getElementById('victoryChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ game_weeks|tojson }}, // FIXED: Use tojson not tojsonfilter
+            datasets: [{
+                label: 'Victory Value',
+                data: {{ victory_values|tojson }}, // FIXED: Use tojson not tojsonfilter
+                borderColor: '#007bff',
+                backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, title: { display: true, text: 'Victory Value' } },
+                x: { title: { display: true, text: 'Week' } }
+            }
+        }
+    });
+}
+
+// Win/Loss Chart
+if (document.getElementById('winLossChart')) {
+    const winLossCtx = document.getElementById('winLossChart').getContext('2d');
+    new Chart(winLossCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Home Wins', 'Away Wins', 'Losses'],
+            datasets: [{
+                data: [{{ home_wins }}, {{ away_wins }}, {{ total_losses }}], // Simple variables, no filter needed
+                backgroundColor: ['#28a745', '#17a2b8', '#dc3545']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+}
+
+// Opponent Quality Chart
+if (document.getElementById('opponentQualityChart')) {
+    const oppQualityCtx = document.getElementById('opponentQualityChart').getContext('2d');
+    new Chart(oppQualityCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Weak (1-3)', 'Average (4-6)', 'Strong (7-8)', 'Elite (9-10)'],
+            datasets: [{
+                label: 'Number of Games',
+                data: {{ opponent_quality_distribution|tojson }}, // FIXED: Use tojson
+                backgroundColor: ['#ffc107', '#fd7e14', '#6f42c1', '#e83e8c']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, title: { display: true, text: 'Games Played' } }
+            }
+        }
+    });
+}
+
+// Victory Margins Chart
+if (document.getElementById('victoryMarginsChart')) {
+    const marginsCtx = document.getElementById('victoryMarginsChart').getContext('2d');
+    new Chart(marginsCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ win_opponents|tojson }}, // FIXED: Use tojson
+            datasets: [{
+                label: 'Victory Margin',
+                data: {{ win_margins|tojson }}, // FIXED: Use tojson
+                backgroundColor: function(context) {
+                    const value = context.parsed.y;
+                    return value > 21 ? '#28a745' : value > 14 ? '#ffc107' : value > 7 ? '#fd7e14' : '#dc3545';
+                }
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, title: { display: true, text: 'Points' } },
+                x: { title: { display: true, text: 'Opponents' } }
+            }
+        }
+    });
+}
+</script>
+
+<style>
+.card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.badge {
+    font-size: 1em !important;
+}
+</style>
         
          <h3>Game History</h3>
          {% if stats.games %}
