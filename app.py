@@ -3116,6 +3116,157 @@ def team_bowl_status_detail(team_name):
     """, team_name=team_name, status=status)    
 
 
+# Add this temporary debug route to check your production database
+@app.route('/debug_db_columns')
+def debug_db_columns():
+    """Check what columns exist in scheduled_games table"""
+    try:
+        # Get database connection
+        connection = db.engine.raw_connection()
+        cursor = connection.cursor()
+        
+        # Check columns in scheduled_games table
+        cursor.execute("""
+            SELECT column_name, data_type 
+            FROM information_schema.columns 
+            WHERE table_name = 'scheduled_games'
+            ORDER BY column_name;
+        """)
+        columns = cursor.fetchall()
+        
+        # Also check for any completed scheduled games
+        cursor.execute("""
+            SELECT id, week, home_team, away_team, completed,
+                   CASE 
+                       WHEN EXISTS (
+                           SELECT 1 FROM information_schema.columns 
+                           WHERE table_name = 'scheduled_games' 
+                           AND column_name = 'final_home_score'
+                       ) THEN 'HAS_SCORE_COLUMNS'
+                       ELSE 'NO_SCORE_COLUMNS'
+                   END as has_score_cols
+            FROM scheduled_games 
+            WHERE completed = true 
+            LIMIT 5;
+        """)
+        completed_games = cursor.fetchall()
+        
+        cursor.close()
+        connection.close()
+        
+        output = f"""
+        <h1>Production Database Debug</h1>
+        
+        <h2>Columns in scheduled_games table:</h2>
+        <ul>
+        {''.join(f'<li>{col[0]} ({col[1]})</li>' for col in columns)}
+        </ul>
+        
+        <h2>Key columns check:</h2>
+        <ul>
+        <li>final_home_score: {'✅ EXISTS' if any('final_home_score' in str(col) for col in columns) else '❌ MISSING'}</li>
+        <li>final_away_score: {'✅ EXISTS' if any('final_away_score' in str(col) for col in columns) else '❌ MISSING'}</li>
+        <li>overtime: {'✅ EXISTS' if any('overtime' in str(col) for col in columns) else '❌ MISSING'}</li>
+        </ul>
+        
+        <h2>Completed games sample:</h2>
+        <ul>
+        {''.join(f'<li>Week {game[1]}: {game[2]} vs {game[3]} - {game[5]}</li>' for game in completed_games)}
+        </ul>
+        
+        <p><a href="/admin">Back to Admin</a></p>
+        """
+        
+        return output
+        
+    except Exception as e:
+        return f"<h1>Error</h1><p>{e}</p>"
+
+
+# Add this debug route to see what's actually in the completed games
+@app.route('/debug_completed_games')
+def debug_completed_games():
+    """Check what data is in completed scheduled games"""
+    try:
+        # Get database connection
+        connection = db.engine.raw_connection()
+        cursor = connection.cursor()
+        
+        # Check completed scheduled games and their scores
+        cursor.execute("""
+            SELECT id, week, home_team, away_team, completed,
+                   final_home_score, final_away_score, overtime,
+                   game_date, tv_network
+            FROM scheduled_games 
+            WHERE completed = true 
+            ORDER BY week, id;
+        """)
+        completed_games = cursor.fetchall()
+        
+        # Also check regular games for comparison
+        cursor.execute("""
+            SELECT week, home_team, away_team, home_score, away_score, overtime
+            FROM games 
+            ORDER BY week, id 
+            LIMIT 10;
+        """)
+        regular_games = cursor.fetchall()
+        
+        cursor.close()
+        connection.close()
+        
+        output = f"""
+        <h1>Completed Games Debug</h1>
+        
+        <h2>Completed Scheduled Games ({len(completed_games)} total):</h2>
+        <table border="1" style="border-collapse: collapse;">
+        <tr>
+            <th>ID</th><th>Week</th><th>Home</th><th>Away</th>
+            <th>Final Home Score</th><th>Final Away Score</th><th>OT</th><th>TV</th>
+        </tr>
+        """
+        
+        for game in completed_games:
+            output += f"""
+            <tr>
+                <td>{game[0]}</td><td>{game[1]}</td><td>{game[2]}</td><td>{game[3]}</td>
+                <td style="color: {'red' if game[5] is None else 'green'}">{game[5]}</td>
+                <td style="color: {'red' if game[6] is None else 'green'}">{game[6]}</td>
+                <td>{game[7]}</td><td>{game[9]}</td>
+            </tr>
+            """
+        
+        output += f"""
+        </table>
+        
+        <h2>Regular Games (for comparison):</h2>
+        <table border="1" style="border-collapse: collapse;">
+        <tr><th>Week</th><th>Home</th><th>Away</th><th>Home Score</th><th>Away Score</th><th>OT</th></tr>
+        """
+        
+        for game in regular_games:
+            output += f"<tr><td>{game[0]}</td><td>{game[1]}</td><td>{game[2]}</td><td>{game[3]}</td><td>{game[4]}</td><td>{game[5]}</td></tr>"
+        
+        output += f"""
+        </table>
+        
+        <h2>Analysis:</h2>
+        <ul>
+        <li>Red scores = NULL (problem!)</li>
+        <li>Green scores = actual values (good!)</li>
+        </ul>
+        
+        <p><strong>Issue:</strong> Completed scheduled games have NULL final scores, so they show as 0-0</p>
+        <p><strong>Solution:</strong> Either fix the add_game route or reset these games to incomplete</p>
+        
+        <p><a href="/admin">Back to Admin</a></p>
+        """
+        
+        return output
+        
+    except Exception as e:
+        return f"<h1>Error</h1><p>{e}</p>"
+
 
 # Replace your compare_teams route with this simpler debug version first
 
