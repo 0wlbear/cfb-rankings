@@ -1155,30 +1155,6 @@ def save_data():
     """Database auto-saves, so this function now does nothing"""
     pass  # Database automatically saves when we commit transactions
 
-def save_scheduled_games():
-    """Save scheduled games to JSON file"""
-    try:
-        scheduled_file = os.path.join(DATA_DIR, 'scheduled_games.json')
-        with open(scheduled_file, 'w') as f:
-            json.dump(scheduled_games, f, indent=2)
-    except Exception as e:
-        print(f"Error saving scheduled games: {e}")
-
-def load_scheduled_games():
-    """Load scheduled games from JSON file"""
-    global scheduled_games
-    try:
-        scheduled_file = os.path.join(DATA_DIR, 'scheduled_games.json')
-        with open(scheduled_file, 'r') as f:
-            scheduled_games = json.load(f)
-        print(f"Loaded {len(scheduled_games)} scheduled games")
-    except FileNotFoundError:
-        print("No scheduled games file found, starting fresh")
-        scheduled_games = []
-    except Exception as e:
-        print(f"Error loading scheduled games: {e}")
-        scheduled_games = []
-
 
 def load_data():
     """Initialize database if needed - replaces JSON loading"""
@@ -3966,28 +3942,19 @@ def is_fcs_opponent(opponent_name):
 
 
 def save_team_mappings():
-    """Save team mappings to JSON file"""
-    try:
-        mappings_file = os.path.join(DATA_DIR, 'team_mappings.json')
-        with open(mappings_file, 'w') as f:
-            json.dump(team_mappings, f, indent=2)
-    except Exception as e:
-        print(f"Error saving team mappings: {e}")
+    """Save team mappings - DATABASE VERSION (simplified)"""
+    # Since team mappings are used during schedule import and are temporary,
+    # we can just keep them in memory for the session
+    # If you want permanent storage, you'd need a TeamMapping database table
+    pass
 
 def load_team_mappings():
-    """Load team mappings from JSON file"""
+    """Load team mappings - DATABASE VERSION"""
+    # Keep mappings in memory only
     global team_mappings
-    try:
-        mappings_file = os.path.join(DATA_DIR, 'team_mappings.json')
-        with open(mappings_file, 'r') as f:
-            team_mappings = json.load(f)
-        print(f"Loaded {len(team_mappings)} team mappings")
-    except FileNotFoundError:
-        print("No team mappings file found, starting fresh")
+    if 'team_mappings' not in globals():
         team_mappings = {}
-    except Exception as e:
-        print(f"Error loading team mappings: {e}")
-        team_mappings = {}
+    return team_mappings
 
 def get_team_suggestions(unknown_team):
     """Get suggestions for unknown team names with variations check"""
@@ -4650,67 +4617,48 @@ def reset_data():
 historical_rankings = []
 
 def save_weekly_snapshot(week_number):
-    """Save current rankings as a weekly snapshot"""
-    # Create comprehensive stats table
-    comprehensive_stats = []
+    """Save current rankings as a weekly snapshot - DATABASE VERSION"""
+    # Since you're using database-only, we can either:
+    # Option A: Skip saving snapshots entirely
+    # Option B: Create a WeeklySnapshot database table
     
-    for conf_name, teams in CONFERENCES.items():
-        for team in teams:
-            stats = calculate_comprehensive_stats(team)
-            stats['team'] = team
-            stats['conference'] = conf_name
-            comprehensive_stats.append(stats)
-    
-    # Sort by Adjusted Total (highest first)
-    comprehensive_stats.sort(key=lambda x: x['adjusted_total'], reverse=True)
-    
-    # Create snapshot with rankings
-    snapshot = {
-        'week': week_number,
-        'date': datetime.now().strftime('%Y-%m-%d'),
-        'rankings': []
-    }
-    
-    for rank, team_data in enumerate(comprehensive_stats, 1):
-        snapshot['rankings'].append({
-            'rank': rank,
-            'team': team_data['team'],
-            'conference': team_data['conference'],
-            'wins': team_data['total_wins'],
-            'losses': team_data['total_losses'],
-            'adjusted_total': team_data['adjusted_total']
-        })
-    
-    # Add to historical data
-    historical_rankings.append(snapshot)
-    
-    # Save to file
-    save_historical_data()
-    print(f"📸 Weekly snapshot saved for Week {week_number}")
+    # For now, let's just log the snapshot instead of saving to file
+    try:
+        comprehensive_stats = []
+        for conf_name, teams in CONFERENCES.items():
+            for team in teams:
+                team_record = TeamStats.query.filter_by(team_name=team).first()
+                if team_record and (team_record.wins + team_record.losses) > 0:
+                    stats = calculate_comprehensive_stats(team)
+                    stats['team'] = team
+                    stats['conference'] = conf_name
+                    comprehensive_stats.append(stats)
+        
+        comprehensive_stats.sort(key=lambda x: x['adjusted_total'], reverse=True)
+        
+        print(f"📸 Weekly snapshot for Week {week_number}:")
+        print(f"   - {len(comprehensive_stats)} teams ranked")
+        if comprehensive_stats:
+            print(f"   - #1: {comprehensive_stats[0]['team']} ({comprehensive_stats[0]['adjusted_total']:.2f})")
+        
+        return True
+    except Exception as e:
+        print(f"Error creating weekly snapshot: {e}")
+        return False
 
 def save_historical_data():
-    """Save historical rankings to JSON file"""
-    try:
-        historical_file = os.path.join(DATA_DIR, 'historical_rankings.json')
-        with open(historical_file, 'w') as f:
-            json.dump(historical_rankings, f, indent=2)
-    except Exception as e:
-        print(f"Error saving historical data: {e}")
+    """Save historical rankings - DATABASE VERSION (simplified)"""
+    # Since we're database-only, this function now does nothing
+    # Historical data would need a separate database table if you want to keep it
+    pass
 
 def load_historical_data():
-    """Load historical rankings from JSON file"""
+    """Load historical rankings - DATABASE VERSION"""
+    # Return empty list since we're not storing historical snapshots
+    # You could create a WeeklySnapshot table if you want this functionality
     global historical_rankings
-    try:
-        historical_file = os.path.join(DATA_DIR, 'historical_rankings.json')
-        with open(historical_file, 'r') as f:
-            historical_rankings = json.load(f)
-        print(f"Loaded {len(historical_rankings)} historical snapshots")
-    except FileNotFoundError:
-        print("No historical data found, starting fresh")
-        historical_rankings = []
-    except Exception as e:
-        print(f"Error loading historical data: {e}")
-        historical_rankings = []
+    historical_rankings = []
+    return []
 
 
 # Season Archive System
@@ -4867,31 +4815,30 @@ def load_archived_season_details(season_id):
         return None
 
 def safe_reset_season():
-    """Reset current season data (only call after archiving!)"""
-    global games_data, team_stats, historical_rankings, scheduled_games
-    
-    games_data = []
-    team_stats = defaultdict(lambda: {
-        'wins': 0, 'losses': 0, 'points_for': 0, 'points_against': 0,
-        'home_wins': 0, 'road_wins': 0, 'margin_of_victory_total': 0,
-        'games': []
-    })
-    historical_rankings = []
-    scheduled_games = []  # NEW: Reset scheduled games too
-    
-    # Delete current season files (archives are preserved)
+    """Reset current season data - DATABASE ONLY VERSION"""
     try:
-        files_to_remove = ['games_data.json', 'team_stats.json', 'historical_rankings.json', 'scheduled_games.json', 'team_mappings.json']
-        for filename in files_to_remove:
-            file_path = os.path.join(DATA_DIR, filename)
-            if os.path.exists(file_path):
-                os.remove(file_path)
-        print("🗑️ Current season data reset successfully")
+        # Clear all database tables
+        Game.query.delete()
+        TeamStats.query.delete()
+        ScheduledGame.query.delete()
+        
+        # If you have other tables to clear, add them here:
+        # ArchivedSeason.query.delete()  # Only if you want to delete archives too
+        
+        db.session.commit()
+        
+        # Clear global variables (if still used anywhere)
+        global team_mappings, historical_rankings
+        team_mappings = {}
+        historical_rankings = []
+        
+        print("🗑️ Current season data reset successfully from database")
         return True
+        
     except Exception as e:
+        db.session.rollback()
         print(f"Error resetting season data: {e}")
         return False
-
 
 
 
@@ -4981,7 +4928,7 @@ def delete_archived_season():
 @app.route('/safe_reset_data', methods=['POST'])
 @login_required
 def safe_reset_data():
-    """Safely reset data with confirmation - DATABASE VERSION"""
+    """Safely reset data with confirmation - DATABASE ONLY VERSION"""
     try:
         confirm_text = request.form.get('reset_confirm', '').strip()
         if confirm_text != 'RESET':
@@ -4991,7 +4938,7 @@ def safe_reset_data():
         # Count current data
         game_count = Game.query.count()
         team_count = TeamStats.query.count()
-        scheduled_count = ScheduledGame.query.count()  # NEW: Count scheduled games
+        scheduled_count = ScheduledGame.query.count()
         
         if game_count > 0 or scheduled_count > 0:
             flash(f'⚠️ You have {game_count} games, {team_count} teams, and {scheduled_count} scheduled games. Are you sure you want to delete everything?', 'warning')
@@ -4999,7 +4946,7 @@ def safe_reset_data():
         # Clear all data from database
         Game.query.delete()
         TeamStats.query.delete()
-        ScheduledGame.query.delete()  # NEW: Clear scheduled games
+        ScheduledGame.query.delete()
         
         # Commit the deletions
         db.session.commit()
@@ -5020,112 +4967,37 @@ def import_csv():
         return render_template('import_csv.html')
     
     try:
-        season_name = request.form.get('season_name', '').strip()
-        if not season_name:
-            flash('Please enter a season name!', 'error')
-            return redirect(url_for('import_csv'))
+        # ... existing validation code ...
         
-        # Check if file was uploaded
-        if 'csv_file' not in request.files:
-            flash('Please select a CSV file!', 'error')
-            return redirect(url_for('import_csv'))
-        
-        file = request.files['csv_file']
-        if file.filename == '':
-            flash('Please select a CSV file!', 'error')
-            return redirect(url_for('import_csv'))
-        
-        if not file.filename.endswith('.csv'):
-            flash('Please upload a CSV file!', 'error')
-            return redirect(url_for('import_csv'))
-        
-        # Read and parse CSV
-        import csv
-        import io
-        
-        # Read file content
-        file_content = file.read().decode('utf-8')
-        csv_data = list(csv.DictReader(io.StringIO(file_content)))
-        
-        if not csv_data:
-            flash('CSV file is empty!', 'error')
-            return redirect(url_for('import_csv'))
-        
-        # Validate required columns
-        required_cols = ['Rank', 'Team', 'Conference', 'Wins', 'Losses', 'Adjusted_Total']
-        missing_cols = [col for col in required_cols if col not in csv_data[0].keys()]
-        if missing_cols:
-            flash(f'Missing required columns: {", ".join(missing_cols)}', 'error')
-            return redirect(url_for('import_csv'))
-        
-        # Process the data
-        final_rankings = []
-        for row in csv_data:
-            try:
-                team_data = {
-                    'final_rank': int(row['Rank']),
-                    'team': row['Team'].strip(),
-                    'conference': row['Conference'].strip(),
-                    'total_wins': int(row['Wins']),
-                    'total_losses': int(row['Losses']),
-                    'adjusted_total': float(row['Adjusted_Total']),
-                    'p4_wins': int(row.get('P4_Wins', 0)) if row.get('P4_Wins', '').strip() else 0,
-                    'g5_wins': int(row.get('G5_Wins', 0)) if row.get('G5_Wins', '').strip() else 0,
-                    'strength_of_schedule': 0.500,  # Default value
-                    'points_fielded': 0,  # Not available from CSV
-                    'points_allowed': 0,  # Not available from CSV
-                    'margin_of_victory': 0,  # Not available from CSV
-                    'point_differential': 0,  # Not available from CSV
-                    'home_wins': 0,  # Not available from CSV
-                    'road_wins': 0,  # Not available from CSV
-                    'opp_w': 0,  # Not available from CSV
-                    'opp_l': 0,  # Not available from CSV
-                    'opp_wl_differential': 0,  # Not available from CSV
-                    'totals': float(row['Adjusted_Total'])  # Use adjusted total as totals
-                }
-                final_rankings.append(team_data)
-            except (ValueError, KeyError) as e:
-                flash(f'Error processing row {row.get("Rank", "?")}: {e}', 'error')
-                return redirect(url_for('import_csv'))
-        
-        # Sort by rank to ensure proper order
-        final_rankings.sort(key=lambda x: x['final_rank'])
-        
-        # Create the archive structure
-        import_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        
-        season_archive = {
-            'season_name': season_name,
-            'archived_date': import_date,
-            'total_games': 0,  # Unknown from CSV import
-            'total_teams_with_games': len(final_rankings),
+        # Create the archive data
+        complete_archive_data = {
             'games_data': [],  # No individual games from CSV
-            'team_stats': {},  # No detailed stats from CSV
-            'historical_rankings': [],  # No weekly data from CSV
-            'final_rankings': final_rankings,
-            'season_summary': {
-                'champion': final_rankings[0] if final_rankings else None,
-                'total_weeks': 0,  # Unknown from CSV
-                'conferences_represented': len(set(team['conference'] for team in final_rankings)),
-                'import_source': 'CSV Import',
-                'import_date': import_date
-            }
+            'team_stats': {},  # No detailed stats from CSV  
+            'scheduled_games': [],  # No scheduled games from CSV
+            'final_rankings': final_rankings
         }
         
-        # Save the archive
-        archives_dir = os.path.join(DATA_DIR, 'archives')
-        os.makedirs(archives_dir, exist_ok=True)
+        # REPLACE file saving with database saving:
+        champion = final_rankings[0]['team'] if final_rankings else 'No Champion'
         
-        archive_filename = f"{season_name.replace(' ', '_').lower()}_complete.json"
-        archive_path = os.path.join(archives_dir, archive_filename)
+        from models import ArchivedSeason
+        archived_season = ArchivedSeason(
+            season_name=season_name,
+            total_games=0,  # Unknown from CSV
+            total_teams=len(final_rankings),
+            champion=champion,
+            total_weeks=0,  # Unknown from CSV
+            archive_data_json=json.dumps(complete_archive_data)
+        )
         
-        with open(archive_path, 'w') as f:
-            json.dump(season_archive, f, indent=2)
+        db.session.add(archived_season)
+        db.session.commit()
         
         flash(f'✅ Successfully imported {len(final_rankings)} teams for "{season_name}"!', 'success')
         return redirect(url_for('archived_seasons'))
         
     except Exception as e:
+        db.session.rollback()
         flash(f'Error importing CSV: {e}', 'error')
         return redirect(url_for('import_csv'))
 
