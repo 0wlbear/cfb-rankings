@@ -1342,7 +1342,10 @@ def calculate_team_base_strength(team_name, iteration=0, max_iterations=3):
     """
     if iteration >= max_iterations:
         # Base case: use simple metrics
-        stats = team_stats[team_name]
+        team_record = TeamStats.query.filter_by(team_name=team_name).first()  # ✅ NEW LINE
+        if not team_record:  # ✅ NEW LINE
+            return 5.0  # ✅ NEW LINE
+        stats = team_record.to_dict()  # ✅ NEW LINE
         total_games = stats['wins'] + stats['losses']
         if total_games == 0:
             return 5.0  # Neutral rating for teams with no games
@@ -1350,7 +1353,10 @@ def calculate_team_base_strength(team_name, iteration=0, max_iterations=3):
         win_pct = stats['wins'] / total_games
         return 2.0 + (win_pct * 6.0)  # Scale 2-8 based on win percentage
     
-    stats = team_stats[team_name]
+    team_record = TeamStats.query.filter_by(team_name=team_name).first()  # ✅ NEW LINE
+    if not team_record:  # ✅ NEW LINE
+        return 5.0  # ✅ NEW LINE
+    stats = team_record.to_dict()  # ✅ NEW LINE
     total_games = stats['wins'] + stats['losses']
     
     if total_games == 0:
@@ -1366,7 +1372,8 @@ def calculate_team_base_strength(team_name, iteration=0, max_iterations=3):
     
     for game in stats['games']:
         opponent = game['opponent']
-        if opponent in team_stats and opponent != team_name:
+        opponent_record = TeamStats.query.filter_by(team_name=opponent).first()  # ✅ NEW LINE
+        if opponent_record and opponent != team_name:  # ✅ NEW LINE
             # Recursive call with iteration limit
             opp_strength = calculate_team_base_strength(opponent, iteration + 1, max_iterations)
             
@@ -1401,13 +1408,15 @@ def get_current_opponent_quality(opponent_name):
         return 0.5  # Fixed quality - never changes regardless of FCS "record"
     
     # Handle other non-FBS opponents
-    if opponent_name not in team_stats:
+    opponent_record = TeamStats.query.filter_by(team_name=opponent_name).first()  # ✅ NEW LINE
+    if not opponent_record:  # ✅ NEW LINE
         return 1.5  # Lower default for unknown opponents
     
     base_strength = calculate_team_base_strength(opponent_name)
     
     # Adjust for recent form (last 4 games) - only for real teams
-    recent_games = team_stats[opponent_name]['games'][-4:]
+    opponent_stats = opponent_record.to_dict()  # ✅ NEW LINE
+    recent_games = opponent_stats['games'][-4:]  # ✅ NEW LINE
     if len(recent_games) >= 2:
         recent_wins = sum(1 for g in recent_games if g['result'] == 'W')
         recent_form_bonus = (recent_wins / len(recent_games) - 0.5) * 1.0
@@ -1959,8 +1968,19 @@ def update_team_stats_simplified(team, opponent, team_score, opp_score, is_home,
 
 def analyze_common_opponents(team1_name, team2_name):
     """Analyze how both teams performed against common opponents"""
-    team1_games = team_stats[team1_name]['games']
-    team2_games = team_stats[team2_name]['games']
+    team1_record = TeamStats.query.filter_by(team_name=team1_name).first()  # ✅ NEW LINE
+    team2_record = TeamStats.query.filter_by(team_name=team2_name).first()  # ✅ NEW LINE
+    
+    if not team1_record or not team2_record:  # ✅ NEW LINE
+        return {  # ✅ NEW LINE
+            'has_common': False,  # ✅ NEW LINE
+            'comparison': [],  # ✅ NEW LINE
+            'advantage': 0,  # ✅ NEW LINE
+            'summary': "No common opponents"  # ✅ NEW LINE
+        }  # ✅ NEW LINE
+    
+    team1_games = team1_record.to_dict()['games']  # ✅ NEW LINE
+    team2_games = team2_record.to_dict()['games']  # ✅ NEW LINE
     
     # Find common opponents
     team1_opponents = {game['opponent'] for game in team1_games}
@@ -2011,7 +2031,16 @@ def analyze_common_opponents(team1_name, team2_name):
 
 def calculate_recent_form(team_name, games_back=4):
     """Calculate recent form over last N games"""
-    games = team_stats[team_name]['games']
+    team_record = TeamStats.query.filter_by(team_name=team_name).first()  # ✅ NEW LINE
+    if not team_record:  # ✅ NEW LINE
+        return {  # ✅ NEW LINE
+            'record': '0-0',  # ✅ NEW LINE
+            'avg_margin': 0,  # ✅ NEW LINE
+            'trending': 'neutral',  # ✅ NEW LINE
+            'last_games': []  # ✅ NEW LINE
+        }  # ✅ NEW LINE
+    
+    games = team_record.to_dict()['games']  # ✅ NEW LINE
     if len(games) < games_back:
         games_back = len(games)
     
@@ -2104,7 +2133,14 @@ def analyze_style_matchup(team1_name, team2_name):
 
 def head_to_head_history(team1_name, team2_name):
     """Check if teams have played each other recently"""
-    team1_games = team_stats[team1_name]['games']
+    team1_record = TeamStats.query.filter_by(team_name=team1_name).first()  # ✅ NEW LINE
+    if not team1_record:  # ✅ NEW LINE
+        return {  # ✅ NEW LINE
+            'has_history': False,  # ✅ NEW LINE
+            'summary': "Teams have not played each other"  # ✅ NEW LINE
+        }  # ✅ NEW LINE
+    
+    team1_games = team1_record.to_dict()['games']  # ✅ NEW LINE
     
     # Look for games against each other
     h2h_games = [g for g in team1_games if g['opponent'] == team2_name]
@@ -2226,8 +2262,14 @@ def predict_matchup_enhanced(team1_name, team2_name, location='neutral'):
 
 def analyze_common_opponents_enhanced(team1_name, team2_name):
     """Enhanced common opponent analysis with recency weighting"""
-    team1_games = team_stats[team1_name]['games']
-    team2_games = team_stats[team2_name]['games']
+    team1_record = TeamStats.query.filter_by(team_name=team1_name).first()  # ✅ NEW LINE
+    team2_record = TeamStats.query.filter_by(team_name=team2_name).first()  # ✅ NEW LINE
+    
+    if not team1_record or not team2_record:  # ✅ NEW LINE
+        return {'has_common': False, 'advantage': 0, 'games_count': 0}  # ✅ NEW LINE
+    
+    team1_games = team1_record.to_dict()['games']  # ✅ NEW LINE
+    team2_games = team2_record.to_dict()['games']  # ✅ NEW LINE
     
     # Find common opponents
     team1_opponents = {game['opponent'] for game in team1_games}
@@ -2319,7 +2361,11 @@ def analyze_victory_quality_differential(team1_name, team2_name):
 
 def calculate_enhanced_recent_form(team_name, games_back=4):
     """Calculate enhanced recent form with momentum scoring"""
-    games = team_stats[team_name]['games']
+    team_record = TeamStats.query.filter_by(team_name=team_name).first()  # ✅ NEW LINE
+    if not team_record:  # ✅ NEW LINE
+        return {'momentum_score': 0, 'trend': 'insufficient_data'}  # ✅ NEW LINE
+    
+    games = team_record.to_dict()['games']  # ✅ NEW LINE
     if len(games) < 2:
         return {'momentum_score': 0, 'trend': 'insufficient_data'}
     
@@ -2400,8 +2446,14 @@ def calculate_conference_matchup_adjustment(team1_name, team2_name):
 
 def analyze_schedule_strength_differential(team1_name, team2_name):
     """Analyze difference in schedule difficulty"""
-    team1_games = team_stats[team1_name]['games']
-    team2_games = team_stats[team2_name]['games']
+    team1_record = TeamStats.query.filter_by(team_name=team1_name).first()  # ✅ NEW LINE
+    team2_record = TeamStats.query.filter_by(team_name=team2_name).first()  # ✅ NEW LINE
+    
+    if not team1_record or not team2_record:  # ✅ NEW LINE
+        return 0  # ✅ NEW LINE
+    
+    team1_games = team1_record.to_dict()['games']  # ✅ NEW LINE
+    team2_games = team2_record.to_dict()['games']  # ✅ NEW LINE
     
     if not team1_games or not team2_games:
         return 0
@@ -2439,7 +2491,11 @@ def calculate_enhanced_home_field_advantage(team1_name, team2_name, location):
 
 def analyze_home_performance(team_name):
     """Analyze how much a team benefits from playing at home"""
-    games = team_stats[team_name]['games']
+    team_record = TeamStats.query.filter_by(team_name=team_name).first()  # ✅ NEW LINE
+    if not team_record:  # ✅ NEW LINE
+        return {'advantage_modifier': 1.0}  # ✅ NEW LINE
+    
+    games = team_record.to_dict()['games']  # ✅ NEW LINE
     
     home_games = [g for g in games if g['home_away'] == 'Home']
     away_games = [g for g in games if g['home_away'] == 'Away']
@@ -2583,10 +2639,8 @@ def parse_schedule_text(schedule_text, week, team_clarifications=None):
             print(f"DEBUG RESOLVE: Found in clarifications: {team_name}")
             return team_clarifications[team_name]
         
-        # Then check saved mappings
-        if team_name in team_mappings:
-            print(f"DEBUG RESOLVE: Found in saved mappings: {team_name}")
-            return team_mappings[team_name]
+        # Saved mappings have been removed - team clarifications are now session-only
+        # This reduces complexity and avoids global state issues
         
         # Check if it's a known FBS team
         if team_name in TEAMS:
@@ -3147,17 +3201,19 @@ def compare_teams():
             return redirect(url_for('team_compare'))
         
         # Check if teams exist
-        if team1 not in team_stats:
+        team1_record = TeamStats.query.filter_by(team_name=team1).first()  # ✅ NEW LINE
+        if not team1_record:  # ✅ NEW LINE
             flash(f'{team1} not found in database!', 'error')
             return redirect(url_for('team_compare'))
         
-        if team2 not in team_stats:
+        team2_record = TeamStats.query.filter_by(team_name=team2).first()  # ✅ NEW LINE
+        if not team2_record:  # ✅ NEW LINE
             flash(f'{team2} not found in database!', 'error') 
             return redirect(url_for('team_compare'))
         
         # Check if teams have played games
-        team1_games = len(team_stats[team1]['games'])
-        team2_games = len(team_stats[team2]['games'])
+        team1_games = len(team1_record.to_dict()['games'])  # ✅ NEW LINE
+        team2_games = len(team2_record.to_dict()['games'])  # ✅ NEW LINE
         
         print(f"DEBUG: {team1} has {team1_games} games, {team2} has {team2_games} games")
         
@@ -3223,11 +3279,12 @@ def compare_teams():
 def team_preview(team_name):
     """Simple team preview for comparison page"""
     try:
-        if team_name not in team_stats:
+        team_record = TeamStats.query.filter_by(team_name=team_name).first()  # ✅ NEW LINE
+        if not team_record:  # ✅ NEW LINE
             return {'error': 'Team not found'}, 404
         
         stats = calculate_comprehensive_stats(team_name)
-        basic_stats = team_stats[team_name]
+        basic_stats = team_record.to_dict()  # ✅ NEW LINE
         recent_form = calculate_recent_form(team_name)
         
         # Get current rank (simplified)
@@ -3353,7 +3410,8 @@ def get_recent_rivalry_games():
     """Get recent rivalry games for display"""
     rivalry_games = []
     
-    for game in games_data[-20:]:  # Last 20 games
+    all_games = get_games_data()  # ✅ NEW LINE
+    for game in all_games[-20:]:  # ✅ NEW LINE  # Last 20 games
         home_team = game['home_team']
         away_team = game['away_team']
         
@@ -3412,7 +3470,7 @@ def clean_team_name(team_name):
 @login_required
 def create_snapshot():
     try:
-        week_name = request.form.get('week_name', f"Week_{len(historical_rankings) + 1}")
+        week_name = request.form.get('week_name', f"Week_Snapshot")  # ✅ NEW LINE
         save_weekly_snapshot(week_name)
         flash(f'Snapshot "{week_name}" created successfully!', 'success')
     except Exception as e:
@@ -3444,7 +3502,7 @@ def admin():
                          comprehensive_stats=comprehensive_stats, 
                          recent_games=recent_games,
                          games_data=all_games,
-                         historical_rankings=historical_rankings)
+                         historical_rankings=[])  # ✅ NEW LINE - empty list since we removed historical rankings
 
 
 @app.route('/cfp_bracket')
@@ -3477,10 +3535,11 @@ def public_rankings():
 @app.route('/team_test/<team_name>')
 def team_test(team_name):
     """Simple test to see if team detail routing works"""
-    if team_name not in team_stats:
+    team_record = TeamStats.query.filter_by(team_name=team_name).first()  # ✅ NEW LINE
+    if not team_record:  # ✅ NEW LINE
         return f"<h1>Team {team_name} not found in team_stats</h1>"
     
-    basic_stats = team_stats[team_name]
+    basic_stats = team_record.to_dict()  # ✅ NEW LINE
     return f"""
     <h1>Team Test: {team_name}</h1>
     <p>Games: {len(basic_stats['games'])}</p>
@@ -3689,11 +3748,8 @@ def process_clarifications():
                     flash(f'Please provide a custom name for {unknown_team}', 'error')
                     return redirect(url_for('clarify_teams'))
         
-        # Save mappings for future use
-        global team_mappings
-        for original, mapped in clarifications.items():
-            team_mappings[original] = mapped
-        save_team_mappings()
+        # Save mappings for future use (keeping in session only)
+        # Team mappings are temporary for schedule import session
         
         # Re-parse with clarifications
         games, _ = parse_schedule_text(pending['schedule_text'], pending['week'], clarifications)
@@ -3950,11 +4006,8 @@ def save_team_mappings():
 
 def load_team_mappings():
     """Load team mappings - DATABASE VERSION"""
-    # Keep mappings in memory only
-    global team_mappings
-    if 'team_mappings' not in globals():
-        team_mappings = {}
-    return team_mappings
+    # Team mappings are now handled per-session during schedule import
+    return {}
 
 def get_team_suggestions(unknown_team):
     """Get suggestions for unknown team names with variations check"""
@@ -4276,7 +4329,8 @@ def find_matching_scheduled_game(home_team, away_team, week):
     home_normalized = normalize_team_name(home_team)
     away_normalized = normalize_team_name(away_team)
     
-    for i, scheduled in enumerate(scheduled_games):
+    all_scheduled = get_scheduled_games_list()  # ✅ NEW LINE
+    for i, scheduled in enumerate(all_scheduled):  # ✅ NEW LINE
         if scheduled['week'] != week or scheduled['completed']:
             continue
             
@@ -4306,7 +4360,8 @@ def analyze_fcs_games():
     """Analyze all FCS games and their impact"""
     fcs_games = []
     
-    for game in games_data:
+    all_games = get_games_data()  # ✅ NEW LINE
+    for game in all_games:  # ✅ NEW LINE
         home_team = game['home_team']
         away_team = game['away_team']
         
@@ -4390,7 +4445,10 @@ def analyze_fcs_games():
 @app.route('/team_simple/<team_name>')
 def team_simple(team_name):
     """Super simple template test"""
-    basic_stats = team_stats[team_name]
+    team_record = TeamStats.query.filter_by(team_name=team_name).first()  # ✅ NEW LINE
+    if not team_record:  # ✅ NEW LINE
+        return "Team not found"  # ✅ NEW LINE
+    basic_stats = team_record.to_dict()  # ✅ NEW LINE
     opponent_details = []
     for game in basic_stats['games']:
         opponent_details.append({
@@ -4449,133 +4507,9 @@ def bowl_projections():
 
 @app.route('/historical')
 def historical_rankings():
-    if len(historical_rankings) < 2:
-        flash('Need at least 2 weekly snapshots to show movement', 'info')
-        return redirect(url_for('public_rankings'))
-    
-    # Get the two most recent snapshots
-    current_week = historical_rankings[-1]
-    previous_week = historical_rankings[-2]
-    
-    # Calculate movement for each team
-    movement_data = []
-    
-    # Create lookup for previous week rankings
-    prev_rankings = {team['team']: team['rank'] for team in previous_week['rankings']}
-    
-    for team in current_week['rankings']:
-        team_name = team['team']
-        current_rank = team['rank']
-        previous_rank = prev_rankings.get(team_name, None)
-        
-        if previous_rank:
-            movement = previous_rank - current_rank  # Positive = moved up
-            movement_data.append({
-                'team': team_name,
-                'conference': team['conference'],
-                'current_rank': current_rank,
-                'previous_rank': previous_rank,
-                'movement': movement,
-                'wins': team['wins'],
-                'losses': team['losses'],
-                'adjusted_total': team['adjusted_total']
-            })
-        else:
-            # New team in rankings
-            movement_data.append({
-                'team': team_name,
-                'conference': team['conference'],
-                'current_rank': current_rank,
-                'previous_rank': None,
-                'movement': None,
-                'wins': team['wins'],
-                'losses': team['losses'],
-                'adjusted_total': team['adjusted_total']
-            })
-    
-    # Sort by current rank
-    movement_data.sort(key=lambda x: x['current_rank'])
-    
-    return render_template('historical.html', 
-                         movement_data=movement_data,
-                         current_week=current_week,
-                         previous_week=previous_week)
-
-# Get scheduled games for the selected week that haven't been completed
-    week_scheduled = [game for game in scheduled_games 
-                     if game['week'] == week and not game.get('completed', False)]
-    
-    # Sort scheduled games by date and time
-    def sort_key(game):
-        game_date = game.get('game_date', '9999-12-31')
-        game_time = game.get('game_time', '11:59 PM')
-        
-        try:
-            if game_time:
-                from datetime import datetime
-                time_obj = datetime.strptime(game_time, '%I:%M %p')
-                time_24h = time_obj.strftime('%H:%M')
-            else:
-                time_24h = '23:59'
-        except:
-            time_24h = '23:59'
-        
-        return f"{game_date} {time_24h}"
-    
-    week_scheduled.sort(key=sort_key)
-    
-    # Group scheduled games by date
-    scheduled_by_date = {}
-    for game in week_scheduled:
-        game_date = game.get('game_date')
-        if game_date:
-            if game_date not in scheduled_by_date:
-                scheduled_by_date[game_date] = []
-            scheduled_by_date[game_date].append(game)
-        else:
-            # Games without dates go in a "TBD" group
-            if 'No Date' not in scheduled_by_date:
-                scheduled_by_date['No Date'] = []
-            scheduled_by_date['No Date'].append(game)
-    
-    # Also group completed games by date
-    week_games = [game for game in games_data if game['week'] == week]
-    completed_by_date = {}
-    
-    for game in week_games:
-        # Try to find corresponding scheduled game to get date
-        game_date = None
-        for scheduled in scheduled_games:
-            if (scheduled['week'] == week and 
-                ((scheduled['home_team'] == game['home_team'] and scheduled['away_team'] == game['away_team']) or
-                 (scheduled['home_team'] == game['away_team'] and scheduled['away_team'] == game['home_team']))):
-                game_date = scheduled.get('game_date')
-                break
-        
-        if not game_date:
-            game_date = 'No Date'
-            
-        if game_date not in completed_by_date:
-            completed_by_date[game_date] = []
-        completed_by_date[game_date].append(game)
-    
-    # Sort dates for display
-    all_dates = set(list(scheduled_by_date.keys()) + list(completed_by_date.keys()))
-    if 'No Date' in all_dates:
-        all_dates.remove('No Date')
-        sorted_dates = sorted([d for d in all_dates if d != 'No Date']) + ['No Date']
-    else:
-        sorted_dates = sorted(all_dates)
-    
-    return render_template('weekly_results.html', 
-                         selected_week=week, 
-                         weeks_with_games=weeks_with_games,
-                         week_games=week_games,
-                         scheduled_games=week_scheduled,
-                         scheduled_by_date=scheduled_by_date,
-                         completed_by_date=completed_by_date,
-                         sorted_dates=sorted_dates,
-                         all_weeks=WEEKS)
+    # Historical rankings feature disabled since we removed the global variable
+    flash('Historical rankings feature is currently disabled. Use archived seasons instead.', 'info')
+    return redirect(url_for('archived_seasons'))
 
 @app.route('/reload_data')
 @login_required
@@ -4613,34 +4547,12 @@ def reset_data():
     
     return redirect(url_for('admin'))
 
-    # Historical rankings storage
-historical_rankings = []
 
 def save_weekly_snapshot(week_number):
     """Save current rankings as a weekly snapshot - DATABASE VERSION"""
-    # Since you're using database-only, we can either:
-    # Option A: Skip saving snapshots entirely
-    # Option B: Create a WeeklySnapshot database table
-    
-    # For now, let's just log the snapshot instead of saving to file
+    # Weekly snapshots are now handled through the season archive system
     try:
-        comprehensive_stats = []
-        for conf_name, teams in CONFERENCES.items():
-            for team in teams:
-                team_record = TeamStats.query.filter_by(team_name=team).first()
-                if team_record and (team_record.wins + team_record.losses) > 0:
-                    stats = calculate_comprehensive_stats(team)
-                    stats['team'] = team
-                    stats['conference'] = conf_name
-                    comprehensive_stats.append(stats)
-        
-        comprehensive_stats.sort(key=lambda x: x['adjusted_total'], reverse=True)
-        
-        print(f"📸 Weekly snapshot for Week {week_number}:")
-        print(f"   - {len(comprehensive_stats)} teams ranked")
-        if comprehensive_stats:
-            print(f"   - #1: {comprehensive_stats[0]['team']} ({comprehensive_stats[0]['adjusted_total']:.2f})")
-        
+        flash(f'Weekly snapshots have been replaced with the season archive system. Use "Archive Current Season" instead.', 'info')
         return True
     except Exception as e:
         print(f"Error creating weekly snapshot: {e}")
@@ -4648,16 +4560,12 @@ def save_weekly_snapshot(week_number):
 
 def save_historical_data():
     """Save historical rankings - DATABASE VERSION (simplified)"""
-    # Since we're database-only, this function now does nothing
-    # Historical data would need a separate database table if you want to keep it
+    # Historical data is now handled through the season archive system
     pass
 
 def load_historical_data():
     """Load historical rankings - DATABASE VERSION"""
-    # Return empty list since we're not storing historical snapshots
-    # You could create a WeeklySnapshot table if you want this functionality
-    global historical_rankings
-    historical_rankings = []
+    # Historical data is now handled through the season archive system
     return []
 
 
