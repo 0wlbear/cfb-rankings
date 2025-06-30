@@ -4766,10 +4766,10 @@ def load_archived_seasons():
     """Load list of all archived seasons from database"""
     try:
         from models import ArchivedSeason
-        archived_seasons = ArchivedSeason.query.order_by(ArchivedSeason.archived_date.desc()).all()
+        archived_seasons = ArchivedSeason.query.all()
         
-        return [{
-            'filename': str(season.id),  # Use ID as filename for existing template
+        seasons_list = [{
+            'filename': str(season.id),
             'season_name': season.season_name,
             'archived_date': season.archived_date.strftime('%Y-%m-%d %H:%M:%S'),
             'total_games': season.total_games,
@@ -4777,6 +4777,12 @@ def load_archived_seasons():
             'champion': season.champion,
             'total_weeks': season.total_weeks
         } for season in archived_seasons]
+        
+        # Sort by season name in descending order (assuming names are years like "2025", "2024")
+        # This will put 2025 before 2024
+        seasons_list.sort(key=lambda x: x['season_name'], reverse=True)
+        
+        return seasons_list
         
     except Exception as e:
         print(f"Error loading archived seasons: {e}")
