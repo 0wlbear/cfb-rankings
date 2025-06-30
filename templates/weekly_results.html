@@ -84,7 +84,7 @@
                                                     <small class="badge bg-secondary mb-2">Scheduled</small>
                                                     
                                                     <!-- Time/TV Info - FIXED TO BE ON SAME LINE -->
-                                                    {% if game.get('game_time') or game.get('tv_network') %}
+                                                    <!-- {% if game.get('game_time') or game.get('tv_network') %}
                                                         <div class="small text-primary mt-1 d-flex justify-content-between align-items-center">
                                                             {% if game.get('game_time') %}
                                                                 <span>🕐 {{ game.game_time }}</span>
@@ -97,7 +97,7 @@
                                                                 <span></span>
                                                             {% endif %}
                                                         </div>
-                                                    {% endif %}
+                                                    {% endif %} -->
                                                 </div>
                                                 
                                                 <div class="text-center">
@@ -151,7 +151,7 @@
                                             </div>
                                             <div class="card-footer text-center">
                                                 <small class="text-muted">
-                                                    {% if game.get('tv_network') %}{{ game.tv_network }}{% else %}Awaiting result{% endif %}
+                                                    {% if game.get('tv_network') %}📺 {{ game.tv_network }}{% else %}Awaiting result{% endif %}
                                                 </small>
                                             </div>
                                         </div>
@@ -215,7 +215,13 @@
                                             </div>
                                             <div class="card-footer text-center">
                                                 <small class="text-muted">
-                                                    Added: {{ game.date_added.split(' ')[0] if ' ' in game.date_added else game.date_added }}
+                                                    {% if game.get('from_schedule') and game.get('tv_network') %}
+                                                        📺 {{ game.tv_network }}
+                                                    {% elif game.get('from_schedule') %}
+                                                        Final
+                                                    {% else %}
+                                                        Added: {{ game.date_added.split(' ')[0] if ' ' in game.date_added else game.date_added }}
+                                                    {% endif %}
                                                 </small>
                                             </div>
                                         </div>

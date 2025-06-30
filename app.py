@@ -3746,7 +3746,7 @@ def weekly_results(week=None):
                 scheduled_by_date['No Date'] = []
             scheduled_by_date['No Date'].append(game)
     
-    # NEW: Group completed scheduled games by date
+    # NEW: Group completed scheduled games by date - PRESERVE TV NETWORK
     completed_by_date = {}
     for game in week_completed_scheduled:
         game_date = game.get('game_date')
@@ -3754,6 +3754,7 @@ def weekly_results(week=None):
             if game_date not in completed_by_date:
                 completed_by_date[game_date] = []
             # Convert completed scheduled game to look like a regular completed game
+            # BUT preserve the TV network information
             completed_game = {
                 'home_team': game['home_team'],
                 'away_team': game['away_team'],
@@ -3761,8 +3762,11 @@ def weekly_results(week=None):
                 'away_score': game.get('final_away_score', 0),
                 'is_neutral_site': game.get('neutral', False),
                 'overtime': game.get('overtime', False),
-                'date_added': 'Scheduled Game',
-                'week': game['week']
+                'week': game['week'],
+                # CLEAN: Keep original fields separate
+                'tv_network': game.get('tv_network'),  # Keep TV network
+                'date_added': 'Scheduled Game',  # Keep simple identifier
+                'from_schedule': True  # Flag to identify source
             }
             completed_by_date[game_date].append(completed_game)
         else:
@@ -3775,8 +3779,10 @@ def weekly_results(week=None):
                 'away_score': game.get('final_away_score', 0),
                 'is_neutral_site': game.get('neutral', False),
                 'overtime': game.get('overtime', False),
+                'week': game['week'],
+                'tv_network': game.get('tv_network'),
                 'date_added': 'Scheduled Game',
-                'week': game['week']
+                'from_schedule': True
             }
             completed_by_date['No Date'].append(completed_game)
     
@@ -3796,6 +3802,8 @@ def weekly_results(week=None):
             game_date = 'No Date'  # Manual games don't have scheduled dates
             if game_date not in completed_by_date:
                 completed_by_date[game_date] = []
+            # Manual games keep their original date_added format
+            game['from_schedule'] = False  # Flag to indicate this was manually added
             completed_by_date[game_date].append(game)
     
     # Sort dates for display
@@ -3814,7 +3822,7 @@ def weekly_results(week=None):
                          scheduled_by_date=scheduled_by_date,
                          completed_by_date=completed_by_date,
                          sorted_dates=sorted_dates,
-                         all_weeks=WEEKS)    
+                         all_weeks=WEEKS) 
 
 
 @app.route('/add_game', methods=['GET', 'POST'])
