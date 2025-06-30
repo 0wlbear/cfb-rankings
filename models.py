@@ -126,3 +126,30 @@ class ScheduledGame(db.Model):
             'overtime': self.overtime
         }
         
+
+class ArchivedSeason(db.Model):
+    __tablename__ = 'archived_seasons'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    season_name = db.Column(db.String(100), nullable=False)
+    archived_date = db.Column(db.DateTime, default=datetime.utcnow)
+    total_games = db.Column(db.Integer, default=0)
+    total_teams = db.Column(db.Integer, default=0)
+    champion = db.Column(db.String(100), nullable=True)
+    total_weeks = db.Column(db.Integer, default=0)
+    
+    # Store the complete archive data as JSON text
+    archive_data_json = db.Column(db.Text)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'season_name': self.season_name,
+            'archived_date': self.archived_date.strftime('%Y-%m-%d %H:%M:%S'),
+            'total_games': self.total_games,
+            'total_teams': self.total_teams,
+            'champion': self.champion,
+            'total_weeks': self.total_weeks,
+            'archive_data': json.loads(self.archive_data_json) if self.archive_data_json else {}
+        }
+
