@@ -3041,43 +3041,6 @@ def complete_schedule_import_db(games, week):
         return redirect(url_for('weekly_results', week=week))
 
 
-@app.route('/debug_production')
-def debug_production():
-    """Debug what data exists in production"""
-    import os
-    
-    debug_info = f"""
-    <h1>Production Debug Info</h1>
-    <p><strong>Current directory:</strong> {os.getcwd()}</p>
-    <p><strong>DATA_DIR:</strong> {DATA_DIR}</p>
-    <p><strong>DATA_DIR exists:</strong> {os.path.exists(DATA_DIR)}</p>
-    
-    <h3>Data Files:</h3>
-    <p>scheduled_games.json exists: {os.path.exists(os.path.join(DATA_DIR, 'scheduled_games.json'))}</p>
-    <p>scheduled_games.json size: {os.path.getsize(os.path.join(DATA_DIR, 'scheduled_games.json')) if os.path.exists(os.path.join(DATA_DIR, 'scheduled_games.json')) else 'N/A'} bytes</p>
-    
-    <h3>Loaded Data:</h3>
-    <p>Scheduled games loaded: {len(scheduled_games)}</p>
-    <p>First few scheduled games: {scheduled_games[:3] if scheduled_games else 'None'}</p>
-    
-    <h3>Directory Contents:</h3>
-    """
-    
-    if os.path.exists(DATA_DIR):
-        files = os.listdir(DATA_DIR)
-        debug_info += f"<p>Files in DATA_DIR: {files}</p>"
-    else:
-        debug_info += "<p>DATA_DIR doesn't exist!</p>"
-    
-    # Check if files have content
-    try:
-        with open(os.path.join(DATA_DIR, 'scheduled_games.json'), 'r') as f:
-            content = f.read()
-            debug_info += f"<h3>scheduled_games.json content (first 500 chars):</h3><pre>{content[:500]}</pre>"
-    except:
-        debug_info += "<p>Could not read scheduled_games.json</p>"
-    
-    return debug_info
 
 
 
@@ -3116,215 +3079,6 @@ def team_bowl_status_detail(team_name):
     """, team_name=team_name, status=status)    
 
 
-# Add this temporary debug route to check your production database
-@app.route('/debug_db_columns')
-def debug_db_columns():
-    """Check what columns exist in scheduled_games table"""
-    try:
-        # Get database connection
-        connection = db.engine.raw_connection()
-        cursor = connection.cursor()
-        
-        # Check columns in scheduled_games table
-        cursor.execute("""
-            SELECT column_name, data_type 
-            FROM information_schema.columns 
-            WHERE table_name = 'scheduled_games'
-            ORDER BY column_name;
-        """)
-        columns = cursor.fetchall()
-        
-        # Also check for any completed scheduled games
-        cursor.execute("""
-            SELECT id, week, home_team, away_team, completed,
-                   CASE 
-                       WHEN EXISTS (
-                           SELECT 1 FROM information_schema.columns 
-                           WHERE table_name = 'scheduled_games' 
-                           AND column_name = 'final_home_score'
-                       ) THEN 'HAS_SCORE_COLUMNS'
-                       ELSE 'NO_SCORE_COLUMNS'
-                   END as has_score_cols
-            FROM scheduled_games 
-            WHERE completed = true 
-            LIMIT 5;
-        """)
-        completed_games = cursor.fetchall()
-        
-        cursor.close()
-        connection.close()
-        
-        output = f"""
-        <h1>Production Database Debug</h1>
-        
-        <h2>Columns in scheduled_games table:</h2>
-        <ul>
-        {''.join(f'<li>{col[0]} ({col[1]})</li>' for col in columns)}
-        </ul>
-        
-        <h2>Key columns check:</h2>
-        <ul>
-        <li>final_home_score: {'✅ EXISTS' if any('final_home_score' in str(col) for col in columns) else '❌ MISSING'}</li>
-        <li>final_away_score: {'✅ EXISTS' if any('final_away_score' in str(col) for col in columns) else '❌ MISSING'}</li>
-        <li>overtime: {'✅ EXISTS' if any('overtime' in str(col) for col in columns) else '❌ MISSING'}</li>
-        </ul>
-        
-        <h2>Completed games sample:</h2>
-        <ul>
-        {''.join(f'<li>Week {game[1]}: {game[2]} vs {game[3]} - {game[5]}</li>' for game in completed_games)}
-        </ul>
-        
-        <p><a href="/admin">Back to Admin</a></p>
-        """
-        
-        return output
-        
-    except Exception as e:
-        return f"<h1>Error</h1><p>{e}</p>"
-
-
-# Add this debug route to see what's actually in the completed games
-@app.route('/debug_completed_games')
-def debug_completed_games():
-    """Check what data is in completed scheduled games"""
-    try:
-        # Get database connection
-        connection = db.engine.raw_connection()
-        cursor = connection.cursor()
-        
-        # Check completed scheduled games and their scores
-        cursor.execute("""
-            SELECT id, week, home_team, away_team, completed,
-                   final_home_score, final_away_score, overtime,
-                   game_date, tv_network
-            FROM scheduled_games 
-            WHERE completed = true 
-            ORDER BY week, id;
-        """)
-        completed_games = cursor.fetchall()
-        
-        # Also check regular games for comparison
-        cursor.execute("""
-            SELECT week, home_team, away_team, home_score, away_score, overtime
-            FROM games 
-            ORDER BY week, id 
-            LIMIT 10;
-        """)
-        regular_games = cursor.fetchall()
-        
-        cursor.close()
-        connection.close()
-        
-        output = f"""
-        <h1>Completed Games Debug</h1>
-        
-        <h2>Completed Scheduled Games ({len(completed_games)} total):</h2>
-        <table border="1" style="border-collapse: collapse;">
-        <tr>
-            <th>ID</th><th>Week</th><th>Home</th><th>Away</th>
-            <th>Final Home Score</th><th>Final Away Score</th><th>OT</th><th>TV</th>
-        </tr>
-        """
-        
-        for game in completed_games:
-            output += f"""
-            <tr>
-                <td>{game[0]}</td><td>{game[1]}</td><td>{game[2]}</td><td>{game[3]}</td>
-                <td style="color: {'red' if game[5] is None else 'green'}">{game[5]}</td>
-                <td style="color: {'red' if game[6] is None else 'green'}">{game[6]}</td>
-                <td>{game[7]}</td><td>{game[9]}</td>
-            </tr>
-            """
-        
-        output += f"""
-        </table>
-        
-        <h2>Regular Games (for comparison):</h2>
-        <table border="1" style="border-collapse: collapse;">
-        <tr><th>Week</th><th>Home</th><th>Away</th><th>Home Score</th><th>Away Score</th><th>OT</th></tr>
-        """
-        
-        for game in regular_games:
-            output += f"<tr><td>{game[0]}</td><td>{game[1]}</td><td>{game[2]}</td><td>{game[3]}</td><td>{game[4]}</td><td>{game[5]}</td></tr>"
-        
-        output += f"""
-        </table>
-        
-        <h2>Analysis:</h2>
-        <ul>
-        <li>Red scores = NULL (problem!)</li>
-        <li>Green scores = actual values (good!)</li>
-        </ul>
-        
-        <p><strong>Issue:</strong> Completed scheduled games have NULL final scores, so they show as 0-0</p>
-        <p><strong>Solution:</strong> Either fix the add_game route or reset these games to incomplete</p>
-        
-        <p><a href="/admin">Back to Admin</a></p>
-        """
-        
-        return output
-        
-    except Exception as e:
-        return f"<h1>Error</h1><p>{e}</p>"
-
-# Add this debug route to check what get_scheduled_games_list() returns
-@app.route('/debug_scheduled_function')
-def debug_scheduled_function():
-    """Debug what get_scheduled_games_list() actually returns"""
-    try:
-        # Call the same function used in weekly_results
-        scheduled_games_list = get_scheduled_games_list()
-        
-        # Filter for completed games
-        completed_scheduled = [game for game in scheduled_games_list if game.get('completed')]
-        
-        output = f"""
-        <h1>Debug get_scheduled_games_list() Function</h1>
-        
-        <h2>Total scheduled games returned: {len(scheduled_games_list)}</h2>
-        <h2>Completed scheduled games: {len(completed_scheduled)}</h2>
-        
-        <h3>Completed Games Data:</h3>
-        <table border="1" style="border-collapse: collapse;">
-        <tr>
-            <th>Week</th><th>Home</th><th>Away</th><th>Completed</th>
-            <th>final_home_score</th><th>final_away_score</th><th>TV</th>
-        </tr>
-        """
-        
-        for game in completed_scheduled:
-            home_score = game.get('final_home_score')
-            away_score = game.get('final_away_score')
-            output += f"""
-            <tr>
-                <td>{game.get('week')}</td>
-                <td>{game.get('home_team')}</td>
-                <td>{game.get('away_team')}</td>
-                <td>{game.get('completed')}</td>
-                <td style="color: {'red' if home_score is None else 'green'}">{home_score}</td>
-                <td style="color: {'red' if away_score is None else 'green'}">{away_score}</td>
-                <td>{game.get('tv_network')}</td>
-            </tr>
-            """
-        
-        output += """
-        </table>
-        
-        <h3>Raw Data (first completed game):</h3>
-        """
-        
-        if completed_scheduled:
-            first_game = completed_scheduled[0]
-            output += f"<pre>{str(first_game)}</pre>"
-        
-        output += """
-        <p><a href="/admin">Back to Admin</a></p>
-        """
-        
-        return output
-        
-    except Exception as e:
-        return f"<h1>Error</h1><p>{e}</p><pre>{str(e)}</pre>"
 
 
 
@@ -3761,15 +3515,20 @@ def team_test(team_name):
 @app.route('/team/<team_name>')
 def public_team_detail(team_name):
     """Public team detail page showing scientific ranking breakdown"""
-    if team_name not in team_stats:
+    # FIXED: Use database instead of global team_stats
+    team_stats_record = TeamStats.query.filter_by(team_name=team_name).first()
+    
+    if not team_stats_record:
         flash('Team not found!', 'error')
         return redirect(url_for('public_rankings'))
     
+    # Convert database record to the format the rest of the code expects
+    basic_stats = team_stats_record.to_dict()
+    
     # Get scientific ranking breakdown
     scientific_result = calculate_scientific_ranking(team_name)
-    basic_stats = team_stats[team_name]
     
-   # Get opponent details for context
+    # Get opponent details for context
     opponent_details = []
     for game in basic_stats['games']:
         opponent_quality = get_current_opponent_quality(game['opponent'])
@@ -3786,14 +3545,16 @@ def public_team_detail(team_name):
             'location': game['home_away'],
             'is_rivalry': is_rival,
             'rivalry_bonus': rivalry_bonus,
-            'overtime': game.get('overtime', False)  # NEW: Include overtime status
+            'overtime': game.get('overtime', False)  # Include overtime status
         })
     
     # Calculate current ranking
     all_teams = []
     for conf_name, teams in CONFERENCES.items():
         for team in teams:
-            if team_stats[team]['wins'] + team_stats[team]['losses'] > 0:
+            # FIXED: Check database instead of global variable
+            team_record = TeamStats.query.filter_by(team_name=team).first()
+            if team_record and (team_record.wins + team_record.losses) > 0:
                 stats = calculate_comprehensive_stats(team)
                 all_teams.append({
                     'team': team,
