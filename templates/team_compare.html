@@ -1,369 +1,355 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Compare Teams</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        .team-preview {
-            border: 2px solid #dee2e6;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 10px 0;
-            background: #f8f9fa;
-            transition: all 0.3s ease;
-        }
-        .team-preview.active {
-            border-color: #007bff;
-            background: #e3f2fd;
-        }
-        .team-logo-small { width: 30px; height: 30px; object-fit: contain; }
-        .vs-section {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            font-weight: bold;
-            color: #007bff;
-            margin: 20px 0;
-        }
-        .preview-loading {
-            opacity: 0.6;
-            pointer-events: none;
-        }
-        .form-floating select {
-            height: calc(3.5rem + 2px);
-        }
-        .trending-up { color: #28a745; }
-        .trending-down { color: #dc3545; }
-        .trending-stable { color: #6c757d; }
-    </style>
-</head>
-<body>
-    <div class="container mt-4">
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="mb-0">Compare Teams</h2>
-                        <p class="mb-0 text-muted">Select two teams to get an enhanced scientific comparison and prediction</p>
-                    </div>
-                    <div class="card-body">
-                        <form method="POST" action="{{ url_for('compare_teams') }}">
-                            <div class="row">
-                                <!-- Team 1 Selection -->
-                                <div class="col-md-5">
-                                    <div class="form-floating mb-3">
-                                        <select class="form-select" id="team1" name="team1" required onchange="loadTeamPreview('team1', this.value)">
-                                            <option value="">Choose Team 1</option>
-                                            {% for conf_name, teams in conferences.items() %}
-                                            <optgroup label="{{ conf_name }}">
-                                                {% for team in teams %}
-                                                <option value="{{ team }}">{{ team }}</option>
-                                                {% endfor %}
-                                            </optgroup>
-                                            {% endfor %}
-                                        </select>
-                                        <label for="team1">Team 1</label>
-                                    </div>
-                                    
-                                    <!-- Team 1 Preview -->
-                                    <div id="team1-preview" class="team-preview" style="display: none;">
-                                        <div class="text-center">
-                                            <div id="team1-loading" class="preview-loading">Loading...</div>
-                                            <div id="team1-content" style="display: none;">
-                                                <div class="d-flex align-items-center justify-content-center mb-2">
-                                                    <img id="team1-logo" src="" alt="" class="team-logo-small me-2" style="display: none;">
-                                                    <h5 id="team1-name" class="mb-0"></h5>
-                                                </div>
-                                                <div class="row">
-                                                    <div class="col-6">
-                                                        <small class="text-muted">Rank</small>
-                                                        <div id="team1-rank" class="fw-bold"></div>
-                                                    </div>
-                                                    <div class="col-6">
-                                                        <small class="text-muted">Record</small>
-                                                        <div id="team1-record" class="fw-bold"></div>
-                                                    </div>
-                                                </div>
-                                                <div class="row mt-2">
-                                                    <div class="col-6">
-                                                        <small class="text-muted">Rating</small>
-                                                        <div id="team1-rating" class="fw-bold"></div>
-                                                    </div>
-                                                    <div class="col-6">
-                                                        <small class="text-muted">Form</small>
-                                                        <div id="team1-form"></div>
-                                                    </div>
-                                                </div>
-                                                <div class="mt-2">
-                                                    <small class="text-muted">Conference</small>
-                                                    <div id="team1-conference" class="fw-bold"></div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+{% extends "base.html" %}
 
-                                <!-- VS Section -->
-                                <div class="col-md-2">
-                                    <div class="vs-section">
-                                        VS
-                                    </div>
-                                </div>
+{% block title %}Compare Teams - College Football Rankings{% endblock %}
 
-                                <!-- Team 2 Selection -->
-                                <div class="col-md-5">
-                                    <div class="form-floating mb-3">
-                                        <select class="form-select" id="team2" name="team2" required onchange="loadTeamPreview('team2', this.value)">
-                                            <option value="">Choose Team 2</option>
-                                            {% for conf_name, teams in conferences.items() %}
-                                            <optgroup label="{{ conf_name }}">
-                                                {% for team in teams %}
-                                                <option value="{{ team }}">{{ team }}</option>
-                                                {% endfor %}
-                                            </optgroup>
-                                            {% endfor %}
-                                        </select>
-                                        <label for="team2">Team 2</label>
-                                    </div>
-                                    
-                                    <!-- Team 2 Preview -->
-                                    <div id="team2-preview" class="team-preview" style="display: none;">
-                                        <div class="text-center">
-                                            <div id="team2-loading" class="preview-loading">Loading...</div>
-                                            <div id="team2-content" style="display: none;">
-                                                <div class="d-flex align-items-center justify-content-center mb-2">
-                                                    <img id="team2-logo" src="" alt="" class="team-logo-small me-2" style="display: none;">
-                                                    <h5 id="team2-name" class="mb-0"></h5>
-                                                </div>
-                                                <div class="row">
-                                                    <div class="col-6">
-                                                        <small class="text-muted">Rank</small>
-                                                        <div id="team2-rank" class="fw-bold"></div>
-                                                    </div>
-                                                    <div class="col-6">
-                                                        <small class="text-muted">Record</small>
-                                                        <div id="team2-record" class="fw-bold"></div>
-                                                    </div>
-                                                </div>
-                                                <div class="row mt-2">
-                                                    <div class="col-6">
-                                                        <small class="text-muted">Rating</small>
-                                                        <div id="team2-rating" class="fw-bold"></div>
-                                                    </div>
-                                                    <div class="col-6">
-                                                        <small class="text-muted">Form</small>
-                                                        <div id="team2-form"></div>
-                                                    </div>
-                                                </div>
-                                                <div class="mt-2">
-                                                    <small class="text-muted">Conference</small>
-                                                    <div id="team2-conference" class="fw-bold"></div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+{% block content %}
+<style>
+    .team-preview {
+        border: 2px solid #dee2e6;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 10px 0;
+        background: #f8f9fa;
+        transition: all 0.3s ease;
+    }
+    .team-preview.active {
+        border-color: #007bff;
+        background: #e3f2fd;
+    }
+    .team-logo-small { width: 30px; height: 30px; object-fit: contain; }
+    .vs-section {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        font-weight: bold;
+        color: #007bff;
+        margin: 20px 0;
+    }
+    .preview-loading {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+    .form-floating select {
+        height: calc(3.5rem + 2px);
+    }
+    .trending-up { color: #28a745; }
+    .trending-down { color: #dc3545; }
+    .trending-stable { color: #6c757d; }
+</style>
 
-                            <!-- Location Selection -->
-                            <div class="row mt-3">
-                                <div class="col-12">
-                                    <div class="form-floating">
-                                        <select class="form-select" id="location" name="location">
-                                            <option value="neutral">Neutral Site</option>
-                                            <option value="team1_home" id="team1_home_option" disabled>Team 1 Home</option>
-                                            <option value="team2_home" id="team2_home_option" disabled>Team 2 Home</option>
-                                        </select>
-                                        <label for="location">Game Location</label>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Submit Button -->
-                            <div class="row mt-4">
-                                <div class="col-12 text-center">
-                                    <button type="submit" class="btn btn-primary btn-lg" id="compare-btn" disabled>
-                                        <i class="fas fa-chart-line"></i> Generate Comparison & Prediction
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="mb-0">Compare Teams</h2>
+                <p class="mb-0 text-muted">Select two teams to get an enhanced scientific comparison and prediction</p>
             </div>
-        </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('compare_teams') }}">
+                    <div class="row">
+                        <!-- Team 1 Selection -->
+                        <div class="col-md-5">
+                            <div class="form-floating mb-3">
+                                <select class="form-select" id="team1" name="team1" required onchange="loadTeamPreview('team1', this.value)">
+                                    <option value="">Choose Team 1</option>
+                                    {% for conf_name, teams in conferences.items() %}
+                                    <optgroup label="{{ conf_name }}">
+                                        {% for team in teams %}
+                                        <option value="{{ team }}">{{ team }}</option>
+                                        {% endfor %}
+                                    </optgroup>
+                                    {% endfor %}
+                                </select>
+                                <label for="team1">Team 1</label>
+                            </div>
+                            
+                            <!-- Team 1 Preview -->
+                            <div id="team1-preview" class="team-preview" style="display: none;">
+                                <div class="text-center">
+                                    <div id="team1-loading" class="preview-loading">Loading...</div>
+                                    <div id="team1-content" style="display: none;">
+                                        <div class="d-flex align-items-center justify-content-center mb-2">
+                                            <img id="team1-logo" src="" alt="" class="team-logo-small me-2" style="display: none;">
+                                            <h5 id="team1-name" class="mb-0"></h5>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <small class="text-muted">Rank</small>
+                                                <div id="team1-rank" class="fw-bold"></div>
+                                            </div>
+                                            <div class="col-6">
+                                                <small class="text-muted">Record</small>
+                                                <div id="team1-record" class="fw-bold"></div>
+                                            </div>
+                                        </div>
+                                        <div class="row mt-2">
+                                            <div class="col-6">
+                                                <small class="text-muted">Rating</small>
+                                                <div id="team1-rating" class="fw-bold"></div>
+                                            </div>
+                                            <div class="col-6">
+                                                <small class="text-muted">Form</small>
+                                                <div id="team1-form"></div>
+                                            </div>
+                                        </div>
+                                        <div class="mt-2">
+                                            <small class="text-muted">Conference</small>
+                                            <div id="team1-conference" class="fw-bold"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
-        <!-- Recent Comparisons (if any) -->
-        <div class="row mt-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">How It Works</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-3 text-center">
-                                <i class="fas fa-calculator fa-2x text-primary mb-2"></i>
-                                <h6>Scientific Analysis</h6>
-                                <small>Uses victory value, loss penalties, recent form, and consistency factors</small>
+                        <!-- VS Section -->
+                        <div class="col-md-2">
+                            <div class="vs-section">
+                                VS
                             </div>
-                            <div class="col-md-3 text-center">
-                                <i class="fas fa-users fa-2x text-success mb-2"></i>
-                                <h6>Common Opponents</h6>
-                                <small>Analyzes shared opponents with quality weighting</small>
+                        </div>
+
+                        <!-- Team 2 Selection -->
+                        <div class="col-md-5">
+                            <div class="form-floating mb-3">
+                                <select class="form-select" id="team2" name="team2" required onchange="loadTeamPreview('team2', this.value)">
+                                    <option value="">Choose Team 2</option>
+                                    {% for conf_name, teams in conferences.items() %}
+                                    <optgroup label="{{ conf_name }}">
+                                        {% for team in teams %}
+                                        <option value="{{ team }}">{{ team }}</option>
+                                        {% endfor %}
+                                    </optgroup>
+                                    {% endfor %}
+                                </select>
+                                <label for="team2">Team 2</label>
                             </div>
-                            <div class="col-md-3 text-center">
-                                <i class="fas fa-home fa-2x text-warning mb-2"></i>
-                                <h6>Venue Impact</h6>
-                                <small>Accounts for home field advantage and team-specific performance</small>
-                            </div>
-                            <div class="col-md-3 text-center">
-                                <i class="fas fa-trophy fa-2x text-danger mb-2"></i>
-                                <h6>Confidence Rating</h6>
-                                <small>Provides prediction confidence based on data quality and consistency</small>
+                            
+                            <!-- Team 2 Preview -->
+                            <div id="team2-preview" class="team-preview" style="display: none;">
+                                <div class="text-center">
+                                    <div id="team2-loading" class="preview-loading">Loading...</div>
+                                    <div id="team2-content" style="display: none;">
+                                        <div class="d-flex align-items-center justify-content-center mb-2">
+                                            <img id="team2-logo" src="" alt="" class="team-logo-small me-2" style="display: none;">
+                                            <h5 id="team2-name" class="mb-0"></h5>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <small class="text-muted">Rank</small>
+                                                <div id="team2-rank" class="fw-bold"></div>
+                                            </div>
+                                            <div class="col-6">
+                                                <small class="text-muted">Record</small>
+                                                <div id="team2-record" class="fw-bold"></div>
+                                            </div>
+                                        </div>
+                                        <div class="row mt-2">
+                                            <div class="col-6">
+                                                <small class="text-muted">Rating</small>
+                                                <div id="team2-rating" class="fw-bold"></div>
+                                            </div>
+                                            <div class="col-6">
+                                                <small class="text-muted">Form</small>
+                                                <div id="team2-form"></div>
+                                            </div>
+                                        </div>
+                                        <div class="mt-2">
+                                            <small class="text-muted">Conference</small>
+                                            <div id="team2-conference" class="fw-bold"></div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Back Button -->
-        <div class="row mt-3">
-            <div class="col-12 text-center">
-                <a href="{{ url_for('public_rankings') }}" class="btn btn-secondary">Back to Rankings</a>
+                    <!-- Location Selection -->
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="form-floating">
+                                <select class="form-select" id="location" name="location">
+                                    <option value="neutral">Neutral Site</option>
+                                    <option value="team1_home" id="team1_home_option" disabled>Team 1 Home</option>
+                                    <option value="team2_home" id="team2_home_option" disabled>Team 2 Home</option>
+                                </select>
+                                <label for="location">Game Location</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="row mt-4">
+                        <div class="col-12 text-center">
+                            <button type="submit" class="btn btn-primary btn-lg" id="compare-btn" disabled>
+                                <i class="fas fa-chart-line"></i> Generate Comparison & Prediction
+                            </button>
+                        </div>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        let selectedTeams = { team1: null, team2: null };
+<!-- Recent Comparisons (if any) -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">How It Works</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 text-center">
+                        <i class="fas fa-calculator fa-2x text-primary mb-2"></i>
+                        <h6>Scientific Analysis</h6>
+                        <small>Uses victory value, loss penalties, recent form, and consistency factors</small>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <i class="fas fa-users fa-2x text-success mb-2"></i>
+                        <h6>Common Opponents</h6>
+                        <small>Analyzes shared opponents with quality weighting</small>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <i class="fas fa-home fa-2x text-warning mb-2"></i>
+                        <h6>Venue Impact</h6>
+                        <small>Accounts for home field advantage and team-specific performance</small>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <i class="fas fa-trophy fa-2x text-danger mb-2"></i>
+                        <h6>Confidence Rating</h6>
+                        <small>Provides prediction confidence based on data quality and consistency</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-        function loadTeamPreview(teamSlot, teamName) {
-            if (!teamName) {
-                document.getElementById(teamSlot + '-preview').style.display = 'none';
-                selectedTeams[teamSlot] = null;
-                updateSubmitButton();
-                updateLocationOptions();
-                return;
-            }
+<script>
+    let selectedTeams = { team1: null, team2: null };
 
-            selectedTeams[teamSlot] = teamName;
-            
-            const preview = document.getElementById(teamSlot + '-preview');
-            const loading = document.getElementById(teamSlot + '-loading');
-            const content = document.getElementById(teamSlot + '-content');
-            
-            preview.style.display = 'block';
-            loading.style.display = 'block';
-            content.style.display = 'none';
-            preview.classList.add('active');
-
-            // Fetch team data
-            fetch(`/team_preview/${encodeURIComponent(teamName)}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        loading.innerHTML = '<span class="text-danger">Team not found or no games played</span>';
-                        return;
-                    }
-
-                    // Populate preview
-                    document.getElementById(teamSlot + '-name').textContent = data.team;
-                    document.getElementById(teamSlot + '-rank').textContent = data.rank;
-                    document.getElementById(teamSlot + '-record').textContent = data.record;
-                    document.getElementById(teamSlot + '-rating').textContent = data.adjusted_total.toFixed(1);
-                    document.getElementById(teamSlot + '-conference').textContent = data.conference;
-                    
-                    // Recent form with trending
-                    const formElement = document.getElementById(teamSlot + '-form');
-                    let trendingClass = 'trending-stable';
-                    let trendingIcon = '→';
-                    
-                    if (data.trending === 'up') {
-                        trendingClass = 'trending-up';
-                        trendingIcon = '📈';
-                    } else if (data.trending === 'down') {
-                        trendingClass = 'trending-down';
-                        trendingIcon = '📉';
-                    }
-                    
-                    formElement.innerHTML = `<span class="${trendingClass}">${data.recent_form} ${trendingIcon}</span>`;
-                    
-                    // Logo if available
-                    const logo = document.getElementById(teamSlot + '-logo');
-                    if (data.logo_url) {
-                        logo.src = data.logo_url;
-                        logo.alt = data.team;
-                        logo.style.display = 'inline';
-                    } else {
-                        logo.style.display = 'none';
-                    }
-
-                    loading.style.display = 'none';
-                    content.style.display = 'block';
-                })
-                .catch(error => {
-                    loading.innerHTML = '<span class="text-danger">Error loading team data</span>';
-                    console.error('Error:', error);
-                });
-
+    function loadTeamPreview(teamSlot, teamName) {
+        if (!teamName) {
+            document.getElementById(teamSlot + '-preview').style.display = 'none';
+            selectedTeams[teamSlot] = null;
             updateSubmitButton();
             updateLocationOptions();
+            return;
         }
 
-        function updateSubmitButton() {
-            const btn = document.getElementById('compare-btn');
-            btn.disabled = !(selectedTeams.team1 && selectedTeams.team2 && selectedTeams.team1 !== selectedTeams.team2);
+        selectedTeams[teamSlot] = teamName;
+        
+        const preview = document.getElementById(teamSlot + '-preview');
+        const loading = document.getElementById(teamSlot + '-loading');
+        const content = document.getElementById(teamSlot + '-content');
+        
+        preview.style.display = 'block';
+        loading.style.display = 'block';
+        content.style.display = 'none';
+        preview.classList.add('active');
+
+        // Fetch team data
+        fetch(`/team_preview/${encodeURIComponent(teamName)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    loading.innerHTML = '<span class="text-danger">Team not found or no games played</span>';
+                    return;
+                }
+
+                // Populate preview
+                document.getElementById(teamSlot + '-name').textContent = data.team;
+                document.getElementById(teamSlot + '-rank').textContent = data.rank;
+                document.getElementById(teamSlot + '-record').textContent = data.record;
+                document.getElementById(teamSlot + '-rating').textContent = data.adjusted_total.toFixed(1);
+                document.getElementById(teamSlot + '-conference').textContent = data.conference;
+                
+                // Recent form with trending
+                const formElement = document.getElementById(teamSlot + '-form');
+                let trendingClass = 'trending-stable';
+                let trendingIcon = '→';
+                
+                if (data.trending === 'up') {
+                    trendingClass = 'trending-up';
+                    trendingIcon = '📈';
+                } else if (data.trending === 'down') {
+                    trendingClass = 'trending-down';
+                    trendingIcon = '📉';
+                }
+                
+                formElement.innerHTML = `<span class="${trendingClass}">${data.recent_form} ${trendingIcon}</span>`;
+                
+                // Logo if available
+                const logo = document.getElementById(teamSlot + '-logo');
+                if (data.logo_url) {
+                    logo.src = data.logo_url;
+                    logo.alt = data.team;
+                    logo.style.display = 'inline';
+                } else {
+                    logo.style.display = 'none';
+                }
+
+                loading.style.display = 'none';
+                content.style.display = 'block';
+            })
+            .catch(error => {
+                loading.innerHTML = '<span class="text-danger">Error loading team data</span>';
+                console.error('Error:', error);
+            });
+
+        updateSubmitButton();
+        updateLocationOptions();
+    }
+
+    function updateSubmitButton() {
+        const btn = document.getElementById('compare-btn');
+        btn.disabled = !(selectedTeams.team1 && selectedTeams.team2 && selectedTeams.team1 !== selectedTeams.team2);
+    }
+
+    function updateLocationOptions() {
+        const team1Option = document.getElementById('team1_home_option');
+        const team2Option = document.getElementById('team2_home_option');
+        
+        if (selectedTeams.team1) {
+            team1Option.textContent = `${selectedTeams.team1} Home`;
+            team1Option.disabled = false;
+        } else {
+            team1Option.textContent = 'Team 1 Home';
+            team1Option.disabled = true;
         }
-
-        function updateLocationOptions() {
-            const team1Option = document.getElementById('team1_home_option');
-            const team2Option = document.getElementById('team2_home_option');
-            
-            if (selectedTeams.team1) {
-                team1Option.textContent = `${selectedTeams.team1} Home`;
-                team1Option.disabled = false;
-            } else {
-                team1Option.textContent = 'Team 1 Home';
-                team1Option.disabled = true;
-            }
-            
-            if (selectedTeams.team2) {
-                team2Option.textContent = `${selectedTeams.team2} Home`;
-                team2Option.disabled = false;
-            } else {
-                team2Option.textContent = 'Team 2 Home';
-                team2Option.disabled = true;
-            }
+        
+        if (selectedTeams.team2) {
+            team2Option.textContent = `${selectedTeams.team2} Home`;
+            team2Option.disabled = false;
+        } else {
+            team2Option.textContent = 'Team 2 Home';
+            team2Option.disabled = true;
         }
+    }
 
-        // Prevent selecting the same team twice
-        document.getElementById('team1').addEventListener('change', function() {
-            const team2Select = document.getElementById('team2');
-            const team2Value = team2Select.value;
-            
-            if (this.value && this.value === team2Value) {
-                team2Select.value = '';
-                loadTeamPreview('team2', '');
-                alert('Please select two different teams!');
-            }
-        });
+    // Prevent selecting the same team twice
+    document.getElementById('team1').addEventListener('change', function() {
+        const team2Select = document.getElementById('team2');
+        const team2Value = team2Select.value;
+        
+        if (this.value && this.value === team2Value) {
+            team2Select.value = '';
+            loadTeamPreview('team2', '');
+            alert('Please select two different teams!');
+        }
+    });
 
-        document.getElementById('team2').addEventListener('change', function() {
-            const team1Select = document.getElementById('team1');
-            const team1Value = team1Select.value;
-            
-            if (this.value && this.value === team1Value) {
-                team1Select.value = '';
-                loadTeamPreview('team1', '');
-                alert('Please select two different teams!');
-            }
-        });
-    </script>
-</body>
-</html>
+    document.getElementById('team2').addEventListener('change', function() {
+        const team1Select = document.getElementById('team1');
+        const team1Value = team1Select.value;
+        
+        if (this.value && this.value === team1Value) {
+            team1Select.value = '';
+            loadTeamPreview('team1', '');
+            alert('Please select two different teams!');
+        }
+    });
+</script>
+{% endblock %}
