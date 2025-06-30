@@ -3746,7 +3746,7 @@ def weekly_results(week=None):
                 scheduled_by_date['No Date'] = []
             scheduled_by_date['No Date'].append(game)
     
-    # NEW: Group completed scheduled games by date - PRESERVE TV NETWORK
+    ## NEW: Group completed scheduled games by date - HANDLE NONE SCORES
     completed_by_date = {}
     for game in week_completed_scheduled:
         game_date = game.get('game_date')
@@ -3754,19 +3754,18 @@ def weekly_results(week=None):
             if game_date not in completed_by_date:
                 completed_by_date[game_date] = []
             # Convert completed scheduled game to look like a regular completed game
-            # BUT preserve the TV network information
+            # FIXED: Handle None scores properly
             completed_game = {
                 'home_team': game['home_team'],
                 'away_team': game['away_team'],
-                'home_score': game.get('final_home_score', 0),
-                'away_score': game.get('final_away_score', 0),
+                'home_score': game.get('final_home_score') or 0,  # Handle None values
+                'away_score': game.get('final_away_score') or 0,  # Handle None values
                 'is_neutral_site': game.get('neutral', False),
                 'overtime': game.get('overtime', False),
                 'week': game['week'],
-                # CLEAN: Keep original fields separate
-                'tv_network': game.get('tv_network'),  # Keep TV network
-                'date_added': 'Scheduled Game',  # Keep simple identifier
-                'from_schedule': True  # Flag to identify source
+                'tv_network': game.get('tv_network'),
+                'date_added': 'Scheduled Game',
+                'from_schedule': True
             }
             completed_by_date[game_date].append(completed_game)
         else:
@@ -3775,8 +3774,8 @@ def weekly_results(week=None):
             completed_game = {
                 'home_team': game['home_team'],
                 'away_team': game['away_team'],
-                'home_score': game.get('final_home_score', 0),
-                'away_score': game.get('final_away_score', 0),
+                'home_score': game.get('final_home_score') or 0,  # Handle None values
+                'away_score': game.get('final_away_score') or 0,  # Handle None values
                 'is_neutral_site': game.get('neutral', False),
                 'overtime': game.get('overtime', False),
                 'week': game['week'],
