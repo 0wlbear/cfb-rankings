@@ -3267,6 +3267,136 @@ def debug_completed_games():
     except Exception as e:
         return f"<h1>Error</h1><p>{e}</p>"
 
+# Add this debug route to check what get_scheduled_games_list() returns
+@app.route('/debug_scheduled_function')
+def debug_scheduled_function():
+    """Debug what get_scheduled_games_list() actually returns"""
+    try:
+        # Call the same function used in weekly_results
+        scheduled_games_list = get_scheduled_games_list()
+        
+        # Filter for completed games
+        completed_scheduled = [game for game in scheduled_games_list if game.get('completed')]
+        
+        output = f"""
+        <h1>Debug get_scheduled_games_list() Function</h1>
+        
+        <h2>Total scheduled games returned: {len(scheduled_games_list)}</h2>
+        <h2>Completed scheduled games: {len(completed_scheduled)}</h2>
+        
+        <h3>Completed Games Data:</h3>
+        <table border="1" style="border-collapse: collapse;">
+        <tr>
+            <th>Week</th><th>Home</th><th>Away</th><th>Completed</th>
+            <th>final_home_score</th><th>final_away_score</th><th>TV</th>
+        </tr>
+        """
+        
+        for game in completed_scheduled:
+            home_score = game.get('final_home_score')
+            away_score = game.get('final_away_score')
+            output += f"""
+            <tr>
+                <td>{game.get('week')}</td>
+                <td>{game.get('home_team')}</td>
+                <td>{game.get('away_team')}</td>
+                <td>{game.get('completed')}</td>
+                <td style="color: {'red' if home_score is None else 'green'}">{home_score}</td>
+                <td style="color: {'red' if away_score is None else 'green'}">{away_score}</td>
+                <td>{game.get('tv_network')}</td>
+            </tr>
+            """
+        
+        output += """
+        </table>
+        
+        <h3>Raw Data (first completed game):</h3>
+        """
+        
+        if completed_scheduled:
+            first_game = completed_scheduled[0]
+            output += f"<pre>{str(first_game)}</pre>"
+        
+        output += """
+        <p><a href="/admin">Back to Admin</a></p>
+        """
+        
+        return output
+        
+    except Exception as e:
+        return f"<h1>Error</h1><p>{e}</p><pre>{str(e)}</pre>"
+
+
+
+# Add this route to fix the NULL scores issue
+@app.route('/fix_null_scores')
+@login_required
+def fix_null_scores():
+    """Fix completed scheduled games that have NULL final scores"""
+    try:
+        # Get database connection
+        connection = db.engine.raw_connection()
+        cursor = connection.cursor()
+        
+        # Find completed scheduled games with NULL scores
+        cursor.execute("""
+            SELECT s.id, s.week, s.home_team, s.away_team, s.final_home_score, s.final_away_score,
+                   g.home_score, g.away_score, g.overtime as game_overtime
+            FROM scheduled_games s
+            LEFT JOIN games g ON (
+                s.week = g.week AND 
+                ((s.home_team = g.home_team AND s.away_team = g.away_team) OR
+                 (s.home_team = g.away_team AND s.away_team = g.home_team))
+            )
+            WHERE s.completed = true 
+            AND (s.final_home_score IS NULL OR s.final_away_score IS NULL)
+            AND g.home_score IS NOT NULL;
+        """)
+        
+        games_to_fix = cursor.fetchall()
+        
+        fixed_count = 0
+        results = []
+        
+        for game in games_to_fix:
+            sched_id, week, sched_home, sched_away, final_home, final_away, game_home_score, game_away_score, game_ot = game
+            
+            # Determine correct scores based on team orientation
+            if sched_home == sched_home:  # Same orientation
+                correct_home_score = game_home_score
+                correct_away_score = game_away_score
+            else:  # Flipped orientation
+                correct_home_score = game_away_score
+                correct_away_score = game_home_score
+            
+            # Update the scheduled game with correct final scores
+            cursor.execute("""
+                UPDATE scheduled_games 
+                SET final_home_score = %s, final_away_score = %s, overtime = %s
+                WHERE id = %s;
+            """, (correct_home_score, correct_away_score, game_ot, sched_id))
+            
+            results.append(f"Fixed: {sched_home} {correct_home_score}-{correct_away_score} {sched_away}")
+            fixed_count += 1
+        
+        connection.commit()
+        cursor.close()
+        connection.close()
+        
+        return f"""
+        <h1>Fix NULL Scores Complete!</h1>
+        
+        <h2>Fixed {fixed_count} games:</h2>
+        <ul>
+        {''.join(f'<li>{result}</li>' for result in results)}
+        </ul>
+        
+        <p>Now check your weekly results page to see if scores show correctly!</p>
+        <p><a href="/weekly_results">Check Weekly Results</a> | <a href="/admin">Back to Admin</a></p>
+        """
+        
+    except Exception as e:
+        return f"<h1>Error</h1><p>{e}</p>"
 
 # Replace your compare_teams route with this simpler debug version first
 
