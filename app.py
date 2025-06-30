@@ -5,7 +5,7 @@ from datetime import datetime
 from collections import defaultdict
 from functools import wraps
 import os
-from models import db, Game, TeamStats, ScheduledGame
+from models import db, Game, TeamStats, ScheduledGame, ArchivedSeason
 from sqlalchemy import text
 
 
@@ -4967,26 +4967,97 @@ def import_csv():
         return render_template('import_csv.html')
     
     try:
-        # ... existing validation code ...
+        season_name = request.form.get('season_name', '').strip()
+        if not season_name:
+            flash('Please enter a season name!', 'error')
+            return redirect(url_for('import_csv'))
         
-        # Create the archive data
+        # Check if file was uploaded
+        if 'csv_file' not in request.files:
+            flash('Please select a CSV file!', 'error')
+            return redirect(url_for('import_csv'))
+        
+        file = request.files['csv_file']
+        if file.filename == '':
+            flash('Please select a CSV file!', 'error')
+            return redirect(url_for('import_csv'))
+        
+        if not file.filename.endswith('.csv'):
+            flash('Please upload a CSV file!', 'error')
+            return redirect(url_for('import_csv'))
+        
+        # Read and parse CSV
+        import csv
+        import io
+        
+        # Read file content
+        file_content = file.read().decode('utf-8')
+        csv_data = list(csv.DictReader(io.StringIO(file_content)))
+        
+        if not csv_data:
+            flash('CSV file is empty!', 'error')
+            return redirect(url_for('import_csv'))
+        
+        # Validate required columns
+        required_cols = ['Rank', 'Team', 'Conference', 'Wins', 'Losses', 'Adjusted_Total']
+        missing_cols = [col for col in required_cols if col not in csv_data[0].keys()]
+        if missing_cols:
+            flash(f'Missing required columns: {", ".join(missing_cols)}', 'error')
+            return redirect(url_for('import_csv'))
+        
+        # INITIALIZE final_rankings here to avoid NameError
+        final_rankings = []
+        
+        # Process the data
+        for row in csv_data:
+            try:
+                team_data = {
+                    'final_rank': int(row['Rank']),
+                    'team': row['Team'].strip(),
+                    'conference': row['Conference'].strip(),
+                    'total_wins': int(row['Wins']),
+                    'total_losses': int(row['Losses']),
+                    'adjusted_total': float(row['Adjusted_Total']),
+                    'p4_wins': int(row.get('P4_Wins', 0)) if row.get('P4_Wins', '').strip() else 0,
+                    'g5_wins': int(row.get('G5_Wins', 0)) if row.get('G5_Wins', '').strip() else 0,
+                    'strength_of_schedule': 0.500,  # Default value
+                    'points_fielded': 0,  # Not available from CSV
+                    'points_allowed': 0,  # Not available from CSV
+                    'margin_of_victory': 0,  # Not available from CSV
+                    'point_differential': 0,  # Not available from CSV
+                    'home_wins': 0,  # Not available from CSV
+                    'road_wins': 0,  # Not available from CSV
+                    'opp_w': 0,  # Not available from CSV
+                    'opp_l': 0,  # Not available from CSV
+                    'opp_wl_differential': 0,  # Not available from CSV
+                    'totals': float(row['Adjusted_Total'])  # Use adjusted total as totals
+                }
+                final_rankings.append(team_data)
+            except (ValueError, KeyError) as e:
+                flash(f'Error processing row {row.get("Rank", "?")}: {e}', 'error')
+                return redirect(url_for('import_csv'))
+        
+        # Sort by rank to ensure proper order
+        final_rankings.sort(key=lambda x: x['final_rank'])
+        
+        # Create complete archive data
         complete_archive_data = {
             'games_data': [],  # No individual games from CSV
-            'team_stats': {},  # No detailed stats from CSV  
+            'team_stats': {},  # No detailed stats from CSV
             'scheduled_games': [],  # No scheduled games from CSV
             'final_rankings': final_rankings
         }
         
-        # REPLACE file saving with database saving:
+        # Save to database using ArchivedSeason model
         champion = final_rankings[0]['team'] if final_rankings else 'No Champion'
         
         from models import ArchivedSeason
         archived_season = ArchivedSeason(
             season_name=season_name,
-            total_games=0,  # Unknown from CSV
+            total_games=0,  # Unknown from CSV import
             total_teams=len(final_rankings),
             champion=champion,
-            total_weeks=0,  # Unknown from CSV
+            total_weeks=0,  # Unknown from CSV import
             archive_data_json=json.dumps(complete_archive_data)
         )
         
