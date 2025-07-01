@@ -7147,7 +7147,7 @@ def login():
             session['admin_logged_in'] = True
             session.permanent = True
             next_page = request.args.get('next')
-            return redirect(next_page or url_for('public_rankings'))
+            return redirect(next_page or url_for('rankings'))
         else:
             flash('Invalid credentials!', 'error')
     
@@ -7157,7 +7157,7 @@ def login():
 def logout():
     session.pop('admin_logged_in', None)
     flash('Logged out successfully!', 'success')
-    return redirect(url_for('public_rankings')) 
+    return redirect(url_for('rankings')) 
 
 @app.route('/archived_seasons')
 def archived_seasons():
