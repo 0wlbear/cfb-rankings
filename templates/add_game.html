@@ -30,7 +30,15 @@
                     <select class="form-select" id="week" name="week" required>
                         <option value="">Select Week</option>
                         {% for week in weeks %}
-                            <option value="{{ week }}" {% if week == selected_week %}selected{% endif %}>{{ week }}</option>
+                            <option value="{{ week }}" {% if week == selected_week %}selected{% endif %}>
+                                {% if week == 'Bowls' %}
+                                    Bowl Games
+                                {% elif week == 'CFP' %}
+                                    CFP
+                                {% else %}
+                                    Week {{ week }}
+                                {% endif %}
+                            </option>
                         {% endfor %}
                     </select>
                 </div>
@@ -62,7 +70,7 @@
                         <div class="card-body">
                             <div class="mb-3">
                                 <label for="away_team" class="form-label">Team</label>
-                                <select class="form-select form-select-lg" id="away_team" name="away_team" required>
+                                <select class="form-select" id="away_team" name="away_team" required>
                                     <option value="">Select Away Team</option>
                                     {% for conf_name, teams in conferences.items() %}
                                         <optgroup label="{{ conf_name }}">
@@ -76,7 +84,7 @@
                             
                             <div class="mb-3">
                                 <label for="away_score" class="form-label">Score</label>
-                                <input type="number" class="form-control form-control-lg" id="away_score" name="away_score" min="0" max="200" required>
+                                <input type="number" class="form-control" id="away_score" name="away_score" min="0" max="200" required>
                             </div>
                         </div>
                     </div>
@@ -91,7 +99,7 @@
                         <div class="card-body">
                             <div class="mb-3">
                                 <label for="home_team" class="form-label">Team</label>
-                                <select class="form-select form-select-lg" id="home_team" name="home_team" required>
+                                <select class="form-select" id="home_team" name="home_team" required>
                                     <option value="">Select Home Team</option>
                                     {% for conf_name, teams in conferences.items() %}
                                         <optgroup label="{{ conf_name }}">
@@ -105,7 +113,7 @@
                             
                             <div class="mb-3">
                                 <label for="home_score" class="form-label">Score</label>
-                                <input type="number" class="form-control form-control-lg" id="home_score" name="home_score" min="0" max="200" required>
+                                <input type="number" class="form-control" id="home_score" name="home_score" min="0" max="200" required>
                             </div>
                         </div>
                     </div>

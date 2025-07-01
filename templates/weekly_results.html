@@ -12,7 +12,13 @@
                 <select class="form-select d-inline-block w-auto" id="week_selector" onchange="changeWeek()">
                     {% for week_option in all_weeks %}
                         <option value="{{ week_option }}" {% if week_option == selected_week %}selected{% endif %}>
-                            Week {{ week_option }}
+                            {% if week_option == 'Bowls' %}
+                                Bowl Games
+                            {% elif week_option == 'CFP' %}
+                                CFP
+                            {% else %}
+                                Week {{ week_option }}
+                            {% endif %}
                         </option>
                     {% endfor %}
                 </select>
@@ -35,7 +41,13 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h4 class="mb-0">
-                    Week {{ selected_week }} Results
+                    {% if selected_week == 'Bowls' %}
+                        Bowl Games Results
+                    {% elif selected_week == 'CFP' %}
+                        CFP Results
+                    {% else %}
+                        Week {{ selected_week }} Results
+                    {% endif %}
                     {% if week_games or scheduled_games %}
                         {% set total_scheduled = scheduled_games|length %}
                         {% set completed_games = week_games|length %}
@@ -232,7 +244,16 @@
                     {% endfor %}
                 {% else %}
                     <div class="text-center text-muted py-5">
-                        <h5>No games scheduled for Week {{ selected_week }}</h5>
+                        <h5>
+                            No games scheduled for 
+                            {% if selected_week == 'Bowls' %}
+                                Bowl Games
+                            {% elif selected_week == 'CFP' %}
+                                CFP
+                            {% else %}
+                                Week {{ selected_week }}
+                            {% endif %}
+                        </h5>
                         <p>Import a schedule or check back later for game results.</p>
                     </div>
                 {% endif %}
@@ -241,7 +262,15 @@
         
         {% if week_games or scheduled_games %}
             <div class="mt-4">
-                <h5>Week {{ selected_week }} Summary</h5>
+                <h5>
+                    {% if selected_week == 'Bowls' %}
+                        Bowl Games Summary
+                    {% elif selected_week == 'CFP' %}
+                        CFP Summary
+                    {% else %}
+                        Week {{ selected_week }} Summary
+                    {% endif %}
+                </h5>
                 <div class="row">
                     <div class="col-md-3">
                         <div class="card text-center">
@@ -287,7 +316,16 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">📅 Import Week {{ selected_week }} Schedule</h5>
+                <h5 class="modal-title">
+                    📅 Import 
+                    {% if selected_week == 'Bowls' %}
+                        Bowl Games Schedule
+                    {% elif selected_week == 'CFP' %}
+                        CFP Schedule
+                    {% else %}
+                        Week {{ selected_week }} Schedule
+                    {% endif %}
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ url_for('import_schedule') }}">

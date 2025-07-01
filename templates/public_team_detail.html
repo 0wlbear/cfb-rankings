@@ -24,6 +24,7 @@
             </p>
         </div>
 
+
         <!-- Overall Score -->
         <div class="card mb-4">
             <div class="card-header bg-primary text-white">
@@ -118,6 +119,79 @@
                 </div>
             </div>
         </div>
+
+        <!-- P4/G5 Records (from team_detail.html) -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">P4 Record</h5>
+                            <h4>{{ stats.p4_wins }}-{{ stats.p4_losses }}</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">G5 Record</h5>
+                            <h4>{{ stats.g5_wins }}-{{ stats.g5_losses }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+        <div class="row mb-4">
+    <!-- Victory Value Trend Chart -->
+    <div class="col-md-6">
+        <div class="card chart-card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">📈 Victory Value Trend</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="victoryTrendChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Win/Loss Breakdown Chart -->
+    <div class="col-md-6">
+        <div class="card chart-card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">🏆 Win/Loss Breakdown</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="winLossChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <!-- Opponent Quality Distribution -->
+    <div class="col-md-6">
+        <div class="card chart-card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">⚖️ Opponent Quality Distribution</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="opponentQualityChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Victory Margins -->
+    <div class="col-md-6">
+        <div class="card chart-card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">📊 Victory Margins</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="victoryMarginsChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
 
         <!-- Game-by-Game Analysis -->
         <div class="card mb-4">
@@ -262,4 +336,179 @@
         </div>
     </div>
 </div>
+
+     <!-- Add Chart.js CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+
+<!-- Replace your current script section with this working version -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // Victory Value Trend Chart
+    {% if victory_values %}
+    const victoryCtx = document.getElementById('victoryTrendChart');
+    if (victoryCtx) {
+        new Chart(victoryCtx, {
+            type: 'line',
+            data: {
+                labels: {{ game_weeks|tojson }},
+                datasets: [{
+                    label: 'Victory Value',
+                    data: {{ victory_values|tojson }},
+                    borderColor: '#007bff',
+                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+    }
+    {% endif %}
+
+// Win/Loss Chart - DEBUG VERSION
+const winLossCtx = document.getElementById('winLossChart');
+if (winLossCtx) {
+    const homeWins = {{ home_wins }};
+    const awayWins = {{ away_wins }};
+    const neutralWins = {{ neutral_wins }};
+    const totalLosses = {{ total_losses }};
+    
+    // Debug logging
+    console.log('Win/Loss Chart Debug:', {
+        homeWins: homeWins,
+        awayWins: awayWins,
+        neutralWins: neutralWins,
+        totalLosses: totalLosses,
+        total: homeWins + awayWins + neutralWins + totalLosses
+    });
+    
+    const totalGames = homeWins + awayWins + neutralWins + totalLosses;
+    
+    if (totalGames === 0) {
+        winLossCtx.parentElement.innerHTML = '<p class="text-muted text-center mt-4">No games played yet</p>';
+        console.log('No games - showing message');
+    } else {
+        console.log('Creating chart with data:', [homeWins, awayWins, neutralWins, totalLosses]);
+        
+        try {
+            new Chart(winLossCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Home Wins', 'Away Wins', 'Neutral Wins', 'Losses'],
+                    datasets: [{
+                        data: [homeWins, awayWins, neutralWins, totalLosses],
+                        backgroundColor: ['#28a745', '#17a2b8', '#6f42c1', '#dc3545']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { 
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ' + context.parsed;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            console.log('Chart created successfully');
+        } catch (error) {
+            console.error('Error creating chart:', error);
+            winLossCtx.parentElement.innerHTML = '<p class="text-danger text-center mt-4">Chart error: ' + error.message + '</p>';
+        }
+    }
+} else {
+    console.log('winLossChart element not found!');
+}
+
+    // Opponent Quality Chart
+    {% if opponent_quality_distribution %}
+    const oppQualityCtx = document.getElementById('opponentQualityChart');
+    if (oppQualityCtx) {
+        new Chart(oppQualityCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Weak (1-3)', 'Average (4-6)', 'Strong (7-8)', 'Elite (9-10)'],
+                datasets: [{
+                    data: {{ opponent_quality_distribution|tojson }},
+                    backgroundColor: ['#6c757d', '#ffc107', '#fd7e14', '#198754']
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    }
+    {% endif %}
+
+    // Victory Margins Chart
+    {% if win_margins %}
+    const marginsCtx = document.getElementById('victoryMarginsChart');
+    if (marginsCtx) {
+        new Chart(marginsCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ win_opponents|tojson }},
+                datasets: [{
+                    data: {{ win_margins|tojson }},
+                    backgroundColor: '#28a745'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    }
+    {% endif %}
+});
+</script>
+<style>
+.chart-container {
+    position: relative;
+    height: 250px;
+    width: 250px;
+    margin: 0 auto;
+}
+
+#winLossChart {
+    max-width: 100% !important;
+    max-height: 100% !important;
+}
+
+/* Make all chart cards the same height */
+.chart-card .card-body {
+    height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Default chart sizing */
+.chart-card canvas {
+    max-width: 100% !important;
+    max-height: 280px !important;
+}
+
+/* Smaller Win/Loss chart only */
+#winLossChart {
+    max-width: 250px !important;
+    max-height: 250px !important;
+}
+
+</style>
+
 {% endblock %}

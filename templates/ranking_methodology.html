@@ -1,11 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Ranking Methodology - College Football Rankings</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
+{% extends "base.html" %}
+
+{% block title %}Advanced Ranking Methodology - College Football Rankings{% endblock %}
+
+{% block content %}
+<style>
         .methodology-section {
             border-left: 4px solid #007bff;
             padding-left: 20px;
@@ -60,6 +58,13 @@
             padding: 15px;
             margin: 10px 0;
         }
+        .merit-based-highlight {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
     </style>
 </head>
 <body>
@@ -97,6 +102,7 @@
                                     <li><strong>Iterative Calculations</strong> that account for circular dependencies</li>
                                     <li><strong>Real-time Adaptation</strong> as teams improve or decline</li>
                                     <li><strong>Context-Aware Analysis</strong> that understands game situations</li>
+                                    <li><strong>Pure Merit-Based Evaluation</strong> - no conference bias</li>
                                 </ul>
                             </div>
                         </div>
@@ -106,38 +112,46 @@
                             <h3>📊 MODULE 1: Enhanced Opponent Quality Engine</h3>
                         </div>
                         <div class="methodology-section">
-                            <p>Every opponent is rated on a 1-10 scale using iterative calculations and conference strength multipliers:</p>
+                            <div class="merit-based-highlight">
+                                <h5><strong>🎯 Pure Merit-Based Opponent Quality</strong></h5>
+                                <p>Every opponent is rated purely on their actual performance - no artificial conference boosts! A good team is a good team regardless of what logo they wear.</p>
+                            </div>
+                            
+                            <p>Every opponent is rated on a 1-10 scale using iterative calculations based solely on performance:</p>
                             
                             <div class="row">
                                 <div class="col-md-6">
-                                    <h5>Conference Strength Multipliers</h5>
-                                    <ul>
-                                        <li><strong>SEC:</strong> 1.05× (strongest conference)</li>
-                                        <li><strong>Big Ten:</strong> 1.03× (strong top to bottom)</li>
-                                        <li><strong>Big XII:</strong> 1.00× (baseline P4)</li>
-                                        <li><strong>ACC:</strong> 0.98× (slightly weaker P4)</li>
-                                        <li><strong>Pac 12:</strong> 0.95× (depleted by departures)</li>
-                                        <li><strong>American:</strong> 0.85× (best G5)</li>
-                                        <li><strong>Mountain West:</strong> 0.83× (competitive G5)</li>
-                                        <li><strong>Sun Belt/MAC:</strong> 0.80-0.82× (average G5)</li>
-                                        <li><strong>Conference USA:</strong> 0.78× (weakest G5)</li>
-                                    </ul>
-                                </div>
-                                <div class="col-md-6">
-                                    <h5>Iterative Quality Calculation</h5>
+                                    <h5>Pure Performance-Based Rating</h5>
                                     <ul>
                                         <li><strong>Base strength:</strong> Win percentage + performance vs. opponents</li>
-                                        <li><strong>Conference adjustment:</strong> Multiplied by conference strength</li>
+                                        <li><strong>No conference inflation:</strong> Teams rated on merit only</li>
                                         <li><strong>Recent form factor:</strong> Last 4 games weighted</li>
                                         <li><strong>Opponent quality impact:</strong> Teams that beat good teams get higher ratings</li>
                                         <li><strong>Maximum iterations:</strong> 3 levels deep to prevent circular references</li>
                                     </ul>
                                 </div>
+                                <div class="col-md-6">
+                                    <h5>Iterative Quality Calculation</h5>
+                                    <ul>
+                                        <li><strong>Step 1:</strong> Calculate base team strength from win-loss record</li>
+                                        <li><strong>Step 2:</strong> Adjust based on opponent performance (recursive)</li>
+                                        <li><strong>Step 3:</strong> Apply recent form adjustments</li>
+                                        <li><strong>Step 4:</strong> Normalize to 1-10 scale</li>
+                                        <li><strong>Special case:</strong> FCS opponents always rated 0.5</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="example-box">
+                                <h6><strong>Merit-Based Quality Examples:</strong></h6>
+                                <p><strong>Vanderbilt (2-10, SEC):</strong> Gets ~2.1 quality rating based on poor performance<br>
+                                <strong>Boise State (10-2, G5):</strong> Gets ~7.8 quality rating based on strong performance<br>
+                                <strong>Result:</strong> Beating Boise State worth much more than beating Vanderbilt!</p>
                             </div>
 
                             <div class="advanced-feature">
                                 <h6><strong>🔄 Advanced Feature: Iterative Opponent Strength</strong></h6>
-                                <p>Unlike simple systems that use static ratings, our system continuously recalculates opponent quality based on their performance against other opponents, creating a dynamic web of interconnected team strengths.</p>
+                                <p>Unlike simple systems that use static ratings, our system continuously recalculates opponent quality based on their performance against other opponents, creating a dynamic web of interconnected team strengths with no conference bias.</p>
                             </div>
                         </div>
 
@@ -197,7 +211,7 @@
                             <div class="example-box">
                                 <h6><strong>Enhanced Victory Value Example:</strong></h6>
                                 <p><strong>Oregon beats Ohio State 35-21 in Week 13 Conference Championship at neutral site:</strong></p>
-                                <p>• Base: 8.5 (Ohio State quality) × 1.15 (neutral) = 9.78<br>
+                                <p>• Base: 8.5 (Ohio State quality based on performance) × 1.15 (neutral) = 9.78<br>
                                 • Margin: +1.54 (14-point win with cap)<br>
                                 • Context: +1.2 (conference championship)<br>
                                 • Conference: +0.3 (P4 vs P4)<br>
@@ -375,31 +389,10 @@
                                 <span class="component-neutral">+ Games Played Bonus</span>
                             </div>
 
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h5>Advanced Integration Features</h5>
-                                    <ul>
-                                        <li><strong>Circular dependency resolution:</strong> Iterative calculations prevent infinite loops</li>
-                                        <li><strong>Component balancing:</strong> No single factor dominates the ranking</li>
-                                        <li><strong>Scale normalization:</strong> All components properly weighted</li>
-                                        <li><strong>Minimum/maximum bounds:</strong> Prevents extreme outliers</li>
-                                    </ul>
-                                </div>
-                                <div class="col-md-6">
-                                    <h5>Quality Assurance Checks</h5>
-                                    <ul>
-                                        <li><strong>Sanity checking:</strong> Validates results make logical sense</li>
-                                        <li><strong>Component contribution tracking:</strong> Shows what drives each ranking</li>
-                                        <li><strong>Historical comparison:</strong> Ensures rankings evolve logically</li>
-                                        <li><strong>Edge case handling:</strong> Manages unusual scenarios gracefully</li>
-                                    </ul>
-                                </div>
-                            </div>
-
                             <div class="example-box">
                                 <h6><strong>Complete Final Ranking Example:</strong></h6>
                                 <p><strong>Georgia (P4) with strong season:</strong></p>
-                                <p>• Enhanced Victory Value: 45.8 points<br>
+                                <p>• Enhanced Victory Value: 45.8 points (from beating quality opponents)<br>
                                 • Conference Multiplier: ×1.0 (P4) = 45.8<br>
                                 • Loss Penalties: -8.2 points<br>
                                 • Schedule Penalties: -0.5 points (played some weak teams)<br>
@@ -415,10 +408,6 @@
                                 <p>The system automatically adjusts component weights based on sample size and data quality. Teams with more games get different weighting than teams with fewer games, ensuring fair comparisons across different sample sizes.</p>
                             </div>
                         </div>
-
-
-
-
 
                         <!-- Module 7: Game Context Analyzer -->
                         <div class="module-header">
@@ -494,6 +483,11 @@
                         <!-- Conference Multiplier System -->
                         <div class="methodology-section">
                             <h2>🏆 Conference Tier & Multiplier System</h2>
+                            <div class="merit-based-highlight">
+                                <h5><strong>🎯 Merit-Based Conference System</strong></h5>
+                                <p>The final ranking applies a single 0.85× multiplier to G5 teams to reflect overall schedule strength differences, but <strong>individual opponents are rated purely on performance</strong> - no conference logos artificially inflating opponent quality!</p>
+                            </div>
+                            
                             <div class="row">
                                 <div class="col-md-4">
                                     <div class="card h-100">
@@ -504,13 +498,14 @@
                                         <div class="card-body">
                                             <p><strong>Full Credit (100%)</strong></p>
                                             <ul class="small">
-                                                <li>SEC (1.05× internal)</li>
-                                                <li>Big Ten (1.03× internal)</li>
-                                                <li>Big XII (1.0× internal)</li>
-                                                <li>ACC (0.98× internal)</li>
-                                                <li>Pac 12 (0.95× internal)</li>
+                                                <li>SEC</li>
+                                                <li>Big Ten</li>
+                                                <li>Big XII</li>
+                                                <li>ACC</li>
+                                                <li>Pac 12</li>
                                                 <li>Notre Dame (Independent)</li>
                                             </ul>
+                                            <p class="small text-success"><strong>Note:</strong> All P4 conferences treated equally - no artificial conference hierarchy!</p>
                                         </div>
                                     </div>
                                 </div>
@@ -523,13 +518,14 @@
                                         <div class="card-body">
                                             <p><strong>Reduced Credit (85%)</strong></p>
                                             <ul class="small">
-                                                <li>American (0.85× internal)</li>
-                                                <li>Mountain West (0.83× internal)</li>
-                                                <li>Sun Belt (0.82× internal)</li>
-                                                <li>MAC (0.80× internal)</li>
-                                                <li>Conference USA (0.78× internal)</li>
+                                                <li>American</li>
+                                                <li>Mountain West</li>
+                                                <li>Sun Belt</li>
+                                                <li>MAC</li>
+                                                <li>Conference USA</li>
                                                 <li>UConn (Independent)</li>
                                             </ul>
+                                            <p class="small text-warning"><strong>Note:</strong> Reflects overall schedule strength difference, not individual opponent inflation!</p>
                                         </div>
                                     </div>
                                 </div>
@@ -554,7 +550,7 @@
                             </div>
                         </div>
 
-                        <!-- Advanced Prediction System -->
+                        <!-- Enhanced Prediction System -->
                         <div class="methodology-section">
                             <h2>🔮 Enhanced Prediction & Comparison System</h2>
                             <p>Our prediction system uses all 8 modules to forecast game outcomes with confidence ratings:</p>
@@ -569,7 +565,7 @@
                                         <li><strong>Schedule strength comparison:</strong> Who's been tested more</li>
                                         <li><strong>Team-specific home field:</strong> Venue-specific advantages</li>
                                         <li><strong>Travel impact assessment:</strong> Cross-country game effects</li>
-                                        <li><strong>Conference context analysis:</strong> Nuanced P4/G5 adjustments</li>
+                                        <li><strong>Merit-based adjustments:</strong> Pure performance comparisons</li>
                                     </ul>
                                 </div>
                                 <div class="col-md-6">
@@ -599,6 +595,7 @@
                                         <li>✅ <strong>Consistent methodology</strong> - same criteria applied to every team</li>
                                         <li>✅ <strong>Real-time updates</strong> - rankings change instantly when games complete</li>
                                         <li>✅ <strong>Complete transparency</strong> - every component explained and visible</li>
+                                        <li>✅ <strong>No conference favoritism</strong> - teams judged on merit only</li>
                                     </ul>
                                 </div>
                                 <div class="col-md-6">
@@ -609,6 +606,7 @@
                                         <li>✅ <strong>Ranks all teams</strong> - comprehensive 130+ team evaluation</li>
                                         <li>✅ <strong>Predictive capability</strong> - forecasts future matchups with confidence</li>
                                         <li>✅ <strong>Context awareness</strong> - understands game situations and stakes</li>
+                                        <li>✅ <strong>Merit-based evaluation</strong> - good teams rewarded regardless of conference</li>
                                     </ul>
                                 </div>
                             </div>
@@ -622,6 +620,7 @@
                                         <li>✅ <strong>Temporal sophistication</strong> - accounts for team development over time</li>
                                         <li>✅ <strong>Schedule quality analysis</strong> - prevents manipulation and rewards strength</li>
                                         <li>✅ <strong>Interactive features</strong> - team comparisons, bowl projections, CFP brackets</li>
+                                        <li>✅ <strong>Pure merit evaluation</strong> - no conference bias in opponent ratings</li>
                                     </ul>
                                 </div>
                                 <div class="col-md-6">
@@ -631,14 +630,14 @@
                                         <li>✅ <strong>Prevents stat padding</strong> - margin caps and quality-based scaling</li>
                                         <li>✅ <strong>Rewards difficult schedules</strong> - proper credit for strength of schedule</li>
                                         <li>✅ <strong>Recognizes improvement</strong> - teams get credit for getting better</li>
-                                        <li>✅ <strong>Conference-aware</strong> - understands different competitive levels</li>
+                                        <li>✅ <strong>Fair conference treatment</strong> - no artificial boosts for conference logos</li>
                                     </ul>
                                 </div>
                             </div>
 
                             <div class="alert alert-success mt-4">
                                 <h5><strong>🏆 The Result:</strong></h5>
-                                <p class="mb-0">The most comprehensive, accurate, and sophisticated college football ranking system ever created. Our 8-module approach considers every meaningful factor while maintaining objectivity and transparency. This isn't just a ranking system - it's a complete analytical framework for understanding college football performance.</p>
+                                <p class="mb-0">The most comprehensive, accurate, and fair college football ranking system ever created. Our merit-based approach ensures that teams are judged purely on their performance, not their conference affiliation. This creates a truly level playing field where a strong G5 team gets proper credit and a weak P4 team doesn't get artificial inflation.</p>
                             </div>
                         </div>
 
@@ -653,7 +652,7 @@
                                         </div>
                                         <div class="card-body">
                                             <ol class="small mb-0">
-                                                <li>Enhanced Opponent Quality Engine</li>
+                                                <li>Enhanced Opponent Quality Engine (Merit-Based)</li>
                                                 <li>Enhanced Victory Value Calculator</li>
                                                 <li>Enhanced Loss Quality Assessment</li>
                                                 <li>Enhanced Temporal Weighting Engine</li>
@@ -673,7 +672,7 @@
                                         <div class="card-body">
                                             <ul class="small mb-0">
                                                 <li>50+ variables per game analysis</li>
-                                                <li>Iterative opponent quality calculation</li>
+                                                <li>Merit-based opponent quality calculation</li>
                                                 <li>Team-specific home field advantages</li>
                                                 <li>Cross-country travel adjustments</li>
                                                 <li>Quality-based margin caps</li>
@@ -692,16 +691,15 @@
                 <!-- Navigation -->
                 <div class="row mt-3">
                     <div class="col-12 text-center">
-                        <a href="/" class="btn btn-primary">Back to Rankings</a>
-                        <a href="/compare" class="btn btn-secondary">Compare Teams</a>
-                        <a href="/cfp_bracket" class="btn btn-info">CFP Bracket</a>
-                        <a href="/bowl_projections" class="btn btn-warning">Bowl Projections</a>
+                        <a href="{{ url_for('public_rankings') }}" class="btn btn-primary">Back to Rankings</a>
+                        {% if is_admin %}
+                        <a href="{{ url_for('team_compare') }}" class="btn btn-secondary">Compare Teams</a>
+                        {% endif %}
+                        <a href="{{ url_for('cfp_bracket') }}" class="btn btn-info">CFP Bracket</a>
+                        <a href="{{ url_for('bowl_projections') }}" class="btn btn-warning">Bowl Projections</a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+{% endblock %}

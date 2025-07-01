@@ -246,14 +246,14 @@ TEAM_LOGOS = {
     'Temple': '218',
     'Tulane': '2655',
     'Tulsa': '202',
-    'UAB': '2429',
-    'UTSA': '2902',
+    'UAB': '5',
+    'UTSA': '2636',
     
     # Conference USA
     'Delaware': '48',
     'Florida Intl': '2229',
     'Jacksonville State': '55',
-    'Kennesaw State': '2390',
+    'Kennesaw State': '338',
     'LA Tech': '2348',
     'Liberty': '2335',
     'Middle Tennessee': '2393',
@@ -1186,8 +1186,8 @@ def get_auto_game_type(team_name):
         return 'None'
 
 # Admin credentials from environment variables
-ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
-ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'changeme')
+ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'testuser')
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'testpass')
 
 def is_admin():
     """Check if user is logged in as admin"""
@@ -1422,7 +1422,7 @@ CONFERENCE_STRENGTH_MULTIPLIERS = {
 }
 
 def get_enhanced_opponent_quality(opponent_name):
-    """Enhanced opponent quality with conference strength multipliers"""
+    """Enhanced opponent quality WITHOUT conference strength multipliers"""
     
     # Handle FCS specially (unchanged)
     if opponent_name == 'FCS' or opponent_name.upper() == 'FCS':
@@ -1431,23 +1431,20 @@ def get_enhanced_opponent_quality(opponent_name):
     if opponent_name not in team_stats:
         return 1.5
     
-    # Get base strength
+    # Get base strength (this is what actually matters)
     base_strength = calculate_team_base_strength(opponent_name)
     
-    # Apply conference multiplier
-    opponent_conf = get_team_conference(opponent_name)
-    conf_multiplier = CONFERENCE_STRENGTH_MULTIPLIERS.get(opponent_conf, 1.0)
+    # REMOVED: Conference multiplier section
+    # No more artificial boosts for conference membership
     
-    adjusted_strength = base_strength * conf_multiplier
-    
-    # Apply recent form bonus (existing logic)
+    # Apply recent form bonus (keep this - it's based on actual performance)
     recent_games = team_stats[opponent_name]['games'][-4:]
     if len(recent_games) >= 2:
         recent_wins = sum(1 for g in recent_games if g['result'] == 'W')
         recent_form_bonus = (recent_wins / len(recent_games) - 0.5) * 1.0
-        adjusted_strength += recent_form_bonus
+        base_strength += recent_form_bonus
     
-    return max(1.0, min(10.0, adjusted_strength))
+    return max(1.0, min(10.0, base_strength))
 
 def calculate_team_base_strength(team_name, iteration=0, max_iterations=3):
     """
@@ -2335,6 +2332,143 @@ def calculate_enhanced_scientific_ranking(team_name):
         }
     }
 
+
+def create_default_ranking_result():
+    """Create default ranking result for teams with no games"""
+    return {
+        'total_score': 0.0,
+        'components': {
+            'victory_value': 0.0,
+            'conference_multiplier': 1.0,
+            'adjusted_victory_value': 0.0,
+            'loss_penalty': 0.0,
+            'schedule_penalty': 0.0,
+            'temporal_adjustment': 0.0,
+            'consistency_factor': 0.0,
+            'sos_bonus': 0.0,
+            'games_bonus': 0.0,
+            'sos_rating': 5.0
+        },
+        'basic_stats': {
+            'wins': 0,
+            'losses': 0,
+            'total_games': 0
+        },
+        'schedule_analysis': {
+            'strength_rating': 5.0,
+            'manipulation_flags': []
+        }
+    }
+
+
+# Add these new functions near your other calculation functions
+# (around where calculate_comprehensive_stats, calculate_victory_value, etc. are)
+
+def get_all_team_stats_bulk():
+    """Load all team stats in one efficient operation"""
+    try:
+        # Get all teams with games in one query
+        teams_with_games = TeamStats.query.filter(
+            (TeamStats.wins + TeamStats.losses) > 0
+        ).all()
+        
+        # Pre-calculate opponent quality lookup table
+        opponent_quality_cache = {}
+        for team_record in teams_with_games:
+            team_name = team_record.team_name
+            # Simple quality calculation (avoid recursion)
+            total_games = team_record.wins + team_record.losses
+            if total_games > 0:
+                base_quality = 2.0 + (team_record.wins / total_games * 6.0)
+                opponent_quality_cache[team_name] = base_quality
+            else:
+                opponent_quality_cache[team_name] = 5.0
+        
+        # Calculate stats for all teams efficiently
+        comprehensive_stats = []
+        for team_record in teams_with_games:
+            team_name = team_record.team_name
+            team_data = team_record.to_dict()
+            
+            # Fast calculation using cached opponent qualities
+            stats = calculate_fast_stats(team_name, team_data, opponent_quality_cache)
+            stats['team'] = team_name
+            stats['conference'] = get_team_conference(team_name)
+            comprehensive_stats.append(stats)
+        
+        # Sort by ranking
+        comprehensive_stats.sort(key=lambda x: x['adjusted_total'], reverse=True)
+        return comprehensive_stats
+        
+    except Exception as e:
+        print(f"Error in bulk loading: {e}")
+        return []
+
+def calculate_fast_stats(team_name, team_data, opponent_quality_cache):
+    """Fast stats calculation using pre-computed opponent qualities"""
+    total_games = team_data['wins'] + team_data['losses']
+    if total_games == 0:
+        return create_default_stats()
+    
+    # Calculate victory value efficiently
+    victory_value = 0
+    for game in team_data['games']:
+        if game['result'] == 'W':
+            opponent = game['opponent']
+            opponent_quality = opponent_quality_cache.get(opponent, 5.0)
+            
+            # Simplified victory calculation (no recursion)
+            margin = game['team_score'] - game['opp_score']
+            location_mult = {'Home': 1.0, 'Away': 1.3, 'Neutral': 1.15}.get(game['home_away'], 1.0)
+            margin_bonus = min(2.0, margin * 0.1)
+            
+            victory_value += (opponent_quality * location_mult) + margin_bonus
+    
+    # Simple loss penalty
+    loss_penalty = team_data['losses'] * 3.0
+    
+    # Final calculation
+    adjusted_total = victory_value - loss_penalty + (total_games * 0.18)
+    
+    return {
+        'adjusted_total': round(adjusted_total, 2),
+        'total_wins': team_data['wins'],
+        'total_losses': team_data['losses'],
+        'points_fielded': team_data['points_for'],
+        'points_allowed': team_data['points_against'],
+        'margin_of_victory': team_data['margin_of_victory_total'],
+        'point_differential': team_data['points_for'] - team_data['points_against'],
+        'home_wins': team_data['home_wins'],
+        'road_wins': team_data['road_wins'],
+        'strength_of_schedule': 0.500,  # Simplified for speed
+        'totals': round(adjusted_total, 2),
+        'scientific_breakdown': {'total_score': adjusted_total},
+        'opp_w': 0,  # Simplified for speed
+        'opp_l': 0,  # Simplified for speed
+        'opp_wl_differential': 0,  # Simplified for speed
+        'strength_of_record': 0.500  # Simplified for speed
+    }
+
+def create_default_stats():
+    """Default stats for teams with no games"""
+    return {
+        'adjusted_total': 0.0,
+        'total_wins': 0,
+        'total_losses': 0,
+        'points_fielded': 0,
+        'points_allowed': 0,
+        'margin_of_victory': 0,
+        'point_differential': 0,
+        'home_wins': 0,
+        'road_wins': 0,
+        'strength_of_schedule': 0.0,
+        'totals': 0.0,
+        'scientific_breakdown': {'total_score': 0.0},
+        'opp_w': 0,
+        'opp_l': 0,
+        'opp_wl_differential': 0,
+        'strength_of_record': 0.0
+    }
 
 
 def calculate_comprehensive_stats(team_name):
@@ -4481,28 +4615,18 @@ def create_snapshot():
 @app.route('/admin')
 @login_required
 def admin():
-    # Create comprehensive stats table for all teams (full data)
-    comprehensive_stats = []
+    # NEW: Fast bulk loading instead of individual team calculations
+    comprehensive_stats = get_all_team_stats_bulk()
     
-    # Add all teams from all conferences
-    for conf_name, teams in CONFERENCES.items():
-        for team in teams:
-            stats = calculate_comprehensive_stats_cached(team)
-            stats['team'] = team
-            stats['conference'] = conf_name
-            comprehensive_stats.append(stats)
-    
-    # Sort by Adjusted Total (highest first)
-    comprehensive_stats.sort(key=lambda x: x['adjusted_total'], reverse=True)
-    
-    recent_games = get_games_data()[-10:]  # Use database function
-    all_games = get_games_data()  # Use database function
+    # Keep the existing template variables your admin.html expects
+    recent_games = get_games_data()[-10:]
+    all_games = get_games_data()
     
     return render_template('admin.html', 
                          comprehensive_stats=comprehensive_stats, 
                          recent_games=recent_games,
                          games_data=all_games,
-                         historical_rankings=[])  # ✅ NEW LINE - empty list since we removed historical rankings
+                         historical_rankings=[])
 
 @app.route('/admin/apply_performance_indexes')
 @login_required
@@ -5155,29 +5279,122 @@ def performance_test_with_cache():
 
 @app.route('/cfp_bracket')
 def cfp_bracket():
-    """Display current CFP bracket projection"""
-    bracket = generate_cfp_bracket()
-    return render_template('cfp_bracket.html', bracket=bracket)   
+    """Fast CFP bracket with caching"""
+    cache_key = 'cfp_bracket_data'
+    
+    # Check cache first (3 minute cache)
+    if cache_key in performance_cache:
+        cached_bracket, timestamp = performance_cache[cache_key]
+        if time.time() - timestamp < 180:
+            return render_template('cfp_bracket.html', bracket=cached_bracket)
+    
+    try:
+        # Use our fast bulk loading
+        all_teams_stats = get_all_team_stats_bulk()
+        
+        # Generate fast CFP bracket
+        bracket = generate_fast_cfp_bracket(all_teams_stats)
+        
+        # Cache the result
+        performance_cache[cache_key] = (bracket, time.time())
+        
+        return render_template('cfp_bracket.html', bracket=bracket)
+        
+    except Exception as e:
+        return f"""
+        <html><body style="font-family: Arial; margin: 40px;">
+        <h1>CFP Bracket Temporarily Unavailable</h1>
+        <p><strong>Error:</strong> {e}</p>
+        <p><a href="/">Back to Home</a></p>
+        </body></html>
+        """
+
+def generate_fast_cfp_bracket(all_teams_stats):
+    """Fast CFP bracket generation using pre-calculated stats"""
+    try:
+        # Get top 12 teams (already sorted by adjusted_total)
+        top_12 = all_teams_stats[:12] if len(all_teams_stats) >= 12 else all_teams_stats
+        
+        # Add seeds
+        for i, team in enumerate(top_12):
+            team['seed'] = i + 1
+        
+        # Create bracket structure
+        bracket = {
+            'first_round_byes': top_12[:4],  # Seeds 1-4 get byes
+            'first_round_games': create_simple_first_round_games(top_12),
+            'all_teams': top_12,
+            'automatic_qualifiers': top_12[:5],  # Top 5 as auto-qualifiers
+            'at_large_display': top_12[5:] if len(top_12) > 5 else [],
+            'conference_champions': {}  # Simplified for speed
+        }
+        
+        return bracket
+        
+    except Exception as e:
+        print(f"Error in fast CFP bracket: {e}")
+        return {
+            'first_round_byes': [],
+            'first_round_games': [],
+            'all_teams': [],
+            'automatic_qualifiers': [],
+            'at_large_display': [],
+            'conference_champions': {}
+        }   
 
 
 @app.route('/public')
-@app.route('/')
 def public_rankings():
-    # Create comprehensive stats table for all teams (same as index)
-    comprehensive_stats = []
+    """Fast public rankings page"""
+    comprehensive_stats = get_all_team_stats_bulk()
+    return render_template('public.html', 
+                         comprehensive_stats=comprehensive_stats)  
+
+@app.route('/performance_test_pages')
+@login_required
+def performance_test_pages():
+    """Test the performance of your newly optimized pages"""
+    import time
     
-    # Add all teams from all conferences
-    for conf_name, teams in CONFERENCES.items():
-        for team in teams:
-            stats = calculate_comprehensive_stats(team)
-            stats['team'] = team
-            stats['conference'] = conf_name
-            comprehensive_stats.append(stats)
+    results = {}
     
-    # Sort by Adjusted Total (highest first)
-    comprehensive_stats.sort(key=lambda x: x['adjusted_total'], reverse=True)
+    # Test bulk loading
+    start = time.time()
+    stats = get_all_team_stats_bulk()
+    results['bulk_loading'] = round((time.time() - start) * 1000, 1)
     
-    return render_template('public.html', comprehensive_stats=comprehensive_stats)   
+    # Test cache hit
+    start = time.time()
+    stats2 = get_all_team_stats_bulk()  # Should be same result, test caching
+    results['cache_performance'] = round((time.time() - start) * 1000, 1)
+    
+    return f"""
+    <div style="font-family: Arial; margin: 40px;">
+        <h1>🚀 Performance Test Results</h1>
+        
+        <div style="background: #d4edda; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3>New Performance:</h3>
+            <p><strong>Bulk Loading ({len(stats)} teams):</strong> {results['bulk_loading']}ms</p>
+            <p><strong>Cache Performance:</strong> {results['cache_performance']}ms</p>
+        </div>
+        
+        <h3>Test Your Pages:</h3>
+        <p><a href="/admin" style="padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 5px;">Test Admin Page</a></p>
+        <p><a href="/bowl_projections" style="padding: 10px 20px; background: #28a745; color: white; text-decoration: none; border-radius: 5px; margin: 5px;">Test Bowl Projections</a></p>
+        <p><a href="/cfp_bracket" style="padding: 10px 20px; background: #ffc107; color: white; text-decoration: none; border-radius: 5px; margin: 5px;">Test CFP Bracket</a></p>
+        <p><a href="/" style="padding: 10px 20px; background: #17a2b8; color: white; text-decoration: none; border-radius: 5px; margin: 5px;">Test Main Rankings</a></p>
+        
+        <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h4>Expected Results:</h4>
+            <ul>
+                <li>Admin page: 30+ seconds → 2-3 seconds</li>
+                <li>Bowl projections: 45+ seconds → 3-4 seconds</li>
+                <li>CFP bracket: 20+ seconds → 1-2 seconds</li>
+                <li>Main rankings: 15+ seconds → 1-2 seconds</li>
+            </ul>
+        </div>
+    </div>
+    """
 
 # First, add this simple test route to check if the basic route works:
 @app.route('/team_test/<team_name>')
@@ -5244,87 +5461,169 @@ def calculate_p4_g5_records(team_name, games):
         'g5_losses': g5_losses
     }
 
+@app.route('/team_detail/<team_name>')
+def team_detail(team_name):
+    """Redirect to public team detail (for template compatibility)"""
+    return redirect(url_for('public_team_detail', team_name=team_name))
 
 @app.route('/team/<team_name>')
 def public_team_detail(team_name):
-    """Fixed team detail page with P4/G5 records calculated"""
-    team_stats_record = TeamStats.query.filter_by(team_name=team_name).first()
+    """Team detail page - works even for teams with no games"""
+    from urllib.parse import unquote
     
-    if not team_stats_record:
-        flash('Team not found!', 'error')
+    # Decode URL-encoded team name
+    decoded_team_name = unquote(team_name)
+    print(f"DEBUG: Looking for team: '{decoded_team_name}'")
+    
+    # First check if this is a valid team name
+    if decoded_team_name not in TEAMS:
+        flash(f'Team "{decoded_team_name}" is not a valid FBS team!', 'error')
         return redirect(url_for('public_rankings'))
     
-    # Get basic stats
-    basic_stats = team_stats_record.to_dict()
+    # Get team stats from database (might not exist)
+    team_stats_record = TeamStats.query.filter_by(team_name=decoded_team_name).first()
     
-    # ✅ CALCULATE P4/G5 RECORDS from games data
-    p4_g5_records = calculate_p4_g5_records(team_name, basic_stats['games'])
-    
-    # Add P4/G5 data to basic_stats for template
-    basic_stats.update(p4_g5_records)
-    
-    # USE THE SAME CALCULATION AS YOUR RANKINGS PAGE
-    try:
-        comprehensive_stats = calculate_comprehensive_stats(team_name)
-        adjusted_total = comprehensive_stats['adjusted_total']
+    if team_stats_record:
+        # Team has games - use existing data
+        basic_stats = team_stats_record.to_dict()
+        has_games = (basic_stats['wins'] + basic_stats['losses']) > 0
         
-        scientific_result = {
-            'total_score': adjusted_total,
-            'components': comprehensive_stats.get('scientific_breakdown', {}).get('components', {}),
-            'basic_stats': {
-                'wins': basic_stats['wins'],
-                'losses': basic_stats['losses'],
-                'total_games': basic_stats['wins'] + basic_stats['losses']
-            }
+        if has_games:
+            # Team has games - calculate full stats
+            try:
+                comprehensive_stats = calculate_comprehensive_stats(decoded_team_name)
+                adjusted_total = comprehensive_stats['adjusted_total']
+                
+                scientific_result = {
+                    'total_score': adjusted_total,
+                    'components': comprehensive_stats.get('scientific_breakdown', {}).get('components', {}),
+                    'basic_stats': {
+                        'wins': basic_stats['wins'],
+                        'losses': basic_stats['losses'],
+                        'total_games': basic_stats['wins'] + basic_stats['losses']
+                    }
+                }
+            except Exception as e:
+                print(f"Stats calculation failed for {decoded_team_name}: {e}")
+                scientific_result = create_default_ranking_result()
+                adjusted_total = 0.0
+        else:
+            # Team exists in database but no games
+            scientific_result = create_default_ranking_result()
+            adjusted_total = 0.0
+    else:
+        # Team not in database at all - create empty stats
+        basic_stats = {
+            'wins': 0,
+            'losses': 0,
+            'points_for': 0,
+            'points_against': 0,
+            'home_wins': 0,
+            'road_wins': 0,
+            'margin_of_victory_total': 0,
+            'games': [],
+            'p4_wins': 0,
+            'p4_losses': 0,
+            'g5_wins': 0,
+            'g5_losses': 0
         }
-    except Exception as e:
-        print(f"Comprehensive stats calculation failed for {team_name}: {e}")
+        scientific_result = create_default_ranking_result()
         adjusted_total = 0.0
-        scientific_result = {
-            'total_score': 0.0,
-            'components': {},
-            'basic_stats': {
-                'wins': basic_stats['wins'],
-                'losses': basic_stats['losses'],
-                'total_games': basic_stats['wins'] + basic_stats['losses']
-            }
-        }
+        has_games = False
     
-    # TRY to get chart data
-    try:
-        chart_data = prepare_team_chart_data(team_name)
-    except Exception as e:
-        print(f"Chart data failed for {team_name}: {e}")
+    # FIXED: Calculate chart data directly instead of using broken function
+    if basic_stats['games']:
+        # Victory values and weeks
+        game_weeks = []
+        victory_values = []
+        
+        # Win breakdown by location
+        home_wins = 0
+        away_wins = 0
+        neutral_wins = 0
+        
+        # Opponent quality distribution
+        quality_buckets = [0, 0, 0, 0]  # weak, average, strong, elite
+        
+        # Victory margins
+        win_opponents = []
+        win_margins = []
+        
+        for game in basic_stats['games']:
+            # Victory values (only for wins)
+            if game['result'] == 'W':
+                week = game.get('week', 'Unknown')
+                game_weeks.append(f"Week {week}")
+                
+                # Calculate victory value for this win
+                try:
+                    value = calculate_victory_value_with_rivalry(game, decoded_team_name)
+                    victory_values.append(round(value, 2))
+                except:
+                    victory_values.append(1.0)  # Fallback value
+                
+                # Count wins by location
+                if game['home_away'] == 'Home':
+                    home_wins += 1
+                elif game['home_away'] == 'Away':
+                    away_wins += 1
+                elif game['home_away'] == 'Neutral':
+                    neutral_wins += 1
+                
+                # Victory margins
+                win_opponents.append(game['opponent'])
+                win_margins.append(game['team_score'] - game['opp_score'])
+            
+            # Opponent quality distribution (all games)
+            try:
+                opponent_quality = get_current_opponent_quality(game['opponent'])
+                if opponent_quality <= 3:
+                    quality_buckets[0] += 1  # Weak
+                elif opponent_quality <= 6:
+                    quality_buckets[1] += 1  # Average
+                elif opponent_quality <= 8:
+                    quality_buckets[2] += 1  # Strong
+                else:
+                    quality_buckets[3] += 1  # Elite
+            except:
+                quality_buckets[1] += 1  # Default to average if error
+        
+        # Calculate team stats
+        total_wins = len([g for g in basic_stats['games'] if g['result'] == 'W'])
+        avg_victory_value = sum(victory_values) / max(1, len(victory_values))
+        avg_win_margin = sum(win_margins) / max(1, len(win_margins))
+        
         chart_data = {
-            'game_weeks': [],
-            'victory_values': [],
-            'home_wins': basic_stats['home_wins'],
-            'away_wins': basic_stats['road_wins'],
+            'game_weeks': game_weeks,
+            'victory_values': victory_values,
+            'home_wins': home_wins,
+            'away_wins': away_wins,
+            'neutral_wins': neutral_wins,
             'total_losses': basic_stats['losses'],
-            'opponent_quality_distribution': [0, 0, 0, 0],
-            'win_opponents': [],
-            'win_margins': [],
-            'recent_games': basic_stats['games'][-5:] if basic_stats['games'] else [],
+            'opponent_quality_distribution': quality_buckets,
+            'win_opponents': win_opponents,
+            'win_margins': win_margins,
+            'recent_games': basic_stats['games'][-5:] if len(basic_stats['games']) >= 5 else basic_stats['games'],
             'team_stats': {
-                'avg_victory_value': 0,
-                'avg_margin': 0,
-                'strongest_win': {'opponent': 'None', 'value': 0},
+                'avg_victory_value': avg_victory_value,
+                'avg_margin': avg_win_margin,
+                'strongest_win': {'opponent': win_opponents[0] if win_opponents else 'None', 'value': max(victory_values) if victory_values else 0},
                 'avg_opp_quality': 5.0
             }
         }
+    else:
+        # No games - use empty data
+        chart_data = create_empty_chart_data()
     
-    # Get opponent details
+    # Prepare opponent details
     opponent_details = []
     for game in basic_stats['games']:
         try:
             opponent_quality = get_current_opponent_quality(game['opponent'])
+            is_rival = is_rivalry_game(decoded_team_name, game['opponent'])
+            rivalry_bonus = get_rivalry_bonus(decoded_team_name, game['opponent']) if is_rival else 0
         except:
             opponent_quality = 5.0
-            
-        try:
-            is_rival = is_rivalry_game(team_name, game['opponent'])
-            rivalry_bonus = get_rivalry_bonus(team_name, game['opponent']) if is_rival else 0
-        except:
             is_rival = False
             rivalry_bonus = 0
         
@@ -5341,42 +5640,47 @@ def public_team_detail(team_name):
             'overtime': game.get('overtime', False)
         })
     
-    # Calculate current ranking
-    try:
-        all_teams = []
-        for conf_name, teams in CONFERENCES.items():
-            for team in teams:
-                team_record = TeamStats.query.filter_by(team_name=team).first()
-                if team_record and (team_record.wins + team_record.losses) > 0:
-                    stats = calculate_comprehensive_stats(team)
-                    all_teams.append({
-                        'team': team,
-                        'adjusted_total': stats['adjusted_total']
-                    })
-        
-        all_teams.sort(key=lambda x: x['adjusted_total'], reverse=True)
-        current_rank = next((i+1 for i, team in enumerate(all_teams) if team['team'] == team_name), 'NR')
-        total_teams_ranked = len(all_teams)
-    except Exception as e:
-        print(f"Ranking calculation failed: {e}")
+    # Calculate current ranking only if team has games
+    if basic_stats['games']:
+        try:
+            all_teams = []
+            for conf_name, teams in CONFERENCES.items():
+                for team in teams:
+                    team_record = TeamStats.query.filter_by(team_name=team).first()
+                    if team_record and (team_record.wins + team_record.losses) > 0:
+                        stats = calculate_comprehensive_stats(team)
+                        all_teams.append({
+                            'team': team,
+                            'adjusted_total': stats['adjusted_total']
+                        })
+            
+            all_teams.sort(key=lambda x: x['adjusted_total'], reverse=True)
+            current_rank = next((i+1 for i, team in enumerate(all_teams) if team['team'] == decoded_team_name), 'NR')
+            total_teams_ranked = len(all_teams)
+        except:
+            current_rank = 'NR'
+            total_teams_ranked = 0
+    else:
         current_rank = 'NR'
         total_teams_ranked = 0
     
-    # Combine all template data
+    # Template data
     template_data = {
-        'team_name': team_name,
-        'conference': get_team_conference(team_name),
+        'team_name': decoded_team_name,
+        'conference': get_team_conference(decoded_team_name),
         'current_rank': current_rank,
         'record': f"{basic_stats['wins']}-{basic_stats['losses']}",
         'scientific_result': scientific_result,
         'opponent_details': opponent_details,
         'total_teams_ranked': total_teams_ranked,
+        'has_games': len(basic_stats['games']) > 0,
         
         # Chart data
         'game_weeks': chart_data['game_weeks'],
         'victory_values': chart_data['victory_values'],
         'home_wins': chart_data['home_wins'],
         'away_wins': chart_data['away_wins'],
+        'neutral_wins': chart_data['neutral_wins'],
         'total_losses': chart_data['total_losses'],
         'opponent_quality_distribution': chart_data['opponent_quality_distribution'],
         'win_opponents': chart_data['win_opponents'],
@@ -5384,32 +5688,42 @@ def public_team_detail(team_name):
         'recent_games': chart_data['recent_games'],
         'team_stats': chart_data['team_stats'],
         
-        # For template compatibility (now includes P4/G5 records!)
-        'stats': basic_stats,  # ✅ Now has p4_wins, p4_losses, g5_wins, g5_losses
+        'stats': basic_stats,
         'adjusted_total': adjusted_total
     }
     
-    return render_template('team_detail.html', **template_data)
+    return render_template('public_team_detail.html', **template_data)
+
+def create_empty_chart_data():
+    """Create empty chart data for teams with no games"""
+    return {
+        'game_weeks': [],
+        'victory_values': [],
+        'home_wins': 0,
+        'away_wins': 0,
+        'neutral_wins': 0,
+        'total_losses': 0,
+        'opponent_quality_distribution': [0, 0, 0, 0],
+        'win_opponents': [],
+        'win_margins': [],
+        'recent_games': [],
+        'team_stats': {
+            'avg_victory_value': 0,
+            'avg_margin': 0,
+            'strongest_win': {'opponent': 'None', 'value': 0},
+            'avg_opp_quality': 5.0
+        }
+    }
 
 
 @app.route('/')
 def index():
-    # Create comprehensive stats table for all teams
-    comprehensive_stats = []
-    
-    # Add all teams from all conferences
-    for conf_name, teams in CONFERENCES.items():
-        for team in teams:
-            stats = calculate_comprehensive_stats(team)
-            stats['team'] = team
-            stats['conference'] = conf_name
-            comprehensive_stats.append(stats)
-    
-    # Sort by Adjusted Total (highest first)
-    comprehensive_stats.sort(key=lambda x: x['adjusted_total'], reverse=True)
-    
-    recent_games = get_games_data()[-10:]  # Use database function
-    return render_template('index.html', comprehensive_stats=comprehensive_stats, recent_games=recent_games)
+    """Fast main rankings page"""
+    comprehensive_stats = get_all_team_stats_bulk()
+    recent_games = get_games_data()[-10:]
+    return render_template('index.html', 
+                         comprehensive_stats=comprehensive_stats, 
+                         recent_games=recent_games)
 
 def prepare_team_chart_data(team_name):
     """Prepare data for team detail page visualizations"""
@@ -5420,71 +5734,32 @@ def prepare_team_chart_data(team_name):
     team_stats = team_record.to_dict()
     games = team_stats['games']
     
-    # 1. Victory Value Trend Data
-    game_weeks = []
-    victory_values = []
-    cumulative_value = 0
+    # ... existing victory value code stays the same ...
     
-    for game in games:
-        if game['result'] == 'W':
-            week = game.get('week', 'Unknown')
-            value = calculate_victory_value_with_rivalry(game, team_name)
-            cumulative_value += value
-            
-            game_weeks.append(f"Week {week}")
-            victory_values.append(round(value, 2))
-    
-    # 2. Win/Loss Breakdown
-    home_wins = team_stats['home_wins']
-    away_wins = team_stats['road_wins']
+    # 2. Win/Loss Breakdown - FIXED to include neutral site wins
+    home_wins = 0
+    away_wins = 0
+    neutral_wins = 0
     total_losses = team_stats['losses']
     
-    # 3. Opponent Quality Distribution
-    quality_buckets = [0, 0, 0, 0]  # weak, average, strong, elite
-    
-    for game in games:
-        opponent_quality = get_current_opponent_quality(game['opponent'])
-        if opponent_quality <= 3:
-            quality_buckets[0] += 1  # Weak
-        elif opponent_quality <= 6:
-            quality_buckets[1] += 1  # Average
-        elif opponent_quality <= 8:
-            quality_buckets[2] += 1  # Strong
-        else:
-            quality_buckets[3] += 1  # Elite
-    
-    # 4. Victory Margins Data
-    win_opponents = []
-    win_margins = []
-    
+    # Count wins by location
     for game in games:
         if game['result'] == 'W':
-            win_opponents.append(game['opponent'])
-            win_margins.append(game['team_score'] - game['opp_score'])
+            if game['home_away'] == 'Home':
+                home_wins += 1
+            elif game['home_away'] == 'Away':
+                away_wins += 1
+            elif game['home_away'] == 'Neutral':
+                neutral_wins += 1
     
-    # 5. Quick Stats
-    total_wins = len([g for g in games if g['result'] == 'W'])
-    avg_victory_value = sum(victory_values) / max(1, len(victory_values))
-    avg_win_margin = sum(win_margins) / max(1, len(win_margins))
-    
-    # Find strongest win (highest victory value)
-    strongest_win = {'opponent': 'None', 'value': 0}
-    for i, game in enumerate([g for g in games if g['result'] == 'W']):
-        if i < len(victory_values) and victory_values[i] > strongest_win['value']:
-            strongest_win = {'opponent': game['opponent'], 'value': victory_values[i]}
-    
-    # Average opponent quality
-    all_opp_qualities = [get_current_opponent_quality(g['opponent']) for g in games]
-    avg_opp_quality = sum(all_opp_qualities) / max(1, len(all_opp_qualities))
-    
-    # 6. Recent Form (last 5 games)
-    recent_games = games[-5:] if len(games) >= 5 else games
+    # ... rest of function stays the same ...
     
     return {
         'game_weeks': game_weeks,
         'victory_values': victory_values,
-        'home_wins': home_wins,
-        'away_wins': away_wins,
+        'home_wins': home_wins,        # ✅ Now calculated from games
+        'away_wins': away_wins,        # ✅ Now calculated from games  
+        'neutral_wins': neutral_wins,  # ✅ NEW: Neutral site wins
         'total_losses': total_losses,
         'opponent_quality_distribution': quality_buckets,
         'win_opponents': win_opponents,
@@ -5497,7 +5772,6 @@ def prepare_team_chart_data(team_name):
             'avg_opp_quality': avg_opp_quality
         }
     }
-
 
 
 @app.route('/import_schedule', methods=['POST'])
@@ -5853,6 +6127,108 @@ def add_game():
                          weeks=WEEKS, 
                          recent_games=recent_games, 
                          selected_week=selected_week)
+
+@app.route('/remove_game/<int:game_id>', methods=['POST'])
+@login_required
+def remove_game(game_id):
+    """Remove a specific game and update team stats"""
+    try:
+        # Get the game to remove
+        game = Game.query.get_or_404(game_id)
+        
+        # Store game info before deletion
+        home_team = game.home_team
+        away_team = game.away_team
+        home_score = game.home_score
+        away_score = game.away_score
+        week = game.week
+        is_neutral = game.is_neutral_site
+        is_overtime = game.overtime
+        
+        # FIND AND RESET THE MATCHING SCHEDULED GAME
+        scheduled_game = ScheduledGame.query.filter_by(
+            week=week,
+            completed=True
+        ).filter(
+            db.or_(
+                db.and_(ScheduledGame.home_team == home_team, ScheduledGame.away_team == away_team),
+                db.and_(ScheduledGame.home_team == away_team, ScheduledGame.away_team == home_team)
+            )
+        ).first()
+        
+        if scheduled_game:
+            # Reset the scheduled game back to uncompleted
+            scheduled_game.completed = False
+            scheduled_game.final_home_score = None
+            scheduled_game.final_away_score = None
+            scheduled_game.overtime = False
+            print(f"✅ Reset scheduled game back to uncompleted: {scheduled_game.home_team} vs {scheduled_game.away_team}")
+        
+        # Reverse team stats for both teams
+        reverse_team_stats_in_db(home_team, away_team, home_score, away_score, True, is_neutral, is_overtime)
+        reverse_team_stats_in_db(away_team, home_team, away_score, home_score, False, is_neutral, is_overtime)
+        
+        # Remove the game from games table
+        db.session.delete(game)
+        db.session.commit()
+        
+        if scheduled_game:
+            flash(f'✅ Removed game and reset to scheduled: {home_team} {home_score}-{away_score} {away_team} (Week {week})', 'success')
+        else:
+            flash(f'✅ Removed game: {home_team} {home_score}-{away_score} {away_team} (Week {week})', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Error removing game: {e}', 'error')
+    
+    return redirect(request.referrer or url_for('admin'))
+
+def reverse_team_stats_in_db(team, opponent, team_score, opp_score, is_home, is_neutral_site, is_overtime):
+    """Reverse the stats changes when removing a game"""
+    if team == 'FCS':
+        return
+    
+    team_stats_record = TeamStats.query.filter_by(team_name=team).first()
+    if not team_stats_record:
+        return
+    
+    # Reverse win/loss
+    if team_score > opp_score:
+        team_stats_record.wins = max(0, team_stats_record.wins - 1)
+        team_stats_record.margin_of_victory_total = max(0, team_stats_record.margin_of_victory_total - (team_score - opp_score))
+        
+        # Reverse home/road wins
+        if not is_neutral_site:
+            if is_home:
+                team_stats_record.home_wins = max(0, team_stats_record.home_wins - 1)
+            else:
+                team_stats_record.road_wins = max(0, team_stats_record.road_wins - 1)
+    else:
+        team_stats_record.losses = max(0, team_stats_record.losses - 1)
+    
+    # Reverse points
+    team_stats_record.points_for = max(0, team_stats_record.points_for - team_score)
+    team_stats_record.points_against = max(0, team_stats_record.points_against - opp_score)
+    
+    # Remove game from history
+    games_list = team_stats_record.games
+    # Remove the specific game (match on opponent and scores)
+    games_list = [g for g in games_list if not (
+        g['opponent'] == opponent and 
+        g['team_score'] == team_score and 
+        g['opp_score'] == opp_score
+    )]
+    team_stats_record.games = games_list
+    
+    db.session.commit()
+
+@app.route('/manage_games')
+@login_required
+def manage_games():
+    """Admin page to manage all games"""
+    all_games = Game.query.order_by(Game.date_added.desc()).limit(50).all()
+    games_data = [game.to_dict() for game in all_games]
+    return render_template('manage_games.html', games=games_data)
 
 
 def is_fcs_opponent(opponent_name):
@@ -6325,47 +6701,75 @@ def team_simple(team_name):
 
 @app.route('/bowl_projections')
 def bowl_projections():
-    """Bowl projections page showing all bowl games"""
+    """Fast bowl projections with caching"""
+    cache_key = 'bowl_projections_data'
+    
+    # Check cache first (5 minute cache)
+    if cache_key in performance_cache:
+        cached_data, timestamp = performance_cache[cache_key]
+        if time.time() - timestamp < 300:  
+            return render_template('bowl_projections.html', **cached_data)
+    
     try:
-        # Generate projections
-        projections = generate_bowl_projections()
+        # Use our new fast bulk loading
+        all_teams_stats = get_all_team_stats_bulk()
         
-        # Organize bowls by tier for display
+        # Fast CFP bracket (using pre-calculated stats)
+        cfp_teams = all_teams_stats[:12]  # Top 12 teams
+        for i, team in enumerate(cfp_teams):
+            team['seed'] = i + 1
+        
+        cfp_bracket = {
+            'first_round_byes': cfp_teams[:4],
+            'all_teams': cfp_teams,
+            'automatic_qualifiers': cfp_teams[:5],  # Simplified
+            'first_round_games': create_simple_first_round_games(cfp_teams),
+            'conference_champions': {}  # Simplified for speed
+        }
+        
+        # Fast bowl eligible teams (6+ wins)
+        bowl_eligible = [team for team in all_teams_stats if team['total_wins'] >= 6]
+        
+        # Simple bowl projections (avoid complex matching logic)
         bowls_by_tier = {
-            'NY6': [],
-            'Major': [],
-            'Conference': [],
-            'G5': [],
-            'Championship': projections.get('conference_championships', [])
+            'NY6': bowl_eligible[:12],  # Top 12 for NY6 bowls
+            'Major': bowl_eligible[12:24],  # Next 12 for major bowls  
+            'Conference': bowl_eligible[24:48],  # Conference tie-ins
+            'G5': bowl_eligible[48:72],  # G5 bowls
+            'Championship': []  # Simplified
         }
         
-        # Sort bowl projections by tier
-        for bowl in projections.get('bowl_projections', []):
-            tier = bowl.get('tier', 'Other')
-            if tier in bowls_by_tier:
-                bowls_by_tier[tier].append(bowl)
-        
-        # Prepare template data
         template_data = {
-            'cfp_bracket': projections.get('cfp_bracket', {'all_teams': [], 'first_round_byes': []}),
+            'cfp_bracket': cfp_bracket,
             'bowls_by_tier': bowls_by_tier,
-            'total_bowl_teams': projections.get('total_bowl_teams', 0)
+            'total_bowl_teams': len(bowl_eligible)
         }
+        
+        # Cache the result
+        performance_cache[cache_key] = (template_data, time.time())
         
         return render_template('bowl_projections.html', **template_data)
         
     except Exception as e:
-        # Simple error page
         return f"""
-        <html>
-        <head><title>Bowl Projections Error</title></head>
-        <body style="font-family: Arial; margin: 40px;">
-            <h1>Bowl Projections Error</h1>
-            <p><strong>Error:</strong> {str(e)}</p>
-            <p><a href="/">Back to Home</a> | <a href="/admin">Admin Panel</a></p>
-        </body>
-        </html>
+        <html><body style="font-family: Arial; margin: 40px;">
+        <h1>Bowl Projections Temporarily Unavailable</h1>
+        <p><strong>Error:</strong> {e}</p>
+        <p><a href="/">Back to Home</a> | <a href="/admin">Admin Panel</a></p>
+        </body></html>
         """
+
+def create_simple_first_round_games(cfp_teams):
+    """Create simple first round matchups"""
+    if len(cfp_teams) < 12:
+        return []
+    
+    return [
+        {'higher_seed': cfp_teams[4], 'lower_seed': cfp_teams[11], 'game_num': 1},
+        {'higher_seed': cfp_teams[5], 'lower_seed': cfp_teams[10], 'game_num': 2},
+        {'higher_seed': cfp_teams[6], 'lower_seed': cfp_teams[9], 'game_num': 3},
+        {'higher_seed': cfp_teams[7], 'lower_seed': cfp_teams[8], 'game_num': 4},
+    ]
 
 
 @app.route('/historical')

@@ -41,7 +41,8 @@
 {% if logo_url %}
     <img src="{{ logo_url }}" alt="{{ team.team }}" style="width: 20px; height: 20px; margin-right: 8px;">
 {% endif %}
-<a href="{{ url_for('team_detail', team_name=team.team) }}">{{ team.team }}</a>
+<a href="{{ url_for('public_team_detail', team_name=team.team) }}">{{ team.team }}</a>
+
                             </td>
                             <td>
                                 {% set badge_class = {
