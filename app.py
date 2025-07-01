@@ -2308,7 +2308,7 @@ def calculate_enhanced_scientific_ranking(team_name):
     )
     
     return {
-        'total_score': round(total_score, 2),
+        'total_score': round(total_score, 3),
         'components': {
             'victory_value': round(victory_value, 2),
             'conference_multiplier': conference_multiplier,
@@ -2404,6 +2404,29 @@ def get_all_team_stats_bulk():
         print(f"Error in bulk loading: {e}")
         return []
 
+
+@app.route('/debug_values')
+@login_required  
+def debug_values():
+    """Show first 5 team calculation values"""
+    stats = get_all_team_stats_bulk()[:5]
+    result = "<h3>Debug Raw Values:</h3><ul>"
+    for team in stats:
+        result += f"<li>{team['team']}: {team['adjusted_total']}</li>"
+    result += "</ul>"
+    return result
+
+
+@app.route('/clear_cache_debug')
+@login_required
+def clear_cache_debug():
+    """Clear cache and show debug info"""
+    global performance_cache
+    old_count = len(performance_cache)
+    performance_cache.clear()
+    return f"Cleared {old_count} cache entries. Try your rankings page now."
+
+
 def calculate_fast_stats(team_name, team_data, opponent_quality_cache):
     """Fast stats calculation using pre-computed opponent qualities"""
     total_games = team_data['wins'] + team_data['losses']
@@ -2430,8 +2453,9 @@ def calculate_fast_stats(team_name, team_data, opponent_quality_cache):
     # Final calculation
     adjusted_total = victory_value - loss_penalty + (total_games * 0.18)
     
+
     return {
-        'adjusted_total': round(adjusted_total, 2),
+        'adjusted_total': round(adjusted_total, 3),
         'total_wins': team_data['wins'],
         'total_losses': team_data['losses'],
         'points_fielded': team_data['points_for'],
@@ -2441,7 +2465,7 @@ def calculate_fast_stats(team_name, team_data, opponent_quality_cache):
         'home_wins': team_data['home_wins'],
         'road_wins': team_data['road_wins'],
         'strength_of_schedule': 0.500,  # Simplified for speed
-        'totals': round(adjusted_total, 2),
+        'totals': round(adjusted_total, 3),
         'scientific_breakdown': {'total_score': adjusted_total},
         'opp_w': 0,  # Simplified for speed
         'opp_l': 0,  # Simplified for speed
@@ -5714,29 +5738,26 @@ def public_team_detail(team_name):
             'overtime': game.get('overtime', False)
         })
     
-    # Calculate current ranking only if team has games
+    # Calculate current ranking using fast bulk method
     if basic_stats['games']:
         try:
-            all_teams = []
-            for conf_name, teams in CONFERENCES.items():
-                for team in teams:
-                    team_record = TeamStats.query.filter_by(team_name=team).first()
-                    if team_record and (team_record.wins + team_record.losses) > 0:
-                        stats = calculate_comprehensive_stats(team)
-                        all_teams.append({
-                            'team': team,
-                            'adjusted_total': stats['adjusted_total']
-                        })
-            
-            all_teams.sort(key=lambda x: x['adjusted_total'], reverse=True)
-            current_rank = next((i+1 for i, team in enumerate(all_teams) if team['team'] == decoded_team_name), 'NR')
-            total_teams_ranked = len(all_teams)
+            # Use existing fast bulk loading
+            all_teams_stats = get_all_team_stats_bulk()
+            current_rank = next((i+1 for i, team in enumerate(all_teams_stats) if team['team'] == decoded_team_name), 'NR')
+            total_teams_ranked = len(all_teams_stats)
         except:
             current_rank = 'NR'
             total_teams_ranked = 0
     else:
         current_rank = 'NR'
         total_teams_ranked = 0
+    
+    # Calculate P4/G5 records
+    p4_g5_records = calculate_p4_g5_records(decoded_team_name, basic_stats['games'])
+    
+    # Add P4/G5 records to basic_stats
+    enhanced_stats = basic_stats.copy()
+    enhanced_stats.update(p4_g5_records)
     
     # Template data
     template_data = {
@@ -5762,7 +5783,7 @@ def public_team_detail(team_name):
         'recent_games': chart_data['recent_games'],
         'team_stats': chart_data['team_stats'],
         
-        'stats': basic_stats,
+        'stats': enhanced_stats,
         'adjusted_total': adjusted_total
     }
     

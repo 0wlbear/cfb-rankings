@@ -5,30 +5,55 @@
     <div class="col-md-10">
         <h2>Comprehensive Team Statistics</h2>
         <p class="text-muted">Click column headers to sort</p>
-        <!-- Desktop Table (hidden on mobile) -->
+        
+        <!-- Desktop Table -->
         <div class="d-none d-lg-block">
             <div class="table-responsive">
                 <table class="table table-striped table-sm" id="statsTable">
                     <thead>
                         <tr>
-                            <th class="sortable-header text-center sticky-col" onclick="sortTable(0, true)">Rank<span class="sort-indicator"></span></th>
-                            <th class="sortable-header sticky-col" onclick="sortTable(1)">Team<span class="sort-indicator"></span></th>
-                            <th class="sortable-header text-center" onclick="sortTable(2)">Conf<span class="sort-indicator"></span></th>
-                            <th class="sortable-header text-center" onclick="sortTable(16, true)">W<span class="sort-indicator"></span></th>
-                            <th class="sortable-header text-center" onclick="sortTable(17, true)">L<span class="sort-indicator"></span></th>
-                            <!-- MOVED: Power Rating to 6th position (was 13th) -->
-                            <th class="sortable-header text-center power-rating-col" onclick="sortTable(18, true)">Power Rating<span class="sort-indicator"></span></th>
-                            <!-- Less important columns - hide on smaller screens -->
-                            <th class="sortable-header text-center hide-xl" onclick="sortTable(3, true)">PF<span class="sort-indicator"></span></th>
-                            <th class="sortable-header text-center hide-xl" onclick="sortTable(4, true)">PA<span class="sort-indicator"></span></th>
-                            <th class="sortable-header text-center hide-lg" onclick="sortTable(5, true)">MoV<span class="sort-indicator"></span></th>
-                            <th class="sortable-header text-center hide-lg" onclick="sortTable(6, true)">PD<span class="sort-indicator"></span></th>
-                            <th class="sortable-header text-center hide-xl" onclick="sortTable(7, true)">HW<span class="sort-indicator"></span></th>
-                            <th class="sortable-header text-center hide-xl" onclick="sortTable(8, true)">RW<span class="sort-indicator"></span></th>
-                            <th class="sortable-header text-center hide-lg" onclick="sortTable(13, true)">SoS<span class="sort-indicator"></span></th>
+                            <th class="sortable-header text-center" onclick="simpleSortTable(0, 'number')">
+                                Rank <span class="sort-indicator" id="sort-0"></span>
+                            </th>
+                            <th class="sortable-header" onclick="simpleSortTable(1, 'text')">
+                                Team <span class="sort-indicator" id="sort-1"></span>
+                            </th>
+                            <th class="sortable-header text-center" onclick="simpleSortTable(2, 'text')">
+                                Conf <span class="sort-indicator" id="sort-2"></span>
+                            </th>
+                            <th class="sortable-header text-center" onclick="simpleSortTable(3, 'number')">
+                                W <span class="sort-indicator" id="sort-3"></span>
+                            </th>
+                            <th class="sortable-header text-center" onclick="simpleSortTable(4, 'number')">
+                                L <span class="sort-indicator" id="sort-4"></span>
+                            </th>
+                            <th class="sortable-header text-center power-rating-col" onclick="simpleSortTable(5, 'number')">
+                                Power Rating <span class="sort-indicator" id="sort-5"></span>
+                            </th>
+                            <th class="sortable-header text-center hide-xl" onclick="simpleSortTable(6, 'number')">
+                                PF <span class="sort-indicator" id="sort-6"></span>
+                            </th>
+                            <th class="sortable-header text-center hide-xl" onclick="simpleSortTable(7, 'number')">
+                                PA <span class="sort-indicator" id="sort-7"></span>
+                            </th>
+                            <th class="sortable-header text-center hide-lg" onclick="simpleSortTable(8, 'number')">
+                                MoV <span class="sort-indicator" id="sort-8"></span>
+                            </th>
+                            <th class="sortable-header text-center hide-lg" onclick="simpleSortTable(9, 'number')">
+                                PD <span class="sort-indicator" id="sort-9"></span>
+                            </th>
+                            <th class="sortable-header text-center hide-xl" onclick="simpleSortTable(10, 'number')">
+                                HW <span class="sort-indicator" id="sort-10"></span>
+                            </th>
+                            <th class="sortable-header text-center hide-xl" onclick="simpleSortTable(11, 'number')">
+                                RW <span class="sort-indicator" id="sort-11"></span>
+                            </th>
+                            <th class="sortable-header text-center hide-lg" onclick="simpleSortTable(12, 'number')">
+                                SoS <span class="sort-indicator" id="sort-12"></span>
+                            </th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="tableBody">
                         {% for team in comprehensive_stats %}
                         <tr>
                             <td class="text-center sticky-col">{{ loop.index }}</td>
@@ -53,15 +78,13 @@
                                     'Mountain West': 'success',
                                     'Sun Belt': 'warning text-dark'
                                 }.get(team.conference, 'secondary') %}
-                                <span class="badge bg-{{ badge_class }}">
-                                    {{ team.conference }}
-                                </span>
+                                <span class="badge bg-{{ badge_class }}">{{ team.conference }}</span>
                             </td>
                             <td class="text-center">{{ team.total_wins }}</td>
                             <td class="text-center">{{ team.total_losses }}</td>
-                            <!-- MOVED: Power Rating is now 6th column -->
-                            <td class="text-center text-primary power-rating-col"><strong>{{ "%.2f"|format(team.adjusted_total) }}</strong></td>
-                            <!-- Less important columns -->
+                            <td class="text-center text-primary power-rating-col">
+                                <strong>{{ "%.2f"|format(team.adjusted_total) }}</strong>
+                            </td>
                             <td class="text-center hide-xl">{{ team.points_fielded }}</td>
                             <td class="text-center hide-xl">{{ team.points_allowed }}</td>
                             <td class="text-center hide-lg">{{ team.margin_of_victory }}</td>
@@ -76,7 +99,7 @@
             </div>
         </div>
 
-        <!-- Add Column Toggle Controls -->
+        <!-- Column Toggle Controls -->
         <div class="d-none d-lg-block mb-3">
             <div class="btn-group" role="group">
                 <button class="btn btn-outline-secondary btn-sm" onclick="toggleColumns('hide-xl')">
@@ -92,7 +115,7 @@
             <small class="text-muted ms-2">Use buttons to show/hide columns if table is too wide</small>
         </div>
 
-        <!-- Mobile Table (unchanged) -->
+        <!-- Mobile Table -->
         <div class="d-lg-none">
             <div class="table-responsive">
                 <table class="table table-striped" id="mobileStatsTable">
@@ -107,9 +130,7 @@
                     <tbody>
                         {% for team in comprehensive_stats %}
                         <tr>
-                            <td class="text-center">
-                                <strong>{{ loop.index }}</strong>
-                            </td>
+                            <td class="text-center"><strong>{{ loop.index }}</strong></td>
                             <td>
                                 <div class="d-flex align-items-center">
                                     {% set logo_url = get_team_logo_url(team.team) %}
@@ -154,14 +175,125 @@
         </div>
     </div>
     
-    <!-- Right sidebar unchanged -->
     <div class="col-lg-2 col-md-12">
         <!-- Your existing sidebar content -->
-        <!-- (keeping it the same for brevity) -->
     </div>
 </div>
 
+<style>
+.sortable-header {
+    cursor: pointer;
+    user-select: none;
+    background-color: #f8f9fa;
+    transition: background-color 0.2s;
+}
+
+.sortable-header:hover {
+    background-color: #e9ecef !important;
+}
+
+.sort-indicator {
+    margin-left: 5px;
+    font-size: 0.8em;
+    min-width: 10px;
+    display: inline-block;
+}
+
+.sort-indicator.asc::after {
+    content: " ▲";
+    color: #0066cc;
+}
+
+.sort-indicator.desc::after {
+    content: " ▼"; 
+    color: #0066cc;
+}
+</style>
+
 <script>
+// Global variables for sorting state
+let lastSortedColumn = -1;
+let lastSortDirection = 'asc';
+
+function simpleSortTable(columnIndex, dataType) {
+    const table = document.getElementById('statsTable');
+    const tbody = document.getElementById('tableBody');
+    
+    if (!table || !tbody) {
+        return;
+    }
+    
+    // Get all rows
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    if (rows.length === 0) {
+        return;
+    }
+    
+    // Determine sort direction
+    let sortDirection = 'asc';
+    if (lastSortedColumn === columnIndex && lastSortDirection === 'asc') {
+        sortDirection = 'desc';
+    }
+    
+    // Clear all sort indicators
+    document.querySelectorAll('.sort-indicator').forEach(indicator => {
+        indicator.className = 'sort-indicator';
+    });
+    
+    // Set current sort indicator
+    const currentIndicator = document.getElementById(`sort-${columnIndex}`);
+    if (currentIndicator) {
+        currentIndicator.className = `sort-indicator ${sortDirection}`;
+    }
+    
+    // Extract values for sorting
+    const rowData = rows.map((row) => {
+        const cell = row.cells[columnIndex];
+        if (!cell) {
+            return { row, value: '' };
+        }
+        
+        const rawText = cell.textContent || cell.innerText || '';
+        const cleanText = rawText.trim();
+        
+        let sortValue;
+        if (dataType === 'number') {
+            // Extract just the numbers
+            const numberMatch = cleanText.match(/[\d.-]+/);
+            sortValue = numberMatch ? parseFloat(numberMatch[0]) : 0;
+        } else {
+            sortValue = cleanText.toLowerCase();
+        }
+        
+        return {
+            row: row,
+            value: sortValue
+        };
+    });
+    
+    // Sort the data
+    rowData.sort((a, b) => {
+        if (dataType === 'number') {
+            return sortDirection === 'asc' ? a.value - b.value : b.value - a.value;
+        } else {
+            return sortDirection === 'asc' ? 
+                a.value.localeCompare(b.value) : 
+                b.value.localeCompare(a.value);
+        }
+    });
+    
+    // Clear tbody and re-append sorted rows
+    tbody.innerHTML = '';
+    rowData.forEach(item => {
+        tbody.appendChild(item.row);
+    });
+    
+    // Update global state
+    lastSortedColumn = columnIndex;
+    lastSortDirection = sortDirection;
+}
+
 function toggleColumns(className) {
     const elements = document.querySelectorAll('.' + className);
     elements.forEach(el => {
