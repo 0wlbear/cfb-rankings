@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Games - College Football Rankings{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2>Game Management</h2>
+                <p class="text-muted">Remove individual games and automatically update team statistics</p>
+            </div>
+            <div>
+                <a href="{{ url_for('admin') }}" class="btn btn-secondary">← Back to Admin</a>
+                <a href="{{ url_for('add_game') }}" class="btn btn-primary">+ Add Game</a>
+            </div>
+        </div>
+
+        {% if games %}
+            <div class="alert alert-info">
+                <strong>📊 Total Games:</strong> {{ games|length }}
+                {% if games|length >= 50 %}
+                    (showing most recent 50)
+                {% endif %}
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Games</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Week</th>
+                                    <th>Away Team</th>
+                                    <th class="text-center">Score</th>
+                                    <th>Home Team</th>
+                                    <th>Details</th>
+                                    <th class="text-center">Added</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for game in games %}
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-primary">
+                                            {% if game.week == 'Bowls' %}
+                                                Bowl Games
+                                            {% elif game.week == 'CFP' %}
+                                                CFP
+                                            {% else %}
+                                                Week {{ game.week }}
+                                            {% endif %}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% set away_logo_url = get_team_logo_url(game.away_team) %}
+                                        {% if away_logo_url %}
+                                            <img src="{{ away_logo_url }}" alt="{{ game.away_team }}" 
+                                                 style="width: 20px; height: 20px; margin-right: 8px; vertical-align: middle;">
+                                        {% endif %}
+                                        <strong>{{ game.away_team }}</strong>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-{{ 'success' if game.away_score > game.home_score else 'secondary' }} me-1">
+                                            {{ game.away_score }}
+                                        </span>
+                                        <span class="text-muted">-</span>
+                                        <span class="badge bg-{{ 'success' if game.home_score > game.away_score else 'secondary' }} ms-1">
+                                            {{ game.home_score }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% set home_logo_url = get_team_logo_url(game.home_team) %}
+                                        {% if home_logo_url %}
+                                            <img src="{{ home_logo_url }}" alt="{{ game.home_team }}" 
+                                                 style="width: 20px; height: 20px; margin-right: 8px; vertical-align: middle;">
+                                        {% endif %}
+                                        <strong>{{ game.home_team }}</strong>
+                                    </td>
+                                    <td>
+                                        {% if game.is_neutral_site %}
+                                            <span class="badge bg-info text-dark me-1">Neutral</span>
+                                        {% endif %}
+                                        {% if game.overtime %}
+                                            <span class="badge bg-warning text-dark">OT</span>
+                                        {% endif %}
+                                        {% if not game.is_neutral_site and not game.overtime %}
+                                            <span class="text-muted">Regular</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <small class="text-muted">
+                                            {% if game.date_added %}
+                                                {{ game.date_added.split(' ')[0] if ' ' in game.date_added else game.date_added }}
+                                            {% else %}
+                                                Unknown
+                                            {% endif %}
+                                        </small>
+                                    </td>
+                                    <td class="text-center">
+                                        <form method="POST" action="{{ url_for('remove_game', game_id=game.id) }}" 
+                                              style="display: inline;" 
+                                              onsubmit="return confirm('Remove {{ game.away_team }} {{ game.away_score }}-{{ game.home_score }} {{ game.home_team }}?\n\nThis will:\n• Delete the game\n• Update team statistics\n• Recalculate rankings\n\nThis action cannot be undone.')">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm" 
+                                                    title="Remove this game and update team stats">
+                                                🗑️ Remove
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer text-muted">
+                    <small>
+                        <strong>⚠️ Important:</strong> Removing a game will automatically update team statistics, wins, losses, and rankings. 
+                        This action cannot be undone.
+                    </small>
+                </div>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <div class="mb-4">
+                    <i class="fas fa-football fa-3x text-muted"></i>
+                </div>
+                <h4 class="text-muted">No Games Found</h4>
+                <p class="text-muted">Start by adding some games to see them here.</p>
+                <a href="{{ url_for('add_game') }}" class="btn btn-primary">+ Add Your First Game</a>
+            </div>
+        {% endif %}
+
+        <!-- Quick Stats -->
+        {% if games %}
+        <div class="row mt-4">
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h6 class="card-title">Total Games</h6>
+                        <h4 class="text-primary">{{ games|length }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h6 class="card-title">Neutral Site</h6>
+                        <h4 class="text-info">{{ games|selectattr('is_neutral_site', 'equalto', true)|list|length }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h6 class="card-title">Overtime</h6>
+                        <h4 class="text-warning">{{ games|selectattr('overtime', 'equalto', true)|list|length }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h6 class="card-title">This Week</h6>
+                        <h4 class="text-success">
+                            {% set current_week_games = games|selectattr('week', 'equalto', '12')|list %}
+                            {{ current_week_games|length }}
+                        </h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+/* Custom styling for the manage games page */
+.table td {
+    vertical-align: middle;
+}
+
+.badge {
+    font-size: 0.85em;
+}
+
+.btn-sm {
+    font-size: 0.8rem;
+}
+
+/* Make team names more prominent */
+.table td strong {
+    font-weight: 600;
+}
+
+/* Hover effect for game rows */
+.table tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 0.9rem;
+    }
+    
+    .btn-sm {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+    
+    .badge {
+        font-size: 0.7em;
+    }
+}
+</style>
+
+<script>
+// Add some interactivity
+document.addEventListener('DOMContentLoaded', function() {
+    // Count removed games for user feedback
+    let removedCount = 0;
+    
+    // Add click handler to all remove forms
+    const removeForms = document.querySelectorAll('form[action*="remove_game"]');
+    removeForms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            // Custom confirmation with more details
+            const awayTeam = this.querySelector('button').getAttribute('title').match(/Remove (.+?) \d+-\d+ (.+?)\?/);
+            if (awayTeam) {
+                removedCount++;
+            }
+        });
+    });
+    
+    // Auto-refresh page every 30 seconds if games are being actively managed
+    if (removedCount > 0) {
+        setTimeout(() => {
+            window.location.reload();
+        }, 30000);
+    }
+});
+</script>
+{% endblock %}

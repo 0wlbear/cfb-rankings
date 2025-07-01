@@ -1,126 +1,182 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-10">
-        <h2>Admin Panel - Comprehensive Team Statistics</h2>
-        <p class="text-muted">Click column headers to sort</p>
-            <div class="mb-3">
-                <!-- Season Management -->
-                <div class="btn-group me-2" role="group">
-                    <a href="/add_game" class="btn btn-sm btn-primary">Add Game</a>
-                    <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#snapshotModal">📸 Create Snapshot</button>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8">
+            <h2>Admin Dashboard</h2>
+            <p class="text-muted">Manage your college football ranking system</p>
+            
+            <!-- Action Buttons -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">📊 Data Management</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-grid gap-2">
+                                <a href="/add_game" class="btn btn-primary">➕ Add Game</a>
+                                <a href="{{ url_for('manage_games') }}" class="btn btn-outline-primary">🗑️ Manage Games</a>
+                                <a href="/weekly_results" class="btn btn-outline-info">📅 Weekly Results</a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
-                <!-- Archive & History -->
-                <div class="btn-group me-2" role="group">
-                    <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#archiveModal">📦 Archive Season</button>
-                    <a href="{{ url_for('archived_seasons') }}" class="btn btn-sm btn-info">🗂️ View Past Seasons</a>
-                </div>
-                
-                <!-- Game Management & Danger Zone -->
-                <div class="btn-group" role="group">
-                    <a href="{{ url_for('manage_games') }}" class="btn btn-sm btn-warning">🗑️ Manage Games</a>
-                    <button class="btn btn-sm btn-danger" onclick="confirmSafeReset()">🗑️ Reset Season</button>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">📦 Season Management</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#snapshotModal">📸 Create Snapshot</button>
+                                <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#archiveModal">📦 Archive Season</button>
+                                <a href="{{ url_for('archived_seasons') }}" class="btn btn-outline-info">🗂️ View Past Seasons</a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             
-            <!-- Current Season Stats -->
-            <div class="alert alert-info mb-3">
-                <strong>Current Season:</strong> 
-                {{ games_data|length }} games • 
-                {{ comprehensive_stats|selectattr('total_wins')|list|length + comprehensive_stats|selectattr('total_losses')|list|length }} teams with games •
-                {% if historical_rankings %}{{ historical_rankings|length }} weekly snapshots{% else %}No snapshots yet{% endif %}
+            <!-- Quick Stats Overview -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-center bg-primary text-white">
+                        <div class="card-body">
+                            <h4>{{ games_data|length }}</h4>
+                            <p class="mb-0">Total Games</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center bg-success text-white">
+                        <div class="card-body">
+                            <h4>{{ comprehensive_stats|selectattr('total_wins')|list|length + comprehensive_stats|selectattr('total_losses')|list|length }}</h4>
+                            <p class="mb-0">Teams with Games</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center bg-info text-white">
+                        <div class="card-body">
+                            <h4>{% if historical_rankings %}{{ historical_rankings|length }}{% else %}0{% endif %}</h4>
+                            <p class="mb-0">Snapshots</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center bg-warning text-dark">
+                        <div class="card-body">
+                            <h4>{{ comprehensive_stats|selectattr('adjusted_total', 'gt', 0)|list|length }}</h4>
+                            <p class="mb-0">Ranked Teams</p>
+                        </div>
+                    </div>
+                </div>
             </div>
-        <div class="table-responsive">
-            <table class="table table-striped table-sm" id="statsTable">
-                <thead>
-                    <tr>
-                        <th class="sortable-header" onclick="sortTable(0, true)">Rank<span class="sort-indicator"></span></th>
-                        <th class="sortable-header" onclick="sortTable(1)">Team<span class="sort-indicator"></span></th>
-                        <th class="sortable-header" onclick="sortTable(2)">Conf<span class="sort-indicator"></span></th>
-                        <th class="sortable-header" onclick="sortTable(3, true)">PF<span class="sort-indicator"></span></th>
-                        <th class="sortable-header" onclick="sortTable(4, true)">PA<span class="sort-indicator"></span></th>
-                        <th class="sortable-header" onclick="sortTable(5, true)">MoV<span class="sort-indicator"></span></th>
-                        <th class="sortable-header" onclick="sortTable(6, true)">PD<span class="sort-indicator"></span></th>
-                        <th class="sortable-header" onclick="sortTable(7, true)">HW<span class="sort-indicator"></span></th>
-                        <th class="sortable-header" onclick="sortTable(8, true)">RW<span class="sort-indicator"></span></th>
-                        <th class="sortable-header" onclick="sortTable(13, true)">SoS<span class="sort-indicator"></span></th>
-                        <th class="sortable-header" onclick="sortTable(9, true)">SoR<span class="sort-indicator"></span></th>
-                        <th class="sortable-header" onclick="sortTable(14, true)">Opp W/L Diff<span class="sort-indicator"></span></th>
-                        <th class="sortable-header" onclick="sortTable(15, true)">Totals<span class="sort-indicator"></span></th>
-                        <th class="sortable-header" onclick="sortTable(16, true)">Total W<span class="sort-indicator"></span></th>
-                        <th class="sortable-header" onclick="sortTable(17, true)">Total L<span class="sort-indicator"></span></th>
-                        <th class="sortable-header" onclick="sortTable(18, true)">Adj Total<span class="sort-indicator">↓</span></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for team in comprehensive_stats %}
-                    <tr>
-                        <td>{{ loop.index }}</td>
-                        <td style="white-space: nowrap; min-width: 120px;">
-    {% set logo_url = get_team_logo_url(team.team) %}
-    {% if logo_url %}
-        <img src="{{ logo_url }}" alt="{{ team.team }}" style="width: 20px; height: 20px; margin-right: 8px; vertical-align: middle;">
-    {% endif %}
-    <a href="{{ url_for('public_team_detail', team_name=team.team) }}">{{ team.team }}</a>
-</td>
-                        <td>
-                            {% set badge_class = {
-                                'ACC': 'primary', 'Big Ten': 'success', 'Big XII': 'warning text-dark',
-                                'Pac 12': 'info', 'SEC': 'danger', 'Independent': 'secondary',
-                                'American': 'dark', 'Conference USA': 'light text-dark',
-                                'MAC': 'primary', 'Mountain West': 'success', 'Sun Belt': 'warning text-dark'
-                            }.get(team.conference, 'secondary') %}
-                            <span class="badge bg-{{ badge_class }}">{{ team.conference }}</span>
-                        </td>
-                        <td>{{ team.points_fielded }}</td>
-                        <td>{{ team.points_allowed }}</td>
-                        <td>{{ team.margin_of_victory }}</td>
-                        <td>{{ team.point_differential }}</td>
-                        <td>{{ team.home_wins }}</td>
-                        <td>{{ team.road_wins }}</td>
-                        <td>{{ team.strength_of_schedule }}</td>
-                        <td>{{ team.get('strength_of_record', 0.000) }}</td>
-                        <td>{{ team.opp_wl_differential }}</td>
-                        <td><strong>{{ team.totals }}</strong></td>
-                        <td>{{ team.total_wins }}</td>
-                        <td>{{ team.total_losses }}</td>
-                        <td class="text-primary"><strong>{{ team.adjusted_total }}</strong></td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            
+            <!-- Quick Links -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">🔗 Quick Links</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h6>Public Pages</h6>
+                            <ul class="list-unstyled">
+                                <li><a href="/rankings" class="btn btn-link p-0">📊 View Rankings</a></li>
+                                <li><a href="/cfp_bracket" class="btn btn-link p-0">🏆 CFP Bracket</a></li>
+                                <li><a href="/bowl_projections" class="btn btn-link p-0">🏈 Bowl Projections</a></li>
+                                <li><a href="/compare" class="btn btn-link p-0">⚖️ Team Comparison</a></li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>Analysis Tools</h6>
+                            <ul class="list-unstyled">
+                                <li><a href="/analyze_fcs_games" class="btn btn-link p-0">🔍 FCS Games Analysis</a></li>
+                                <li><a href="/manage_rivalries" class="btn btn-link p-0">⚔️ Rivalry System</a></li>
+                                <li><a href="/ranking_methodology" class="btn btn-link p-0">🧮 Ranking Method</a></li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>System Tools</h6>
+                            <ul class="list-unstyled">
+                                <li><a href="/admin/performance_test" class="btn btn-link p-0">⚡ Performance Test</a></li>
+                                <li><a href="/import_csv" class="btn btn-link p-0">📄 Import CSV Rankings</a></li>
+                                <li><button class="btn btn-link p-0 text-danger" onclick="confirmSafeReset()">🗑️ Reset Season</button></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Games Sidebar -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">🕐 Recent Games</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_games %}
+                        <div class="list-group list-group-flush">
+                            {% for game in recent_games[:8] %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                <div>
+                                    <small class="badge bg-secondary">Week {{ game.week }}</small><br>
+                                    <strong>{{ game.home_team }}</strong> {{ game.home_score }}-{{ game.away_score }} <strong>{{ game.away_team }}</strong>
+                                    {% if game.is_neutral_site %}<small class="text-muted">(Neutral)</small>{% endif %}
+                                    {% if game.overtime %}<small class="text-warning">(OT)</small>{% endif %}
+                                </div>
+                                <form method="POST" action="{{ url_for('remove_game', game_id=game.id) }}" style="display: inline;" 
+                                      onsubmit="return confirm('Remove this game?')">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Remove Game">
+                                        🗑️
+                                    </button>
+                                </form>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        {% if games_data|length > 8 %}
+                        <div class="mt-3">
+                            <a href="{{ url_for('manage_games') }}" class="btn btn-outline-secondary btn-sm w-100">
+                                View All {{ games_data|length }} Games
+                            </a>
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center text-muted py-4">
+                            <h1>🏈</h1>
+                            <p>No games yet.</p>
+                            <a href="/add_game" class="btn btn-primary btn-sm">Add Your First Game</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Current Season Status -->
+            <div class="card mt-3">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">📈 Season Status</h6>
+                </div>
+                <div class="card-body">
+                    {% if comprehensive_stats %}
+                        {% set current_leader = comprehensive_stats[0] %}
+                        <p class="mb-2"><strong>Current #1:</strong> {{ current_leader.team }}</p>
+                        <p class="mb-2"><strong>Power Rating:</strong> {{ current_leader.adjusted_total }}</p>
+                        <p class="mb-0"><strong>Record:</strong> {{ current_leader.total_wins }}-{{ current_leader.total_losses }}</p>
+                    {% else %}
+                        <p class="text-muted mb-0">Add games to see rankings</p>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
-    
-    <div class="col-md-2">
-        <h6>Recent Games</h6>
-                {% if recent_games %}
-            <div class="list-group">
-                {% for game in recent_games[:5] %}
-                <div class="list-group-item p-2 d-flex justify-content-between align-items-center">
-                    <div>
-                        <small class="text-muted">Week {{ game.week }}</small><br>
-                        <small class="fw-bold">{{ game.home_team }} {{ game.home_score }}-{{ game.away_score }} {{ game.away_team }}</small>
-                    </div>
-                    <form method="POST" action="{{ url_for('remove_game', game_id=game.id) }}" style="display: inline;" 
-                          onsubmit="return confirm('Remove this game?')">
-                        <button type="submit" class="btn btn-outline-danger btn-sm" title="Remove Game">
-                            🗑️
-                        </button>
-                    </form>
-                </div>
-                {% endfor %}
-            </div>
-            <div class="mt-2">
-                <a href="{{ url_for('manage_games') }}" class="btn btn-outline-secondary btn-sm w-100">View All Games</a>
-            </div>
-        {% else %}
-            <p class="text-muted small">No games yet.</p>
-        {% endif %}
-    </div>
 </div>
+
 <!-- Snapshot Modal -->
 <div class="modal fade" id="snapshotModal" tabindex="-1">
     <div class="modal-dialog">

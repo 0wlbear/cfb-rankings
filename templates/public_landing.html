@@ -1,0 +1,408 @@
+{% extends "base.html" %}
+
+{% block title %}College Football Rankings{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Subtitle and Methodology -->
+    <div class="row mb-4 mt-4">
+        <div class="col-12 text-center">
+            <div class="official-tagline">
+                <div class="tagline-accent"></div>
+                <h4 class="tagline-text">Advanced Analytics & Scientific Ranking System</h4>
+                <div class="tagline-accent"></div>
+            </div>
+            <p class="tagline-description">Comprehensive computer rankings using opponent quality, victory margins, and schedule strength</p>
+            <a href="{{ url_for('ranking_methodology') }}" class="btn btn-outline-dark btn-sm methodology-btn">
+                <i class="me-1">📊</i> How Rankings Are Calculated
+            </a>
+        </div>
+    </div>
+
+    <!-- Clean Top 25 Table -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom-0 py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="mb-0 text-dark fw-bold">Current Top 25 Rankings</h3>
+                        <a href="{{ url_for('rankings') }}" class="btn btn-primary px-4">
+                            View Full Rankings
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead style="background-color: #f8f9fa;">
+                                <tr>
+                                    <th class="text-center py-3 text-dark fw-semibold">RANK</th>
+                                    <th class="py-3 text-dark fw-semibold">TEAM</th>
+                                    <th class="text-center py-3 text-dark fw-semibold">RECORD</th>
+                                    <th class="text-center py-3 text-dark fw-semibold">RATING</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for team in top_25 %}
+                                <tr style="{% if loop.index <= 4 %}background-color: rgba(25, 135, 84, 0.1);{% elif loop.index <= 12 %}background-color: rgba(255, 193, 7, 0.1);{% endif %}">
+                                    <td class="text-center py-3">
+                                        <span class="rank-badge {% if loop.index <= 4 %}playoff-bye{% elif loop.index <= 12 %}playoff-game{% else %}bubble{% endif %}">
+                                            {{ loop.index }}
+                                        </span>
+                                    </td>
+                                    <td class="py-3">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <div class="d-flex align-items-center">
+                                                {% set logo_url = get_team_logo_url(team.team) %}
+                                                {% if logo_url %}
+                                                    <img src="{{ logo_url }}" alt="{{ team.team }}" class="team-logo me-3">
+                                                {% endif %}
+                                                <div>
+                                                    <a href="{{ url_for('public_team_detail', team_name=team.team) }}" 
+                                                       class="text-decoration-none text-dark fw-bold team-name">
+                                                        {{ team.team }}
+                                                    </a>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <span class="conference-tag">{{ team.conference }}</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-center py-3">
+                                        <span class="text-dark fw-semibold">{{ team.total_wins }}-{{ team.total_losses }}</span>
+                                    </td>
+                                    <td class="text-center py-3">
+                                        <span class="rating-badge">{{ "%.1f"|format(team.adjusted_total) }}</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer bg-white border-top-0 text-center py-3">
+                    <div class="d-flex justify-content-center align-items-center gap-3 flex-wrap">
+                        <span class="legend-item">
+                            <span class="legend-color playoff-bye"></span>
+                            <small class="text-muted">CFP Semifinal</small>
+                        </span>
+                        <span class="legend-item">
+                            <span class="legend-color playoff-game"></span>
+                            <small class="text-muted">CFP First Round</small>
+                        </span>
+                        <span class="legend-item">
+                            <span class="legend-color bubble"></span>
+                            <small class="text-muted">Bubble Teams</small>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clean Features Section -->
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <h5 class="feature-title">Scientific Rankings</h5>
+                <p class="feature-description">Advanced algorithm considering opponent quality, victory margins, and schedule strength.</p>
+                <a href="{{ url_for('rankings') }}" class="feature-link">View Rankings →</a>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="feature-card">
+                <div class="feature-icon">🏆</div>
+                <h5 class="feature-title">Playoff Projections</h5>
+                <p class="feature-description">12-team College Football Playoff bracket projections and seeding.</p>
+                <a href="{{ url_for('cfp_bracket') }}" class="feature-link">View CFP Bracket →</a>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="feature-card">
+                <div class="feature-icon">🏈</div>
+                <h5 class="feature-title">Bowl Projections</h5>
+                <p class="feature-description">Complete bowl game projections and matchup predictions.</p>
+                <a href="{{ url_for('bowl_projections') }}" class="feature-link">View Bowl Games →</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Clean, Professional Styling */
+.rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: white;
+    background: #6c757d;
+}
+
+.rank-badge.playoff-bye {
+    background: #198754;
+}
+
+.rank-badge.playoff-game {
+    background: #ffc107;
+    color: #212529;
+}
+
+.rank-badge.bubble {
+    background: #6f42c1;
+}
+
+.team-logo {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    object-fit: cover;
+    border: 1px solid #e9ecef;
+}
+
+.team-name {
+    font-size: 1rem;
+    transition: color 0.2s ease;
+}
+
+.team-name:hover {
+    color: #0d6efd !important;
+}
+
+.conference-tag {
+    display: inline-block;
+    padding: 4px 8px;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6c757d;
+    text-transform: uppercase;
+}
+
+.rating-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    background: #0d6efd;
+    color: white !important;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+}
+
+.legend-color.playoff-bye {
+    background: #198754;
+}
+
+.legend-color.playoff-game {
+    background: #ffc107;
+}
+
+.legend-color.bubble {
+    background: #6f42c1;
+}
+
+.feature-card {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.feature-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    border-color: #0d6efd;
+}
+
+.feature-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.feature-title {
+    color: #212529;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.feature-description {
+    color: #6c757d;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+    flex-grow: 1;
+}
+
+.feature-link {
+    color: #0d6efd;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s ease;
+}
+
+.feature-link:hover {
+    color: #0b5ed7;
+}
+
+.table tbody tr:hover {
+    background-color: rgba(13, 110, 253, 0.05) !important;
+    transform: translateX(2px);
+    transition: all 0.2s ease;
+}
+
+.card {
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.btn {
+    border-radius: 6px;
+    font-weight: 600;
+    padding: 8px 24px;
+    transition: all 0.2s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.btn-outline-secondary {
+    border-color: #6c757d;
+    color: #6c757d;
+}
+
+.btn-outline-secondary:hover {
+    background: #6c757d;
+    border-color: #6c757d;
+    color: white;
+}
+
+/* Official Tagline Styling */
+.official-tagline {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.tagline-accent {
+    width: 60px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #0d6efd, transparent);
+}
+
+.tagline-text {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #212529;
+    margin: 0;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    background: linear-gradient(135deg, #212529 0%, #0d6efd 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.tagline-description {
+    color: #6c757d;
+    font-size: 1rem;
+    font-weight: 500;
+    margin-bottom: 1.5rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.5;
+}
+
+.methodology-btn {
+    border-width: 2px;
+    font-weight: 600;
+    padding: 8px 20px;
+    transition: all 0.3s ease;
+    border-color: #212529;
+    color: #212529;
+}
+
+.methodology-btn:hover {
+    background: #212529;
+    border-color: #212529;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(33, 37, 41, 0.2);
+}
+
+@media (max-width: 768px) {
+    .official-tagline {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .tagline-accent {
+        width: 40px;
+        order: 2;
+    }
+    
+    .tagline-text {
+        font-size: 1.2rem;
+        order: 1;
+    }
+    
+    .tagline-description {
+        font-size: 0.9rem;
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .rank-badge {
+        width: 28px;
+        height: 28px;
+        font-size: 0.8rem;
+    }
+    
+    .team-logo {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .feature-card {
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .table tbody td {
+        padding: 0.75rem 0.5rem;
+    }
+}
+</style>
+{% endblock %}

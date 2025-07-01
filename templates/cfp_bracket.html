@@ -17,28 +17,46 @@
                 <div class="card">
                     <div class="card-header bg-success text-white">
                         <h5 class="mb-0">🏆 Automatic Qualifiers</h5>
-                        <small class="text-white-50">Top 5 ranked conference champions</small>
+                        <small class="text-white-50">Conference Champions (P4 + Top G5)</small>
                     </div>
                     <div class="card-body">
                         {% for team in bracket.automatic_qualifiers %}
-                            <div class="d-flex justify-content-between align-items-center py-2 {% if not loop.last %}border-bottom{% endif %}">
+                            <div class="d-flex justify-content-between align-items-center py-3 {% if not loop.last %}border-bottom{% endif %}">
                                 <div class="d-flex align-items-center">
-                                    <span class="badge bg-primary me-2 fs-6">#{{ team.seed }}</span>
+                                    <span class="badge bg-primary me-3 fs-6">#{{ team.seed }}</span>
                                     {% set logo_url = get_team_logo_url(team.team) %}
                                     {% if logo_url %}
-                                        <img src="{{ logo_url }}" alt="{{ team.team }}" style="width: 24px; height: 24px; margin-right: 8px;">
+                                        <img src="{{ logo_url }}" alt="{{ team.team }}" style="width: 28px; height: 28px; margin-right: 12px;">
                                     {% endif %}
                                     <div>
                                         <div class="fw-bold">{{ team.team }}</div>
-                                        <small class="text-muted">{{ team.conference }}</small>
+                                        <small class="text-success fw-bold">
+                                            {% if team.auto_qualifier_title %}
+                                                🏆 {{ team.auto_qualifier_title }}
+                                            {% else %}
+                                                🏆 {{ team.conference }} Champion
+                                            {% endif %}
+                                        </small>
                                     </div>
                                 </div>
                                 <div class="text-end">
                                     <div class="fw-bold">{{ team.total_wins }}-{{ team.total_losses }}</div>
-                                    <small class="text-primary">{{ team.adjusted_total }}</small>
+                                    <small class="text-primary fw-bold">{{ team.adjusted_total }}</small>
                                 </div>
                             </div>
                         {% endfor %}
+                        
+                        <!-- Explanation of automatic qualifiers -->
+                        <div class="mt-3 p-2 bg-light rounded">
+                            <small class="text-muted">
+                                <strong>Automatic Qualifiers:</strong><br>
+                                • SEC Champion<br>
+                                • Big Ten Champion<br>  
+                                • ACC Champion<br>
+                                • Big XII Champion<br>
+                                • Highest-ranked G5 Conference Champion
+                            </small>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -48,28 +66,34 @@
                 <div class="card">
                     <div class="card-header bg-info text-white">
                         <h5 class="mb-0">⭐ At-Large Bids</h5>
-                        <small class="text-white-50">Seeds 5-12</small>
+                        <small class="text-white-50">Highest ranked teams not auto-qualified</small>
                     </div>
                     <div class="card-body">
                         {% for team in bracket.at_large_display %}
                             <div class="d-flex justify-content-between align-items-center py-2 {% if not loop.last %}border-bottom{% endif %}">
                                 <div class="d-flex align-items-center">
-                                    <span class="badge bg-primary me-2 fs-6">#{{ team.seed }}</span>
+                                    <span class="badge bg-secondary me-2 fs-6">#{{ team.seed }}</span>
                                     {% set logo_url = get_team_logo_url(team.team) %}
                                     {% if logo_url %}
                                         <img src="{{ logo_url }}" alt="{{ team.team }}" style="width: 24px; height: 24px; margin-right: 8px;">
                                     {% endif %}
                                     <div>
-                                        <div class="fw-bold">{{ team.team }}</div>
-                                        <small class="text-muted">{{ team.conference }}</small>
+                                        <div class="fw-bold text-dark">{{ team.team }}</div>
+                                        <small class="text-secondary">{{ team.conference }}</small>
                                     </div>
                                 </div>
                                 <div class="text-end">
-                                    <div class="fw-bold">{{ team.total_wins }}-{{ team.total_losses }}</div>
-                                    <small class="text-primary">{{ team.adjusted_total }}</small>
+                                    <div class="fw-bold text-dark">{{ team.total_wins }}-{{ team.total_losses }}</div>
+                                    <small class="text-primary fw-bold">{{ team.adjusted_total }}</small>
                                 </div>
                             </div>
                         {% endfor %}
+                        
+                        {% if bracket.at_large_display|length == 0 %}
+                            <div class="text-center text-muted py-3">
+                                <p class="mb-0">All top 12 teams are automatic qualifiers</p>
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -98,6 +122,9 @@
                                 <div class="flex-grow-1">
                                     <div class="fw-bold">{{ team.team }}</div>
                                     <small class="text-muted">{{ team.total_wins }}-{{ team.total_losses }} • {{ team.conference }}</small>
+                                    {% if team.is_auto_qualifier %}
+                                        <br><small class="text-success">🏆 Auto-Qualifier</small>
+                                    {% endif %}
                                 </div>
                                 <div class="text-end">
                                     <small class="text-primary fw-bold">{{ team.adjusted_total }}</small>
@@ -123,28 +150,8 @@
                                         <small class="badge bg-secondary">Game {{ game.game_num }}</small>
                                     </div>
                                     
-                                    <!-- Higher Seed (Host) -->
+                                    <!-- Lower Seed (Away) -->
                                     <div class="d-flex align-items-center justify-content-between py-2 bg-white rounded mb-1">
-                                        <div class="d-flex align-items-center">
-                                            <span class="badge bg-success me-2">#{{ game.higher_seed.seed }}</span>
-                                            {% set logo_url = get_team_logo_url(game.higher_seed.team) %}
-                                            {% if logo_url %}
-                                                <img src="{{ logo_url }}" alt="{{ game.higher_seed.team }}" style="width: 20px; height: 20px; margin-right: 8px;">
-                                            {% endif %}
-                                            <div>
-                                                <div class="fw-bold">{{ game.higher_seed.team }}</div>
-                                                <small class="text-success">🏠 HOST</small>
-                                            </div>
-                                        </div>
-                                        <small class="fw-bold">{{ game.higher_seed.total_wins }}-{{ game.higher_seed.total_losses }}</small>
-                                    </div>
-                                    
-                                    <div class="text-center py-1">
-                                        <small class="text-muted fw-bold">VS</small>
-                                    </div>
-                                    
-                                    <!-- Lower Seed -->
-                                    <div class="d-flex align-items-center justify-content-between py-2 bg-white rounded">
                                         <div class="d-flex align-items-center">
                                             <span class="badge bg-primary me-2">#{{ game.lower_seed.seed }}</span>
                                             {% set logo_url = get_team_logo_url(game.lower_seed.team) %}
@@ -152,11 +159,37 @@
                                                 <img src="{{ logo_url }}" alt="{{ game.lower_seed.team }}" style="width: 20px; height: 20px; margin-right: 8px;">
                                             {% endif %}
                                             <div>
-                                                <div class="fw-bold">{{ game.lower_seed.team }}</div>
-                                                <small class="text-muted">✈️ AWAY</small>
+                                                <div class="fw-bold text-dark">{{ game.lower_seed.team }}</div>
+                                                <small class="text-secondary">✈️ AWAY</small>
+                                                {% if game.lower_seed.is_auto_qualifier %}
+                                                    <small class="text-warning">🏆</small>
+                                                {% endif %}
                                             </div>
                                         </div>
-                                        <small class="fw-bold">{{ game.lower_seed.total_wins }}-{{ game.lower_seed.total_losses }}</small>
+                                        <small class="fw-bold text-dark">{{ game.lower_seed.total_wins }}-{{ game.lower_seed.total_losses }}</small>
+                                    </div>
+                                    
+                                    <div class="text-center py-1">
+                                        <small class="text-dark fw-bold">VS</small>
+                                    </div>
+                                    
+                                    <!-- Higher Seed (Host) -->
+                                    <div class="d-flex align-items-center justify-content-between py-2 bg-white rounded">
+                                        <div class="d-flex align-items-center">
+                                            <span class="badge bg-success me-2">#{{ game.higher_seed.seed }}</span>
+                                            {% set logo_url = get_team_logo_url(game.higher_seed.team) %}
+                                            {% if logo_url %}
+                                                <img src="{{ logo_url }}" alt="{{ game.higher_seed.team }}" style="width: 20px; height: 20px; margin-right: 8px;">
+                                            {% endif %}
+                                            <div>
+                                                <div class="fw-bold text-dark">{{ game.higher_seed.team }}</div>
+                                                <small class="text-success fw-bold">🏠 HOST</small>
+                                                {% if game.higher_seed.is_auto_qualifier %}
+                                                    <small class="text-warning">🏆</small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <small class="fw-bold text-dark">{{ game.higher_seed.total_wins }}-{{ game.higher_seed.total_losses }}</small>
                                     </div>
                                 </div>
                             </div>
@@ -166,31 +199,26 @@
             </div>
         </div>
 
+        <!-- Conference Breakdown -->
         <div class="row mt-4">
             <div class="col-md-12">
                 <div class="card">
                     <div class="card-header">
-                        <h5 class="mb-0">Conference Champions</h5>
-                        <small class="text-muted">Current leaders by conference</small>
+                        <h5 class="mb-0">📊 Conference Breakdown</h5>
+                        <small class="text-muted">How many teams each conference has in the playoff</small>
                     </div>
                     <div class="card-body">
+                        {% set conference_counts = {} %}
+                        {% for team in bracket.all_teams %}
+                            {% set _ = conference_counts.update({team.conference: conference_counts.get(team.conference, 0) + 1}) %}
+                        {% endfor %}
+                        
                         <div class="row">
-                            {% for conf_name, champion in bracket.conference_champions.items() %}
-                                <div class="col-md-6 col-lg-4 mb-3">
-                                    <div class="d-flex align-items-center">
-                                        <div class="me-3">
-                                            <span class="badge bg-primary">{{ conf_name }}</span>
-                                        </div>
-                                        <div class="d-flex align-items-center">
-                                            {% set logo_url = get_team_logo_url(champion.team) %}
-                                            {% if logo_url %}
-                                                <img src="{{ logo_url }}" alt="{{ champion.team }}" style="width: 20px; height: 20px; margin-right: 8px;">
-                                            {% endif %}
-                                            <div>
-                                                <strong>{{ champion.team }}</strong>
-                                                <small class="text-muted">({{ champion.total_wins }}-{{ champion.total_losses }})</small>
-                                            </div>
-                                        </div>
+                            {% for conf, count in conference_counts.items() %}
+                                <div class="col-md-6 col-lg-3 mb-2">
+                                    <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded">
+                                        <span class="fw-bold">{{ conf }}</span>
+                                        <span class="badge bg-primary">{{ count }} team{% if count != 1 %}s{% endif %}</span>
                                     </div>
                                 </div>
                             {% endfor %}
@@ -203,12 +231,14 @@
         <div class="text-center mt-4">
             <small class="text-muted">
                 * Projection based on current computer rankings<br>
-                * Conference champions determined by highest-ranked team in each conference
+                * Automatic qualifiers are the highest-ranked team from each qualifying conference<br>
+                * Remaining spots filled by highest-ranked teams regardless of conference
             </small>
         </div>
 
         <div class="text-center mt-4">
-            <a href="{{ url_for('index') }}" class="btn btn-primary">Back to Rankings</a>
+            <a href="{{ url_for('rankings') }}" class="btn btn-primary">Back to Rankings</a>
+            <a href="{{ url_for('bowl_projections') }}" class="btn btn-outline-secondary">Bowl Projections</a>
         </div>
     </div>
 </div>

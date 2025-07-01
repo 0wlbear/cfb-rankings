@@ -268,46 +268,149 @@
 </head>
 <body>
     
-    <!-- FIXED: Improved navbar with perfect centering and spacing -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top" style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #3b82f6 100%) !important;">
-        <div class="container-fluid px-4">
-            <!-- Brand -->
-            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
-                <span class="navbar-brand-text">🏈 CFB Rankings</span>
-            </a>
-            
-            <!-- Mobile hamburger button -->
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <!-- Collapsible navigation with perfect centering -->
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <!-- Main navigation - centered -->
-                <div class="navbar-nav mx-auto d-flex justify-content-center flex-wrap">
-                    <a class="nav-link modern-nav-link" href="{{ url_for('public_rankings') }}">Rankings</a>
-                    <a class="nav-link modern-nav-link" href="{{ url_for('cfp_bracket') }}">CFP Bracket</a>
-                    <a class="nav-link modern-nav-link" href="{{ url_for('bowl_projections') }}">Bowl Projections</a>
-                    <a class="nav-link modern-nav-link" href="{{ url_for('weekly_results') }}">Weekly Results</a>
-                    <a class="nav-link modern-nav-link" href="{{ url_for('archived_seasons') }}">Past Seasons</a>
-                    {% if is_admin %}
-                        <a class="nav-link modern-nav-link" href="{{ url_for('team_compare') }}">Compare Teams</a>
-                        <a class="nav-link modern-nav-link admin-link" href="{{ url_for('admin') }}">Admin Panel</a>
-                    {% endif %}
-                </div>
+   <!-- FIXED: Improved navbar with dropdown for extra items -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top" style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #3b82f6 100%) !important;">
+    <div class="container-fluid px-4">
+        <!-- Brand -->
+        <a class="navbar-brand d-flex align-items-center" href="{{ url_for('public_landing') }}">
+            <span class="navbar-brand-text">🏈 CFB Rankings</span>
+        </a>
+        
+        <!-- Mobile hamburger button -->
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        
+        <!-- Collapsible navigation with dropdown -->
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <!-- Main navigation - centered -->
+            <div class="navbar-nav mx-auto d-flex justify-content-center flex-wrap">
+                <a class="nav-link modern-nav-link" href="{{ url_for('rankings') }}">Rankings</a>
+                <a class="nav-link modern-nav-link" href="{{ url_for('cfp_bracket') }}">CFP Bracket</a>
+                <a class="nav-link modern-nav-link" href="{{ url_for('bowl_projections') }}">Bowl Projections</a>
+                <a class="nav-link modern-nav-link" href="{{ url_for('weekly_results') }}">Weekly Results</a>
+                <a class="nav-link modern-nav-link" href="{{ url_for('archived_seasons') }}">Past Seasons</a>
                 
-                <!-- Right side navigation -->
-                <div class="navbar-nav ms-auto">
-                    {% if is_admin %}
-                        <a class="nav-link modern-nav-link logout-link me-2" href="{{ url_for('logout') }}">Logout</a>
-                        <button class="btn btn-modern-outline btn-sm" onclick="confirmReset()">Reset Data</button>
-                    {% else %}
-                        <a class="nav-link modern-nav-link login-link" href="{{ url_for('login') }}">Admin Login</a>
-                    {% endif %}
+                <!-- Admin Tools Dropdown (only shows when admin) -->
+                {% if is_admin %}
+                <div class="nav-item dropdown">
+                    <a class="nav-link modern-nav-link dropdown-toggle admin-link" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Admin
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-dark modern-dropdown" aria-labelledby="adminDropdown">
+                        <li><a class="dropdown-item modern-dropdown-item admin-item" href="{{ url_for('team_compare') }}">Compare Teams</a></li>
+                        <li><a class="dropdown-item modern-dropdown-item admin-item" href="{{ url_for('admin') }}">Admin Panel</a></li>
+                    </ul>
                 </div>
+                {% endif %}
+            </div>
+            
+            <!-- Right side navigation -->
+            <div class="navbar-nav ms-auto">
+                {% if is_admin %}
+                    <a class="nav-link modern-nav-link logout-link me-2" href="{{ url_for('logout') }}">Logout</a>
+                    <button class="btn btn-modern-outline btn-sm" onclick="confirmReset()">Reset Data</button>
+                {% else %}
+                    <a class="nav-link modern-nav-link login-link" href="{{ url_for('login') }}">Admin Login</a>
+                {% endif %}
             </div>
         </div>
-    </nav>
+    </div>
+</nav>
+
+<style>
+/* Modern Dropdown Styling */
+.modern-dropdown {
+    background: rgba(15, 23, 42, 0.95) !important;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 0.75rem !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3) !important;
+    padding: 0.5rem 0;
+    margin-top: 0.5rem;
+    min-width: 200px;
+}
+
+.modern-dropdown-item {
+    color: rgba(255, 255, 255, 0.9) !important;
+    font-weight: 500;
+    font-size: 0.95rem;
+    padding: 0.75rem 1.25rem !important;
+    border-radius: 0.5rem !important;
+    margin: 0 0.5rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.modern-dropdown-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    transition: left 0.5s ease;
+}
+
+.modern-dropdown-item:hover::before {
+    left: 100%;
+}
+
+.modern-dropdown-item:hover,
+.modern-dropdown-item:focus {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+    transform: translateX(4px);
+}
+
+.modern-dropdown-item.admin-item:hover {
+    background: rgba(249, 115, 22, 0.2) !important;
+}
+
+.dropdown-divider {
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    margin: 0.5rem 1rem !important;
+}
+
+/* Dropdown toggle styling */
+.dropdown-toggle::after {
+    border-top: 0.3em solid;
+    border-right: 0.3em solid transparent;
+    border-left: 0.3em solid transparent;
+    margin-left: 0.5em;
+    transition: transform 0.3s ease;
+}
+
+.dropdown-toggle[aria-expanded="true"]::after {
+    transform: rotate(180deg);
+}
+
+/* Mobile dropdown improvements */
+@media (max-width: 768px) {
+    .modern-dropdown {
+        position: static !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        backdrop-filter: none;
+        margin-top: 0;
+        padding: 0;
+    }
+    
+    .modern-dropdown-item {
+        margin: 0;
+        border-radius: 0.5rem;
+        background: rgba(255, 255, 255, 0.05);
+        margin-bottom: 0.25rem;
+    }
+    
+    .dropdown-divider {
+        margin: 0.5rem 0 !important;
+    }
+}
+</style>
     
     <div class="container mt-4">
         <!-- Flash Messages with Modern Styling -->

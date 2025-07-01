@@ -5277,10 +5277,13 @@ def performance_test_with_cache():
         return f"<h1>Error</h1><p>{e}</p>"
 
 
+
+
+
 @app.route('/cfp_bracket')
 def cfp_bracket():
-    """Fast CFP bracket with caching"""
-    cache_key = 'cfp_bracket_data'
+    """CFP bracket with correct automatic qualifiers"""
+    cache_key = 'cfp_bracket_fixed_data'
     
     # Check cache first (3 minute cache)
     if cache_key in performance_cache:
@@ -5289,11 +5292,8 @@ def cfp_bracket():
             return render_template('cfp_bracket.html', bracket=cached_bracket)
     
     try:
-        # Use our fast bulk loading
-        all_teams_stats = get_all_team_stats_bulk()
-        
-        # Generate fast CFP bracket
-        bracket = generate_fast_cfp_bracket(all_teams_stats)
+        # Use the fixed CFP bracket generation
+        bracket = generate_fixed_cfp_bracket()
         
         # Cache the result
         performance_cache[cache_key] = (bracket, time.time())
@@ -5308,6 +5308,87 @@ def cfp_bracket():
         <p><a href="/">Back to Home</a></p>
         </body></html>
         """
+
+
+def generate_fixed_cfp_bracket():
+    """Simple CFP bracket - just look at top 25 and find champions in order"""
+    try:
+        # Get top 25 teams using your fast bulk loading
+        all_teams_stats = get_all_team_stats_bulk()
+        top_25 = all_teams_stats[:25]  # Only look at top 25
+        
+        # What we're looking for
+        p4_conferences = ['SEC', 'Big Ten', 'ACC', 'Big XII']
+        g5_conferences = ['American', 'Conference USA', 'MAC', 'Mountain West', 'Sun Belt']
+        
+        found_champions = set()
+        automatic_qualifiers = []
+        
+        # Go through top 25 in order and find champions
+        for i, team in enumerate(top_25):
+            team['seed'] = i + 1  # Add seed based on ranking
+            
+            # Check if this is a P4 champion we haven't found yet
+            if team['conference'] in p4_conferences and team['conference'] not in found_champions:
+                auto_qual = team.copy()
+                auto_qual['auto_qualifier_title'] = f"{team['conference']} Champion"
+                auto_qual['is_auto_qualifier'] = True
+                automatic_qualifiers.append(auto_qual)
+                found_champions.add(team['conference'])
+                continue
+            
+            # Check if this is the first G5 team we've seen
+            if team['conference'] in g5_conferences and 'G5' not in found_champions:
+                auto_qual = team.copy()
+                auto_qual['auto_qualifier_title'] = f"G5 Champion ({team['conference']})"
+                auto_qual['is_auto_qualifier'] = True
+                automatic_qualifiers.append(auto_qual)
+                found_champions.add('G5')
+                continue
+            
+            # Stop when we have all 5 automatic qualifiers
+            if len(automatic_qualifiers) >= 5:
+                break
+        
+        # Get the top 12 teams for the playoff
+        playoff_teams = top_25[:12]
+        for i, team in enumerate(playoff_teams):
+            team['seed'] = i + 1
+            # Mark which ones are auto-qualifiers
+            team['is_auto_qualifier'] = any(aq['team'] == team['team'] for aq in automatic_qualifiers)
+        
+        # Create bracket structure
+        first_round_byes = playoff_teams[:4]
+        at_large_display = playoff_teams[4:]
+        
+        first_round_games = []
+        if len(playoff_teams) >= 12:
+            first_round_games = [
+                {'higher_seed': playoff_teams[4], 'lower_seed': playoff_teams[11], 'game_num': 1},
+                {'higher_seed': playoff_teams[5], 'lower_seed': playoff_teams[10], 'game_num': 2},
+                {'higher_seed': playoff_teams[6], 'lower_seed': playoff_teams[9], 'game_num': 3},
+                {'higher_seed': playoff_teams[7], 'lower_seed': playoff_teams[8], 'game_num': 4},
+            ]
+        
+        return {
+            'first_round_byes': first_round_byes,
+            'first_round_games': first_round_games,
+            'all_teams': playoff_teams,
+            'automatic_qualifiers': automatic_qualifiers,  # These are in the correct order now
+            'at_large_display': at_large_display,
+            'conference_champions': {}
+        }
+        
+    except Exception as e:
+        print(f"Error in CFP bracket: {e}")
+        return {
+            'first_round_byes': [],
+            'first_round_games': [],
+            'all_teams': [],
+            'automatic_qualifiers': [],
+            'at_large_display': [],
+            'conference_champions': {}
+        }
 
 def generate_fast_cfp_bracket(all_teams_stats):
     """Fast CFP bracket generation using pre-calculated stats"""
@@ -5342,13 +5423,6 @@ def generate_fast_cfp_bracket(all_teams_stats):
             'conference_champions': {}
         }   
 
-
-@app.route('/public')
-def public_rankings():
-    """Fast public rankings page"""
-    comprehensive_stats = get_all_team_stats_bulk()
-    return render_template('public.html', 
-                         comprehensive_stats=comprehensive_stats)  
 
 @app.route('/performance_test_pages')
 @login_required
@@ -5717,13 +5791,28 @@ def create_empty_chart_data():
 
 
 @app.route('/')
-def index():
-    """Fast main rankings page"""
+def home():
+    """Redirect to public landing page"""
+    return redirect(url_for('public_landing'))
+
+@app.route('/public')
+def public_landing():
+    """Public landing page with Top 25 preview"""
+    # Get top 25 teams for preview
+    comprehensive_stats = get_all_team_stats_bulk()
+    top_25 = comprehensive_stats[:25]  # Get top 25 teams
+    
+    return render_template('public_landing.html', top_25=top_25)
+
+@app.route('/rankings')
+def rankings():
+    """Main rankings page with comprehensive team statistics"""
     comprehensive_stats = get_all_team_stats_bulk()
     recent_games = get_games_data()[-10:]
-    return render_template('index.html', 
+    return render_template('rankings.html', 
                          comprehensive_stats=comprehensive_stats, 
                          recent_games=recent_games)
+
 
 def prepare_team_chart_data(team_name):
     """Prepare data for team detail page visualizations"""
