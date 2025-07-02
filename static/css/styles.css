@@ -1,0 +1,373 @@
+/* =========================================
+   CLEAN COLLEGE FOOTBALL RANKINGS CSS - FRESH START
+   ========================================= */
+
+/* CSS Variables for Consistency */
+:root {
+  --primary-blue: #0d6efd;
+  --success-green: #198754;
+  --warning-yellow: #ffc107;
+  --danger-red: #dc3545;
+  --info-cyan: #0dcaf0;
+  --dark-gray: #212529;
+  --light-gray: #f8f9fa;
+  --medium-gray: #6c757d;
+  --white: #ffffff;
+}
+
+/* Reset */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: var(--light-gray);
+  color: var(--dark-gray);
+  line-height: 1.6;
+}
+
+/* NAVBAR - Simple and Clean */
+.navbar-dark .navbar-brand {
+  color: white !important;
+  font-weight: 800;
+}
+
+.navbar-dark .navbar-nav .nav-link {
+  color: white !important;
+  font-weight: 500;
+}
+
+.navbar-dark .navbar-nav .nav-link:hover {
+  color: var(--warning-yellow) !important;
+}
+
+.navbar-brand-text {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: white;
+}
+
+/* HEADER */
+.header {
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  padding: 2rem 0;
+  color: white;
+}
+
+.header h1 {
+  color: white !important;
+  font-weight: 800;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.header img {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 3px solid var(--warning-yellow);
+}
+
+/* CARDS - Simple and Reliable */
+.card {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+}
+
+.card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  transform: translateY(-2px);
+  transition: all 0.3s ease;
+}
+
+.card-header {
+  padding: 1.25rem;
+  border-bottom: 1px solid #dee2e6;
+  font-weight: 600;
+}
+
+.card-body {
+  padding: 1.25rem;
+  background: white !important;
+  color: var(--dark-gray) !important;
+}
+
+/* Force text visibility in all card bodies */
+.card-body,
+.card-body * {
+  color: var(--dark-gray) !important;
+}
+
+.card-body .text-primary {
+  color: var(--primary-blue) !important;
+}
+
+.card-body .text-success {
+  color: var(--success-green) !important;
+}
+
+.card-body .text-secondary {
+  color: var(--medium-gray) !important;
+}
+
+.card-body .text-muted {
+  color: var(--medium-gray) !important;
+}
+
+.card-body .badge {
+  color: white !important;
+}
+
+/* TABLES */
+.table {
+  background: white;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  margin-bottom: 2rem;
+}
+
+.table thead th {
+  background: var(--light-gray);
+  color: var(--dark-gray);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.875rem;
+  padding: 1rem;
+  border-bottom: 2px solid var(--primary-blue);
+}
+
+.table tbody td {
+  padding: 1rem;
+  vertical-align: middle;
+  border-bottom: 1px solid #dee2e6;
+  color: var(--dark-gray);
+}
+
+.table tbody tr:hover {
+  background-color: rgba(13, 110, 253, 0.05);
+  transform: translateX(2px);
+  transition: all 0.2s ease;
+}
+
+.table tbody tr:nth-child(even) {
+  background-color: rgba(248, 249, 250, 0.5);
+}
+
+/* RANKING NUMBERS */
+.ranking-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-weight: bold;
+  font-size: 0.9rem;
+  color: white;
+  background: var(--primary-blue);
+}
+
+.ranking-number.top-5 {
+  background: linear-gradient(135deg, #ff6b35, #f7931e);
+}
+
+.ranking-number.top-10 {
+  background: linear-gradient(135deg, #28a745, #20c997);
+}
+
+.ranking-number.top-25 {
+  background: linear-gradient(135deg, #6f42c1, #6610f2);
+}
+
+/* TEAM LOGOS */
+.team-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e9ecef;
+}
+
+/* BADGES */
+.badge {
+  font-weight: 600;
+  padding: 0.5rem 0.75rem;
+}
+
+.conference-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 0.25rem 0.5rem;
+}
+
+/* BUTTONS */
+.btn {
+  font-weight: 600;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  transition: all 0.2s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.btn-primary {
+  background: var(--primary-blue);
+  border-color: var(--primary-blue);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #0b5ed7;
+  border-color: #0a58ca;
+  color: white;
+}
+
+/* TYPOGRAPHY */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--dark-gray);
+  font-weight: 700;
+}
+
+h1 { font-size: 2.5rem; }
+h2 { font-size: 2rem; }
+h3 { font-size: 1.75rem; }
+h4 { font-size: 1.5rem; }
+h5 { font-size: 1.25rem; }
+
+.text-primary { color: var(--primary-blue) !important; }
+.text-success { color: var(--success-green) !important; }
+.text-danger { color: var(--danger-red) !important; }
+.text-warning { color: #212529 !important; }
+.text-info { color: var(--info-cyan) !important; }
+.text-secondary { color: var(--medium-gray) !important; }
+.text-muted { color: var(--medium-gray) !important; }
+.text-dark { color: var(--dark-gray) !important; }
+
+/* RESPONSIVE DESIGN */
+@media (max-width: 768px) {
+  .header {
+    padding: 1.5rem 0;
+  }
+  
+  .header h1 {
+    font-size: 2rem;
+    text-align: center;
+  }
+  
+  .card-body, .card-header {
+    padding: 1rem;
+  }
+  
+  .table thead th,
+  .table tbody td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.875rem;
+  }
+  
+  .ranking-number {
+    width: 28px;
+    height: 28px;
+    font-size: 0.8rem;
+  }
+  
+  .team-logo {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .navbar-brand-text {
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .navbar-brand-text {
+    font-size: 1rem;
+  }
+  
+  .table {
+    font-size: 0.8rem;
+  }
+  
+  .card {
+    margin-bottom: 1rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .navbar-brand-text {
+    font-size: 0;
+  }
+  
+  .navbar-brand-text::after {
+    content: "🏈 CFB";
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: white;
+  }
+}
+
+/* UTILITIES */
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.mb-0 { margin-bottom: 0; }
+.mb-1 { margin-bottom: 0.25rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-3 { margin-bottom: 1rem; }
+.mb-4 { margin-bottom: 1.5rem; }
+.mb-5 { margin-bottom: 3rem; }
+
+.mt-0 { margin-top: 0; }
+.mt-1 { margin-top: 0.25rem; }
+.mt-2 { margin-top: 0.5rem; }
+.mt-3 { margin-top: 1rem; }
+.mt-4 { margin-top: 1.5rem; }
+.mt-5 { margin-top: 3rem; }
+
+.fw-bold { font-weight: 700 !important; }
+.fw-normal { font-weight: 400 !important; }
+
+/* ANIMATION */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-in {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+/* SPECIFIC FIXES FOR PROBLEMATIC SECTIONS */
+.bg-info,
+.bg-danger,
+.bg-success,
+.bg-warning,
+.bg-primary {
+  color: white !important;
+}
+
+/* Override any inherited text colors in card bodies */
+.card-body .fw-bold {
+  color: var(--dark-gray) !important;
+}
+
+.card-body small {
+  color: var(--medium-gray) !important;
+}
