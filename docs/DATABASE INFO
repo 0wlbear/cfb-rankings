@@ -1,0 +1,18 @@
+DATABASE INFO
+
+cfb-rankings-db.c0x628i8m5pg.us-east-1.rds.amazonaws.com
+
+Port 5432
+
+cfbadmin
+CFBRankings2025!
+
+cfb_rankings
+
+
+
+postgresql://cfb_admin:CFBRankings2025!@cfb-rankings-db.c0x628i8m5pg.us-east-1.rds.amazonaws.com:5432/cfb_rankings
+
+
+
+export DATABASE_URL='postgresql://cfb_admin:CFBRankings2025!@cfb-rankings-db.c0x628i8m5pg.us-east-1.rds.amazonaws.com:5432/cfb_rankings'

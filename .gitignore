@@ -1,0 +1,48 @@
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+app.log
+
+# Environment variables
+.env
+
+# Data files - ignore by default, then allow specific ones
+/data/
+*.json
+
+# But ALLOW these specific data files:
+!data/games_data.json
+!data/team_stats.json
+!data/scheduled_games.json
+!data/historical_rankings.json
+!data/team_mappings.json
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
+
+# Security - just in case
+*.pem
+*.key

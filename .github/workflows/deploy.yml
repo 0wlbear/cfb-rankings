@@ -40,10 +40,13 @@ jobs:
           if python -c "from app import app; print('✅ Import test passed')" 2>/dev/null; then
               echo "✅ New code validated"
               
-              # Copy new version and templates
+              # Copy all necessary files (UPDATED SECTION)
               cp /home/ubuntu/cfb-app-git/app.py /home/ubuntu/cfb-app/
+              cp /home/ubuntu/cfb-app-git/models.py /home/ubuntu/cfb-app/
+              cp /home/ubuntu/cfb-app-git/requirements.txt /home/ubuntu/cfb-app/
               cp -r /home/ubuntu/cfb-app-git/templates/ /home/ubuntu/cfb-app/
-              echo "✅ App and templates copied"
+              cp -r /home/ubuntu/cfb-app-git/static/ /home/ubuntu/cfb-app/
+              echo "✅ App, models, templates, static files, and requirements copied"
               
               # Create environment file with GitHub secrets
               echo "ADMIN_USERNAME=$ADMIN_USERNAME" | sudo tee /home/ubuntu/cfb-app/.env
@@ -61,7 +64,7 @@ jobs:
                   echo "✅ Service updated to use environment file"
               fi
               
-              echo "✅ Templates already in place, no generation needed"
+              echo "✅ All files copied successfully"
               
               # Restart service
               sudo systemctl daemon-reload

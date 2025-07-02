@@ -1,0 +1,86 @@
+tony-cooper-cfb-rankings
+
+
+
+ssh -i LightsailDefaultKey-us-east-1.pem ubuntu@34.226.199.43
+
+
+chmod 600 LightsailDefaultKey-us-east-1.pem
+
+
+git remote add origin https://github.com/0wlbear/cfb-rankings.git
+
+Fl@@cKYtr75q
+
+
+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
+
+
+
+Edit code locally
+Push to GitHub: git push
+Update server: SSH in and run ./update-app.sh
+
+
+bash# 1. Add your changes to staging
+git add app.py
+
+# 2. Commit the changes
+git commit -m "Updated app with new features"
+
+# 3. Push to GitHub
+git push
+
+
+Your Complete Update Workflow
+Now your process is:
+
+Edit code locally
+Push to GitHub: git add ., git commit -m "message", git push
+Update server: SSH in and run ./update-app.sh
+
+
+
+-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+QyNTUxOQAAACBlBu3PnIu3eJeZYNUONl4RJNme9LyiCGYXV7EWcWsyXAAAAJhwumPocLpj
+6AAAAAtzc2gtZWQyNTUxOQAAACBlBu3PnIu3eJeZYNUONl4RJNme9LyiCGYXV7EWcWsyXA
+AAAEDp0Lz8hldMjxbs28tRPPXJTMu9y1ZJvQsYlgr2Jysu2GUG7c+ci7d4l5lg1Q42XhEk
+2Z70vKIIZhdXsRZxazJcAAAAFXVidW50dUBpcC0xNzItMjYtNy0yNA==
+-----END OPENSSH PRIVATE KEY-----
+
+
+
+git status
+
+git add app.py
+git commit -m "CSV Import Feature"
+git push
+
+
+
+
+
+cfbadmin
+CFBRankings2025!
+
+
+
+
+SHA256:sMqUQ1vTanCJ7P426HWVfvi0HaQheD97UaxpM2YR1+4 tony30052@gmail.com
+The key's randomart image is:
++--[ED25519 256]--+
+|                .|
+|   . . o      . o|
+|    = * .      = |
+|   o * = . .  . +|
+|    * + S = . .* |
+|   + +   + + +X E|
+|    +.. . o *+.+ |
+|    .oo.   + =.. |
+|   .....    +..  |
++----[SHA256]-----+
+
+
+
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGxuKd3MGg3IPpZZNUkhRVfEw88EsuLXgM7bTdWnJNEf tony30052@gmail.com
