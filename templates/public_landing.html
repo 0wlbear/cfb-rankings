@@ -39,7 +39,7 @@
                                     <th class="text-center py-3 text-dark fw-semibold">RANK</th>
                                     <th class="py-3 text-dark fw-semibold">TEAM</th>
                                     <th class="text-center py-3 text-dark fw-semibold">RECORD</th>
-                                    <th class="text-center py-3 text-dark fw-semibold">RATING</th>
+                                    <th class="text-center py-3 text-dark fw-semibold">POWER RATING</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -73,7 +73,7 @@
                                         <span class="text-dark fw-semibold">{{ team.total_wins }}-{{ team.total_losses }}</span>
                                     </td>
                                     <td class="text-center py-3">
-                                        <span class="rating-badge">{{ "%.1f"|format(team.adjusted_total) }}</span>
+                                        <span class="rating-badge">{{ "%.2f"|format(team.adjusted_total) }}</span>
                                     </td>
                                 </tr>
                                 {% endfor %}
