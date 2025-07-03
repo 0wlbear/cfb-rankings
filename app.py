@@ -2506,6 +2506,26 @@ def debug_values():
     return result
 
 
+@app.route('/debug_db')
+@login_required
+def debug_db():
+    """Debug database connectivity in production"""
+    try:
+        # Test basic database connection
+        game_count = Game.query.count()
+        team_count = TeamStats.query.count()
+        scheduled_count = ScheduledGame.query.count()
+        
+        return f"""
+        <h1>Database Debug</h1>
+        <p>Games: {game_count}</p>
+        <p>Teams: {team_count}</p>
+        <p>Scheduled: {scheduled_count}</p>
+        <p>Database connected successfully!</p>
+        """
+    except Exception as e:
+        return f"<h1>Database Error</h1><p>{str(e)}</p>"
+
 @app.route('/clear_cache_debug')
 @login_required
 def clear_cache_debug():
