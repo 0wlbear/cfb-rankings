@@ -819,6 +819,95 @@ RIVALRIES = {
     'Western Michigan': ['Northern Illinois'],
 }
 
+BOWL_GAMES_DETECTION = {
+    # New Year's Six
+    'Rose Bowl': ['rose bowl', 'rose bowl game', 'granddaddy'],
+    'Sugar Bowl': ['sugar bowl', 'sugar bowl game'],
+    'Orange Bowl': ['orange bowl', 'orange bowl game'],
+    'Cotton Bowl': ['cotton bowl', 'cotton bowl classic'],
+    'Fiesta Bowl': ['fiesta bowl', 'fiesta bowl game'],
+    'Peach Bowl': ['peach bowl', 'chick-fil-a peach bowl', 'cfp peach bowl'],
+    
+    # Major Bowls
+    'Citrus Bowl': ['citrus bowl', 'capital one citrus bowl'],
+    'Outback Bowl': ['outback bowl', 'outback steakhouse bowl'],
+    'Alamo Bowl': ['alamo bowl', 'valero alamo bowl'],
+    'Holiday Bowl': ['holiday bowl', 'san diego county credit union holiday bowl'],
+    'Gator Bowl': ['gator bowl', 'taxslayer gator bowl'],
+    'Sun Bowl': ['sun bowl', 'tony the tiger sun bowl'],
+    
+    # Conference Championship Bowls
+    'Music City Bowl': ['music city bowl', 'transperfect music city bowl'],
+    'Las Vegas Bowl': ['las vegas bowl', 'srs distribution las vegas bowl'],
+    'Texas Bowl': ['texas bowl', 'texas bowl game'],
+    'Duke\'s Mayo Bowl': ['duke mayo bowl', 'dukes mayo bowl', 'mayo bowl'],
+    'Liberty Bowl': ['liberty bowl', 'autozone liberty bowl'],
+    'Armed Forces Bowl': ['armed forces bowl', 'lockheed martin armed forces bowl'],
+    
+    # Additional Bowls
+    'ReliaQuest Bowl': ['reliaquset bowl', 'outback bowl', 'tampa bowl'],
+    'Gasparilla Bowl': ['gasparilla bowl', 'bad boy mowers gasparilla bowl'],
+    'Cure Bowl': ['cure bowl', 'cricket celebration bowl'],
+    'New Mexico Bowl': ['new mexico bowl', 'dreamstyle stadium new mexico bowl'],
+    'Frisco Bowl': ['frisco bowl', 'frisco football classic'],
+    'Boca Raton Bowl': ['boca raton bowl', 'cheribundi boca raton bowl'],
+    'Camellia Bowl': ['camellia bowl', 'raycom media camellia bowl'],
+    'New Orleans Bowl': ['new orleans bowl', 'r+l carriers new orleans bowl'],
+    'Cure Bowl': ['cure bowl', 'makers wanted bahamas bowl'],
+    'Fenway Bowl': ['fenway bowl', 'wasabi fenway bowl'],
+    'Pinstripe Bowl': ['pinstripe bowl', 'new era pinstripe bowl'],
+    'Quick Lane Bowl': ['quick lane bowl', 'ford motor company quick lane bowl'],
+    'Military Bowl': ['military bowl', 'peraton military bowl'],
+    'First Responder Bowl': ['first responder bowl', 'servpro first responder bowl'],
+    'Birmingham Bowl': ['birmingham bowl', 'ticketsmarter birmingham bowl'],
+    'Independence Bowl': ['independence bowl', 'radiance technologies independence bowl'],
+    'Guaranteed Rate Bowl': ['guaranteed rate bowl', 'arizona bowl'],
+    'Hawaii Bowl': ['hawaii bowl', 'eia hawaii bowl'],
+    'Bahamas Bowl': ['bahamas bowl', 'makers wanted bahamas bowl'],
+    'Famous Toastery Bowl': ['famous toastery bowl', 'toastery bowl'],
+    'Myrtle Beach Bowl': ['myrtle beach bowl', 'championship myrtle beach bowl'],
+    
+    # CFP Related
+    'CFP National Championship': ['cfp national championship', 'national championship', 'championship game'],
+    'CFP Semifinal': ['cfp semifinal', 'playoff semifinal', 'college football playoff'],
+    
+    # Generic Detection
+    'Bowl Game': ['bowl', 'bowl game'],  # Fallback for any unspecified bowl
+}
+
+
+def detect_bowl_game(line_text):
+    """Detect bowl game name from a line of text"""
+    line_lower = line_text.lower().strip()
+    
+    # Check for specific bowl games first (most specific to least specific)
+    for bowl_name, variations in BOWL_GAMES_DETECTION.items():
+        if bowl_name == 'Bowl Game':  # Skip the generic fallback for now
+            continue
+            
+        for variation in variations:
+            if variation in line_lower:
+                return bowl_name
+    
+    # Generic bowl detection as fallback
+    if 'bowl' in line_lower and ('vs' in line_lower or 'at' in line_lower or '@' in line_lower):
+        # Try to extract a more specific name
+        words = line_lower.split()
+        bowl_index = -1
+        for i, word in enumerate(words):
+            if 'bowl' in word:
+                bowl_index = i
+                break
+        
+        if bowl_index > 0:
+            # Try to get the word before "bowl"
+            potential_name = words[bowl_index - 1].title() + ' Bowl'
+            return potential_name
+        else:
+            return 'Bowl Game'
+    
+    return None
+
 # Add this date formatting filter
 @app.template_filter('format_date')
 def format_date(date_string):
@@ -1453,10 +1542,10 @@ def calculate_team_base_strength(team_name, iteration=0, max_iterations=3):
     """
     if iteration >= max_iterations:
         # Base case: use simple metrics
-        team_record = TeamStats.query.filter_by(team_name=team_name).first()  # ✅ NEW LINE
-        if not team_record:  # ✅ NEW LINE
-            return 5.0  # ✅ NEW LINE
-        stats = team_record.to_dict()  # ✅ NEW LINE
+        team_record = TeamStats.query.filter_by(team_name=team_name).first()  # 
+        if not team_record:  # 
+            return 5.0  # 
+        stats = team_record.to_dict()  # 
         total_games = stats['wins'] + stats['losses']
         if total_games == 0:
             return 5.0  # Neutral rating for teams with no games
@@ -1464,10 +1553,10 @@ def calculate_team_base_strength(team_name, iteration=0, max_iterations=3):
         win_pct = stats['wins'] / total_games
         return 2.0 + (win_pct * 6.0)  # Scale 2-8 based on win percentage
     
-    team_record = TeamStats.query.filter_by(team_name=team_name).first()  # ✅ NEW LINE
-    if not team_record:  # ✅ NEW LINE
-        return 5.0  # ✅ NEW LINE
-    stats = team_record.to_dict()  # ✅ NEW LINE
+    team_record = TeamStats.query.filter_by(team_name=team_name).first()  # 
+    if not team_record:  # 
+        return 5.0  # 
+    stats = team_record.to_dict()  # 
     total_games = stats['wins'] + stats['losses']
     
     if total_games == 0:
@@ -1483,8 +1572,8 @@ def calculate_team_base_strength(team_name, iteration=0, max_iterations=3):
     
     for game in stats['games']:
         opponent = game['opponent']
-        opponent_record = TeamStats.query.filter_by(team_name=opponent).first()  # ✅ NEW LINE
-        if opponent_record and opponent != team_name:  # ✅ NEW LINE
+        opponent_record = TeamStats.query.filter_by(team_name=opponent).first()  # 
+        if opponent_record and opponent != team_name:  # 
             # Recursive call with iteration limit
             opp_strength = calculate_team_base_strength(opponent, iteration + 1, max_iterations)
             
@@ -1519,15 +1608,15 @@ def get_current_opponent_quality(opponent_name):
         return 0.5  # Fixed quality - never changes regardless of FCS "record"
     
     # Handle other non-FBS opponents
-    opponent_record = TeamStats.query.filter_by(team_name=opponent_name).first()  # ✅ NEW LINE
-    if not opponent_record:  # ✅ NEW LINE
+    opponent_record = TeamStats.query.filter_by(team_name=opponent_name).first()  # 
+    if not opponent_record:  # 
         return 1.5  # Lower default for unknown opponents
     
     base_strength = calculate_team_base_strength(opponent_name)
     
     # Adjust for recent form (last 4 games) - only for real teams
-    opponent_stats = opponent_record.to_dict()  # ✅ NEW LINE
-    recent_games = opponent_stats['games'][-4:]  # ✅ NEW LINE
+    opponent_stats = opponent_record.to_dict()  # 
+    recent_games = opponent_stats['games'][-4:]  # 
     if len(recent_games) >= 2:
         recent_wins = sum(1 for g in recent_games if g['result'] == 'W')
         recent_form_bonus = (recent_wins / len(recent_games) - 0.5) * 1.0
@@ -2881,19 +2970,19 @@ def update_team_stats_simplified(team, opponent, team_score, opp_score, is_home,
 
 def analyze_common_opponents(team1_name, team2_name):
     """Analyze how both teams performed against common opponents"""
-    team1_record = TeamStats.query.filter_by(team_name=team1_name).first()  # ✅ NEW LINE
-    team2_record = TeamStats.query.filter_by(team_name=team2_name).first()  # ✅ NEW LINE
+    team1_record = TeamStats.query.filter_by(team_name=team1_name).first()  # 
+    team2_record = TeamStats.query.filter_by(team_name=team2_name).first()  # 
     
-    if not team1_record or not team2_record:  # ✅ NEW LINE
-        return {  # ✅ NEW LINE
-            'has_common': False,  # ✅ NEW LINE
-            'comparison': [],  # ✅ NEW LINE
-            'advantage': 0,  # ✅ NEW LINE
-            'summary': "No common opponents"  # ✅ NEW LINE
-        }  # ✅ NEW LINE
+    if not team1_record or not team2_record:  # 
+        return {  # 
+            'has_common': False,  # 
+            'comparison': [],  # 
+            'advantage': 0,  # 
+            'summary': "No common opponents"  # 
+        }  # 
     
-    team1_games = team1_record.to_dict()['games']  # ✅ NEW LINE
-    team2_games = team2_record.to_dict()['games']  # ✅ NEW LINE
+    team1_games = team1_record.to_dict()['games']  # 
+    team2_games = team2_record.to_dict()['games']  # 
     
     # Find common opponents
     team1_opponents = {game['opponent'] for game in team1_games}
@@ -2944,16 +3033,16 @@ def analyze_common_opponents(team1_name, team2_name):
 
 def calculate_recent_form(team_name, games_back=4):
     """Calculate recent form over last N games"""
-    team_record = TeamStats.query.filter_by(team_name=team_name).first()  # ✅ NEW LINE
-    if not team_record:  # ✅ NEW LINE
-        return {  # ✅ NEW LINE
-            'record': '0-0',  # ✅ NEW LINE
-            'avg_margin': 0,  # ✅ NEW LINE
-            'trending': 'neutral',  # ✅ NEW LINE
-            'last_games': []  # ✅ NEW LINE
-        }  # ✅ NEW LINE
+    team_record = TeamStats.query.filter_by(team_name=team_name).first()  # 
+    if not team_record:  # 
+        return {  # 
+            'record': '0-0',  # 
+            'avg_margin': 0,  # 
+            'trending': 'neutral',  # 
+            'last_games': []  # 
+        }  # 
     
-    games = team_record.to_dict()['games']  # ✅ NEW LINE
+    games = team_record.to_dict()['games']  # 
     if len(games) < games_back:
         games_back = len(games)
     
@@ -3046,14 +3135,14 @@ def analyze_style_matchup(team1_name, team2_name):
 
 def head_to_head_history(team1_name, team2_name):
     """Check if teams have played each other recently"""
-    team1_record = TeamStats.query.filter_by(team_name=team1_name).first()  # ✅ NEW LINE
-    if not team1_record:  # ✅ NEW LINE
-        return {  # ✅ NEW LINE
-            'has_history': False,  # ✅ NEW LINE
-            'summary': "Teams have not played each other"  # ✅ NEW LINE
-        }  # ✅ NEW LINE
+    team1_record = TeamStats.query.filter_by(team_name=team1_name).first()  # 
+    if not team1_record:  # 
+        return {  # 
+            'has_history': False,  # 
+            'summary': "Teams have not played each other"  # 
+        }  # 
     
-    team1_games = team1_record.to_dict()['games']  # ✅ NEW LINE
+    team1_games = team1_record.to_dict()['games']  # 
     
     # Look for games against each other
     h2h_games = [g for g in team1_games if g['opponent'] == team2_name]
@@ -3396,14 +3485,14 @@ def predict_matchup_basic_fallback(team1_name, team2_name, location):
 
 def analyze_common_opponents_enhanced(team1_name, team2_name):
     """Enhanced common opponent analysis with recency weighting"""
-    team1_record = TeamStats.query.filter_by(team_name=team1_name).first()  # ✅ NEW LINE
-    team2_record = TeamStats.query.filter_by(team_name=team2_name).first()  # ✅ NEW LINE
+    team1_record = TeamStats.query.filter_by(team_name=team1_name).first()  # 
+    team2_record = TeamStats.query.filter_by(team_name=team2_name).first()  # 
     
-    if not team1_record or not team2_record:  # ✅ NEW LINE
-        return {'has_common': False, 'advantage': 0, 'games_count': 0}  # ✅ NEW LINE
+    if not team1_record or not team2_record:  # 
+        return {'has_common': False, 'advantage': 0, 'games_count': 0}  # 
     
-    team1_games = team1_record.to_dict()['games']  # ✅ NEW LINE
-    team2_games = team2_record.to_dict()['games']  # ✅ NEW LINE
+    team1_games = team1_record.to_dict()['games']  # 
+    team2_games = team2_record.to_dict()['games']  # 
     
     # Find common opponents
     team1_opponents = {game['opponent'] for game in team1_games}
@@ -3495,11 +3584,11 @@ def analyze_victory_quality_differential(team1_name, team2_name):
 
 def calculate_enhanced_recent_form(team_name, games_back=4):
     """Calculate enhanced recent form with momentum scoring"""
-    team_record = TeamStats.query.filter_by(team_name=team_name).first()  # ✅ NEW LINE
-    if not team_record:  # ✅ NEW LINE
-        return {'momentum_score': 0, 'trend': 'insufficient_data'}  # ✅ NEW LINE
+    team_record = TeamStats.query.filter_by(team_name=team_name).first()  # 
+    if not team_record:  # 
+        return {'momentum_score': 0, 'trend': 'insufficient_data'}  # 
     
-    games = team_record.to_dict()['games']  # ✅ NEW LINE
+    games = team_record.to_dict()['games']  # 
     if len(games) < 2:
         return {'momentum_score': 0, 'trend': 'insufficient_data'}
     
@@ -3580,14 +3669,14 @@ def calculate_conference_matchup_adjustment(team1_name, team2_name):
 
 def analyze_schedule_strength_differential(team1_name, team2_name):
     """Analyze difference in schedule difficulty"""
-    team1_record = TeamStats.query.filter_by(team_name=team1_name).first()  # ✅ NEW LINE
-    team2_record = TeamStats.query.filter_by(team_name=team2_name).first()  # ✅ NEW LINE
+    team1_record = TeamStats.query.filter_by(team_name=team1_name).first()  # 
+    team2_record = TeamStats.query.filter_by(team_name=team2_name).first()  # 
     
-    if not team1_record or not team2_record:  # ✅ NEW LINE
-        return 0  # ✅ NEW LINE
+    if not team1_record or not team2_record:  # 
+        return 0  # 
     
-    team1_games = team1_record.to_dict()['games']  # ✅ NEW LINE
-    team2_games = team2_record.to_dict()['games']  # ✅ NEW LINE
+    team1_games = team1_record.to_dict()['games']  # 
+    team2_games = team2_record.to_dict()['games']  # 
     
     if not team1_games or not team2_games:
         return 0
@@ -3625,11 +3714,11 @@ def calculate_enhanced_home_field_advantage(team1_name, team2_name, location):
 
 def analyze_home_performance(team_name):
     """Analyze how much a team benefits from playing at home"""
-    team_record = TeamStats.query.filter_by(team_name=team_name).first()  # ✅ NEW LINE
-    if not team_record:  # ✅ NEW LINE
-        return {'advantage_modifier': 1.0}  # ✅ NEW LINE
+    team_record = TeamStats.query.filter_by(team_name=team_name).first()  # 
+    if not team_record:  # 
+        return {'advantage_modifier': 1.0}  # 
     
-    games = team_record.to_dict()['games']  # ✅ NEW LINE
+    games = team_record.to_dict()['games']  # 
     
     home_games = [g for g in games if g['home_away'] == 'Home']
     away_games = [g for g in games if g['home_away'] == 'Away']
@@ -3748,47 +3837,38 @@ def identify_key_prediction_factors(adjustments, team1_scientific, team2_scienti
 scheduled_games = []
 
 def parse_schedule_text(schedule_text, week, team_clarifications=None):
-    """Parse pasted schedule text into structured game data with dates, times, and TV"""
+    """Parse pasted schedule text into structured game data with dates, times, TV, and bowl detection"""
     games = []
     unknown_teams = set()
     lines = [line.strip() for line in schedule_text.split('\n') if line.strip()]
-
-    print(f"DEBUG PARSE: Processing {len(lines)} lines")
     
     current_date = None
     current_year = datetime.now().year
+    current_bowl_game = None  # NEW: Track bowl game from previous lines
     
     def resolve_team_name(team_name):
         """Resolve team name using clarifications or existing mappings"""
-        # NEW: Clean the team name first (remove rankings, etc.)
-        team_name = clean_team_name(team_name)
-
         original_name = team_name
         team_name = clean_team_name(team_name)
-        print(f"DEBUG RESOLVE: Original='{original_name}' Cleaned='{team_name}'")
-
 
         # First check if we have a clarification for this session
         if team_clarifications and team_name in team_clarifications:
-            print(f"DEBUG RESOLVE: Found in clarifications: {team_name}")
+            
             return team_clarifications[team_name]
-        
-        # Saved mappings have been removed - team clarifications are now session-only
-        # This reduces complexity and avoids global state issues
         
         # Check if it's a known FBS team
         if team_name in TEAMS:
-            print(f"DEBUG RESOLVE: Found '{team_name}' in TEAMS")
+            
             return team_name
             
         # Check common variations
         for standard_name, variants in TEAM_VARIATIONS.items():
             if team_name in variants:
-                print(f"DEBUG RESOLVE: Found '{team_name}' maps to '{standard_name}' via TEAM_VARIATIONS")
+                
                 return standard_name
         
         # If we get here, it's unknown
-        print(f"DEBUG RESOLVE: '{team_name}' is UNKNOWN - adding to unknown_teams")
+        
         unknown_teams.add(team_name)
         return team_name  # Return as-is for now
     
@@ -3838,6 +3918,26 @@ def parse_schedule_text(schedule_text, week, team_clarifications=None):
         
         return None
     
+    def detect_bowl_game_line(line):
+        """Detect if a line contains just a bowl game name"""
+        line_lower = line.lower().strip()
+        
+        # Check if this line is just a bowl name (no teams)
+        if 'bowl' in line_lower and not any(indicator in line_lower for indicator in ['vs', 'at', '@']):
+            # This might be a bowl name line
+            # Clean up common prefixes/suffixes
+            cleaned = line.strip()
+            
+            # Remove common words that appear with bowl names
+            import re
+            cleaned = re.sub(r'\b(game|championship|presented by|sponsored by)\b', '', cleaned, flags=re.IGNORECASE)
+            cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+            
+            if 'bowl' in cleaned.lower():
+                return cleaned
+        
+        return None
+    
     def extract_time_and_tv(line):
         """Extract time and TV info from game line"""
         import re
@@ -3854,41 +3954,15 @@ def parse_schedule_text(schedule_text, week, team_clarifications=None):
             minute = minute or '00'
             time_match = f"{hour}:{minute} {period.upper()}"
         
-        # Extract TV networks - Sort by length (longest first) to avoid partial matches
+        # Extract TV networks
         tv_networks = [
-            'Big Ten Network',
-            'SEC Network', 
-            'ACC Network',
-            'Amazon Prime',
-            'YouTube TV',
-            'Apple TV+',
-            'Paramount+',
-            'ESPNEWS',
-            'ESPN+',
-            'ESPN2', 
-            'ESPNU',
-            'CBSSN',
-            'Sling TV',
-            'ESPN',
-            'FOX',
-            'CBS',
-            'NBC',
-            'ABC', 
-            'FS1', 
-            'FS2',
-            'BTN', 
-            'SECN', 
-            'ACCN',
-            'Peacock',
-            'Netflix',
-            'Hulu'
+            'Big Ten Network', 'SEC Network', 'ACC Network', 'Amazon Prime', 'YouTube TV', 'Apple TV+',
+            'Paramount+', 'ESPNEWS', 'ESPN+', 'ESPN2', 'ESPNU', 'CBSSN', 'Sling TV', 'ESPN',
+            'FOX', 'CBS', 'NBC', 'ABC', 'FS1', 'FS2', 'BTN', 'SECN', 'ACCN', 'Peacock', 'Netflix', 'Hulu'
         ]
         
-        # Sort by length descending to check longer names first
         tv_networks_sorted = sorted(tv_networks, key=len, reverse=True)
-        
-        tv_info = None
-        line_upper = line.upper()  # Use uppercase for case-insensitive matching
+        line_upper = line.upper()
         
         for network in tv_networks_sorted:
             network_upper = network.upper()
@@ -3896,29 +3970,12 @@ def parse_schedule_text(schedule_text, week, team_clarifications=None):
                 tv_info = network
                 break
         
-        # Fallback: if no exact match found, try partial matching for edge cases
-        if not tv_info:
-            for network in tv_networks:
-                if network.lower() in line.lower():
-                    # Additional check: make sure we're not getting a partial match
-                    # For example, don't match "ESPN" if "ESPN+" is in the line
-                    if network == 'ESPN' and 'espn+' in line.lower():
-                        continue
-                    if network == 'CBS' and 'cbssn' in line.lower():
-                        continue
-                    if network == 'FOX' and ('fs1' in line.lower() or 'fs2' in line.lower()):
-                        continue
-                    tv_info = network
-                    break
-        
         return time_match, tv_info
     
     for i, line in enumerate(lines):
         try:
-            # AGGRESSIVE SKIP LOGIC - Add this first
+            # Skip empty or very short lines
             line_lower = line.lower().strip()
-            
-            # Skip completely empty or very short lines
             if len(line_lower) < 3:
                 continue
             
@@ -3926,39 +3983,41 @@ def parse_schedule_text(schedule_text, week, team_clarifications=None):
             skip_phrases = [
                 'matchup time', 'time (et)', 'tv/mobile', 'tickets', 'buy tickets',
                 'matchup', 'tv/mobile tickets', 'time (et) tv', 'network', 'channel', 
-                'broadcast', 'status', '(et)', 'mobile tickets'
+                'broadcast', 'status', '(et)', 'mobile tickets', 'location'
             ]
             
             if any(phrase in line_lower for phrase in skip_phrases):
                 print(f"SKIPPING: {line}")
                 continue
             
-            # Skip lines that are just punctuation or symbols
-            if line_lower.replace(' ', '').replace('(', '').replace(')', '').replace('-', '').replace('=', '') == '':
-                continue
-            
             # Try to parse as date header first
             parsed_date = parse_date_line(line)
             if parsed_date:
                 current_date = parsed_date
+                current_bowl_game = None  # Reset bowl game on new date
                 continue
             
-            # Skip lines that don't have game indicators AND aren't dates
+            # NEW: Check if this line is a bowl game name
+            bowl_name = detect_bowl_game_line(line)
+            if bowl_name:
+                current_bowl_game = bowl_name
+                
+                continue
+            
+            # Skip lines that don't have game indicators
             if not any(indicator in line_lower for indicator in ['vs', 'at', '@']):
                 print(f"SKIPPING (no game indicators): {line}")
                 continue
                 
             game = None
             
-            # NEW: Look ahead to next line for time/TV info
+            # Look ahead to next line for time/TV info
             next_line = ""
             if i + 1 < len(lines):
                 next_line = lines[i + 1]
-                # Check if next line looks like time/TV info
                 import re
                 if re.search(r'\d{1,2}:?\d{2}?\s*(am|pm|AM|PM)', next_line) or any(net in next_line.upper() for net in ['ESPN', 'FOX', 'CBS', 'NBC']):
-                    print(f"DEBUG: Found time line: {next_line}")
-                    # Combine current line with next line for parsing
+                    
                     combined_line = f"{line} {next_line}"
                     game_time, tv_network = extract_time_and_tv(combined_line)
                 else:
@@ -3966,15 +4025,23 @@ def parse_schedule_text(schedule_text, week, team_clarifications=None):
             else:
                 game_time, tv_network = extract_time_and_tv(line)
             
-            print(f"DEBUG: Final extracted - time: {game_time}, tv: {tv_network}")
+        
             
-            # Clean the line for team parsing (remove time/TV info)
+            # Clean the line for team parsing (remove time/TV info and venue info)
             import re
-            line_clean = re.sub(r'\d{1,2}:?\d{2}?\s*(am|pm|AM|PM)', '', line)  # Remove time
-            line_clean = re.sub(r'\b(ESPN|FOX|CBS|NBC|ABC|FS1|FS2|BTN|SECN|ACCN|ESPN2|ESPNU|CBSSN|Paramount\+|Peacock|ESPNEWS)\b', '', line_clean, flags=re.IGNORECASE)  # Remove TV
-            line_clean = re.sub(r'\s+', ' ', line_clean).strip()  # Clean up spaces
+            line_clean = re.sub(r'\d{1,2}:?\d{2}?\s*(am|pm|AM|PM)', '', line)
+            line_clean = re.sub(r'\b(ESPN|FOX|CBS|NBC|ABC|FS1|FS2|BTN|SECN|ACCN|ESPN2|ESPNU|CBSSN|Paramount\+|Peacock|ESPNEWS)\b', '', line_clean, flags=re.IGNORECASE)
+
+            # NEW: Remove venue information (words like "Stadium", "Arena", "Center", etc.)
+            line_clean = re.sub(r'\b(Stadium|Arena|Center|Field|Dome|Bowl|Coliseum|Memorial|Municipal|County|University|College|High|School|Complex|Park|Facility)\b.*$', '', line_clean, flags=re.IGNORECASE)
+
+            # NEW: Split on tabs and take only the first part (team matchup)
+            if '\t' in line_clean:
+                line_clean = line_clean.split('\t')[0].strip()
+
+            line_clean = re.sub(r'\s+', ' ', line_clean).strip()
             
-            # Rest of your parsing logic stays the same...
+            
             # Format 1: "Team A vs Team B (location)" - neutral site
             if ' vs ' in line_clean and '(' in line_clean:
                 teams_part = line_clean.split('(')[0].strip()
@@ -3995,7 +4062,8 @@ def parse_schedule_text(schedule_text, week, team_clarifications=None):
                     'original_away': team2,
                     'game_date': current_date,
                     'game_time': game_time,
-                    'tv_network': tv_network
+                    'tv_network': tv_network,
+                    'bowl_game_name': current_bowl_game  # NEW: Use tracked bowl game
                 }
             
             # Format 2: "Team A at Team B" - Team B is home
@@ -4015,30 +4083,44 @@ def parse_schedule_text(schedule_text, week, team_clarifications=None):
                     'original_away': away_team,
                     'game_date': current_date,
                     'game_time': game_time,
-                    'tv_network': tv_network
+                    'tv_network': tv_network,
+                    'bowl_game_name': current_bowl_game  # NEW: Use tracked bowl game
                 }
             
-            # Format 3: "Team A vs Team B" - Team A is home
+            # Format 3: "Team A vs Team B" - Check if it's a bowl game (neutral) or regular game (Team A home)
             elif ' vs ' in line_clean:
                 team1, team2 = [t.strip() for t in line_clean.split(' vs ')]
                 
                 team1_resolved = resolve_team_name(team1)
                 team2_resolved = resolve_team_name(team2)
                 
+                # NEW: If we have a bowl game name, this is automatically a neutral site game
+                if current_bowl_game:
+                    is_neutral = True
+                    location_note = None
+                    
+                else:
+                    is_neutral = False
+                    location_note = None
+                
                 game = {
                     'week': week,
                     'home_team': team1_resolved,
                     'away_team': team2_resolved,
-                    'neutral': False,
+                    'neutral': is_neutral,  # ✅ MAKE SURE THIS USES is_neutral VARIABLE
                     'completed': False,
+                    'location_note': location_note,
                     'original_home': team1,
                     'original_away': team2,
                     'game_date': current_date,
                     'game_time': game_time,
-                    'tv_network': tv_network
+                    'tv_network': tv_network,
+                    'bowl_game_name': current_bowl_game
                 }
+                
             
             if game:
+                
                 games.append(game)
                 
         except Exception as e:
@@ -4162,6 +4244,19 @@ def update_team_stats_in_db(team, opponent, team_score, opp_score, is_home, is_n
         print(f"Error updating team stats for {team}: {e}")
         raise e
 
+@app.route('/debug_bowl_games')
+@login_required
+def debug_bowl_games():
+    """Debug route to check bowl games in database"""
+    scheduled_games = ScheduledGame.query.filter(ScheduledGame.bowl_game_name.isnot(None)).all()
+    
+    result = "<h3>Bowl Games in Database:</h3><ul>"
+    for game in scheduled_games:
+        result += f"<li>{game.home_team} vs {game.away_team} - Bowl: {game.bowl_game_name} - Neutral: {game.neutral}</li>"
+    result += "</ul>"
+    
+    return result
+
 def complete_schedule_import_db(games, week):
     """Complete the schedule import to database"""
     try:
@@ -4186,7 +4281,8 @@ def complete_schedule_import_db(games, week):
                     tv_network=game_data.get('tv_network'),
                     location_note=game_data.get('location_note'),
                     original_home=game_data.get('original_home'),
-                    original_away=game_data.get('original_away')
+                    original_away=game_data.get('original_away'),
+                    bowl_game_name=game_data.get('bowl_game_name')
                 )
                 db.session.add(scheduled_game)
                 games_added += 1
@@ -4199,12 +4295,31 @@ def complete_schedule_import_db(games, week):
         
         total_scheduled = ScheduledGame.query.filter_by(week=week, completed=False).count()
         flash(f'✅ Successfully imported {games_added} games for Week {week}! (Total scheduled: {total_scheduled})', 'success')
-        return redirect(url_for('weekly_results', week=week))
+        return redirect(url_for('scoreboard', week=week))
         
     except Exception as e:
         db.session.rollback()
         flash(f'Error completing import: {e}', 'error')
-        return redirect(url_for('weekly_results', week=week))
+        return redirect(url_for('scoreboard', week=week))
+
+
+
+@app.route('/migrate_bowl_games')
+@login_required  
+def migrate_bowl_games():
+    """Add bowl_game_name column to scheduled_games table"""
+    try:
+        # Use the new SQLAlchemy syntax
+        with db.engine.connect() as connection:
+            connection.execute(text("ALTER TABLE scheduled_games ADD COLUMN IF NOT EXISTS bowl_game_name VARCHAR(255);"))
+            connection.commit()
+        
+        flash('✅ Bowl game field added to database successfully!', 'success')
+        return redirect(url_for('admin'))
+        
+    except Exception as e:
+        flash(f'❌ Migration error: {e}', 'error')
+        return redirect(url_for('admin'))
 
 
 
@@ -4245,7 +4360,13 @@ def team_bowl_status_detail(team_name):
     """, team_name=team_name, status=status)    
 
 
-
+@app.route('/weekly_results')
+@app.route('/weekly_results/<week>')
+def weekly_results_redirect(week=None):
+    """Redirect old URLs to new scoreboard"""
+    if week:
+        return redirect(url_for('scoreboard', week=week), code=301)
+    return redirect(url_for('scoreboard'), code=301)
 
 
 # Add this route to fix the NULL scores issue
@@ -4327,29 +4448,26 @@ def compare_teams():
         team1 = request.form['team1']
         team2 = request.form['team2']
         location = request.form.get('location', 'neutral')
-        
-        print(f"DEBUG: Form data received - team1: {team1}, team2: {team2}, location: {location}")
-        
+                
         if team1 == team2:
             flash('Please select two different teams!', 'error')
             return redirect(url_for('team_compare'))
         
         # Check if teams exist
-        team1_record = TeamStats.query.filter_by(team_name=team1).first()  # ✅ NEW LINE
-        if not team1_record:  # ✅ NEW LINE
+        team1_record = TeamStats.query.filter_by(team_name=team1).first()  # 
+        if not team1_record:  # 
             flash(f'{team1} not found in database!', 'error')
             return redirect(url_for('team_compare'))
         
-        team2_record = TeamStats.query.filter_by(team_name=team2).first()  # ✅ NEW LINE
-        if not team2_record:  # ✅ NEW LINE
+        team2_record = TeamStats.query.filter_by(team_name=team2).first()  # 
+        if not team2_record:  # 
             flash(f'{team2} not found in database!', 'error') 
             return redirect(url_for('team_compare'))
         
         # Check if teams have played games
-        team1_games = len(team1_record.to_dict()['games'])  # ✅ NEW LINE
-        team2_games = len(team2_record.to_dict()['games'])  # ✅ NEW LINE
+        team1_games = len(team1_record.to_dict()['games'])  # 
+        team2_games = len(team2_record.to_dict()['games'])  # 
         
-        print(f"DEBUG: {team1} has {team1_games} games, {team2} has {team2_games} games")
         
         if team1_games == 0:
             flash(f'{team1} has not played any games yet! Please add some games first.', 'error')
@@ -4360,19 +4478,19 @@ def compare_teams():
             return redirect(url_for('team_compare'))
         
         # Get basic stats (using your existing functions)
-        print("DEBUG: Getting comprehensive stats...")
+        
         team1_stats = calculate_comprehensive_stats(team1)
         team2_stats = calculate_comprehensive_stats(team2)
         
-        print("DEBUG: Getting scientific rankings...")
+        
         team1_scientific = calculate_enhanced_scientific_ranking(team1) 
         team2_scientific = calculate_enhanced_scientific_ranking(team2)  
         
-        print("DEBUG: Running prediction...")
+        
         # Use your ORIGINAL prediction function for now
         prediction = predict_matchup_ultra_enhanced(team1, team2, location)
         
-        print("DEBUG: Running additional analysis...")
+        
         # Use your existing analysis functions
         common_opponents = analyze_common_opponents(team1, team2)
         team1_form = calculate_recent_form(team1)
@@ -4380,7 +4498,7 @@ def compare_teams():
         style_matchup = analyze_style_matchup(team1, team2)
         h2h_history = head_to_head_history(team1, team2)
         
-        print("DEBUG: Preparing template data...")
+        
         comparison_data = {
             'team1': team1,
             'team2': team2,
@@ -4397,7 +4515,7 @@ def compare_teams():
             'location': location
         }
         
-        print("DEBUG: Rendering template...")
+        
         # Use your existing template for now
         return render_template('comparison_results.html', **comparison_data)
         
@@ -4568,8 +4686,8 @@ def get_recent_rivalry_games():
     """Get recent rivalry games for display"""
     rivalry_games = []
     
-    all_games = get_games_data()  # ✅ NEW LINE
-    for game in all_games[-20:]:  # ✅ NEW LINE  # Last 20 games
+    all_games = get_games_data()  # 
+    for game in all_games[-20:]:  #   # Last 20 games
         home_team = game['home_team']
         away_team = game['away_team']
         
@@ -4628,7 +4746,7 @@ def clean_team_name(team_name):
 @login_required
 def create_snapshot():
     try:
-        week_name = request.form.get('week_name', f"Week_Snapshot")  # ✅ NEW LINE
+        week_name = request.form.get('week_name', f"Week_Snapshot")  # 
         save_weekly_snapshot(week_name)
         flash(f'Snapshot "{week_name}" created successfully!', 'success')
     except Exception as e:
@@ -5307,7 +5425,7 @@ def performance_test_with_cache():
 @app.route('/cfp_bracket')
 def cfp_bracket():
     """CFP bracket with correct automatic qualifiers"""
-    cache_key = 'cfp_bracket_fixed_data'
+    cache_key = 'cfp_bracket_correct_data'
     
     # Check cache first (3 minute cache)
     if cache_key in performance_cache:
@@ -5316,8 +5434,8 @@ def cfp_bracket():
             return render_template('cfp_bracket.html', bracket=cached_bracket)
     
     try:
-        # Use the fixed CFP bracket generation
-        bracket = generate_fixed_cfp_bracket()
+        # Use the corrected CFP bracket generation
+        bracket = generate_correct_cfp_bracket()  # ← Use new function
         
         # Cache the result
         performance_cache[cache_key] = (bracket, time.time())
@@ -5334,77 +5452,83 @@ def cfp_bracket():
         """
 
 
-def generate_fixed_cfp_bracket():
-    """Simple CFP bracket - just look at top 25 and find champions in order"""
+def generate_correct_cfp_bracket():
+    """Generate 12-team CFP bracket with correct automatic qualifier logic"""
     try:
-        # Get top 25 teams using your fast bulk loading
+        # Get all teams ranked by adjusted total
         all_teams_stats = get_all_team_stats_bulk()
-        top_25 = all_teams_stats[:25]  # Only look at top 25
         
-        # What we're looking for
-        p4_conferences = ['SEC', 'Big Ten', 'ACC', 'Big XII']
-        g5_conferences = ['American', 'Conference USA', 'MAC', 'Mountain West', 'Sun Belt']
+        # Step 1: Find the champion of each conference
+        conference_champions = {}
+        conferences_to_check = ['SEC', 'Big Ten', 'ACC', 'Big XII', 'American', 'Conference USA', 'MAC', 'Mountain West', 'Sun Belt']
         
-        found_champions = set()
-        automatic_qualifiers = []
+        for conf_name in conferences_to_check:
+            # Find highest-ranked team from this conference
+            conf_teams = [team for team in all_teams_stats if team['conference'] == conf_name]
+            if conf_teams:
+                champion = conf_teams[0]  # Highest ranked team from conference
+                champion['champion_of'] = conf_name
+                conference_champions[conf_name] = champion
         
-        # Go through top 25 in order and find champions
-        for i, team in enumerate(top_25):
-            team['seed'] = i + 1  # Add seed based on ranking
-            
-            # Check if this is a P4 champion we haven't found yet
-            if team['conference'] in p4_conferences and team['conference'] not in found_champions:
-                auto_qual = team.copy()
-                auto_qual['auto_qualifier_title'] = f"{team['conference']} Champion"
-                auto_qual['is_auto_qualifier'] = True
-                automatic_qualifiers.append(auto_qual)
-                found_champions.add(team['conference'])
-                continue
-            
-            # Check if this is the first G5 team we've seen
-            if team['conference'] in g5_conferences and 'G5' not in found_champions:
-                auto_qual = team.copy()
-                auto_qual['auto_qualifier_title'] = f"G5 Champion ({team['conference']})"
-                auto_qual['is_auto_qualifier'] = True
-                automatic_qualifiers.append(auto_qual)
-                found_champions.add('G5')
-                continue
-            
-            # Stop when we have all 5 automatic qualifiers
-            if len(automatic_qualifiers) >= 5:
-                break
+        # Step 2: Rank all conference champions by their overall ranking
+        all_champions = list(conference_champions.values())
+        all_champions.sort(key=lambda x: x['adjusted_total'], reverse=True)
         
-        # Get the top 12 teams for the playoff
-        playoff_teams = top_25[:12]
-        for i, team in enumerate(playoff_teams):
+        # Step 3: Top 5 conference champions get automatic qualifiers
+        automatic_qualifiers = all_champions[:5]
+        for i, champion in enumerate(automatic_qualifiers):
+            champion['auto_qualifier_rank'] = i + 1
+            champion['is_auto_qualifier'] = True
+            champion['auto_qualifier_title'] = f"{champion['champion_of']} Champion"
+        
+        # Step 4: Get top 12 overall teams for the playoff
+        playoff_teams = all_teams_stats[:12]
+        
+        # Step 5: Ensure all 5 auto-qualifiers are in the playoff
+        auto_qualifier_names = {aq['team'] for aq in automatic_qualifiers}
+        
+        # Remove any auto-qualifiers already in top 12
+        non_auto_in_top12 = [team for team in playoff_teams if team['team'] not in auto_qualifier_names]
+        
+        # Start with auto-qualifiers, then fill with highest at-large teams
+        final_playoff_teams = automatic_qualifiers.copy()
+        spots_remaining = 12 - len(automatic_qualifiers)
+        
+        # Add best at-large teams
+        for team in non_auto_in_top12[:spots_remaining]:
+            team['is_auto_qualifier'] = False
+            final_playoff_teams.append(team)
+        
+        # Sort final teams by ranking and assign seeds
+        final_playoff_teams.sort(key=lambda x: x['adjusted_total'], reverse=True)
+        for i, team in enumerate(final_playoff_teams):
             team['seed'] = i + 1
-            # Mark which ones are auto-qualifiers
-            team['is_auto_qualifier'] = any(aq['team'] == team['team'] for aq in automatic_qualifiers)
         
         # Create bracket structure
-        first_round_byes = playoff_teams[:4]
-        at_large_display = playoff_teams[4:]
+        first_round_byes = final_playoff_teams[:4]  # Seeds 1-4
+        at_large_display = final_playoff_teams[4:]   # Seeds 5-12
         
+        # First round games: 5v12, 6v11, 7v10, 8v9
         first_round_games = []
-        if len(playoff_teams) >= 12:
+        if len(final_playoff_teams) >= 12:
             first_round_games = [
-                {'higher_seed': playoff_teams[4], 'lower_seed': playoff_teams[11], 'game_num': 1},
-                {'higher_seed': playoff_teams[5], 'lower_seed': playoff_teams[10], 'game_num': 2},
-                {'higher_seed': playoff_teams[6], 'lower_seed': playoff_teams[9], 'game_num': 3},
-                {'higher_seed': playoff_teams[7], 'lower_seed': playoff_teams[8], 'game_num': 4},
+                {'higher_seed': final_playoff_teams[4], 'lower_seed': final_playoff_teams[11], 'game_num': 1},
+                {'higher_seed': final_playoff_teams[5], 'lower_seed': final_playoff_teams[10], 'game_num': 2},
+                {'higher_seed': final_playoff_teams[6], 'lower_seed': final_playoff_teams[9], 'game_num': 3},
+                {'higher_seed': final_playoff_teams[7], 'lower_seed': final_playoff_teams[8], 'game_num': 4},
             ]
         
         return {
             'first_round_byes': first_round_byes,
             'first_round_games': first_round_games,
-            'all_teams': playoff_teams,
-            'automatic_qualifiers': automatic_qualifiers,  # These are in the correct order now
+            'all_teams': final_playoff_teams,
+            'automatic_qualifiers': automatic_qualifiers,
             'at_large_display': at_large_display,
-            'conference_champions': {}
+            'conference_champions': conference_champions
         }
         
     except Exception as e:
-        print(f"Error in CFP bracket: {e}")
+        print(f"Error in CFP bracket generation: {e}")
         return {
             'first_round_byes': [],
             'first_round_games': [],
@@ -5498,11 +5622,11 @@ def performance_test_pages():
 @app.route('/team_test/<team_name>')
 def team_test(team_name):
     """Simple test to see if team detail routing works"""
-    team_record = TeamStats.query.filter_by(team_name=team_name).first()  # ✅ NEW LINE
-    if not team_record:  # ✅ NEW LINE
+    team_record = TeamStats.query.filter_by(team_name=team_name).first()  # 
+    if not team_record:  # 
         return f"<h1>Team {team_name} not found in team_stats</h1>"
     
-    basic_stats = team_record.to_dict()  # ✅ NEW LINE
+    basic_stats = team_record.to_dict()  # 
     return f"""
     <h1>Team Test: {team_name}</h1>
     <p>Games: {len(basic_stats['games'])}</p>
@@ -5571,7 +5695,7 @@ def public_team_detail(team_name):
     
     # Decode URL-encoded team name
     decoded_team_name = unquote(team_name)
-    print(f"DEBUG: Looking for team: '{decoded_team_name}'")
+    
     
     # First check if this is a valid team name
     if decoded_team_name not in TEAMS:
@@ -5582,33 +5706,76 @@ def public_team_detail(team_name):
     team_stats_record = TeamStats.query.filter_by(team_name=decoded_team_name).first()
     
     if team_stats_record:
-        # Team has games - use existing data
+        # Team has games - use bulk data (same as rankings page)
         basic_stats = team_stats_record.to_dict()
         has_games = (basic_stats['wins'] + basic_stats['losses']) > 0
         
         if has_games:
-            # Team has games - calculate full stats
             try:
-                comprehensive_stats = calculate_comprehensive_stats(decoded_team_name)
-                adjusted_total = comprehensive_stats['adjusted_total']
+                # Use the SAME data source as the rankings page
+                all_teams_stats = get_all_team_stats_bulk()
                 
-                scientific_result = {
-                    'total_score': adjusted_total,
-                    'components': comprehensive_stats.get('scientific_breakdown', {}).get('components', {}),
-                    'basic_stats': {
-                        'wins': basic_stats['wins'],
-                        'losses': basic_stats['losses'],
-                        'total_games': basic_stats['wins'] + basic_stats['losses']
+                # Find this team in the bulk data
+                team_data = None
+                current_rank = 'NR'
+                for i, team in enumerate(all_teams_stats):
+                    if team['team'] == decoded_team_name:
+                        team_data = team
+                        current_rank = i + 1
+                        break
+                
+                if team_data:
+                    adjusted_total = team_data['adjusted_total']
+                    print(f"Using bulk data for {decoded_team_name}: {adjusted_total}")
+                    total_teams_ranked = len(all_teams_stats)
+                    
+                    # Get detailed breakdown for components
+                    try:
+                        enhanced_scientific = calculate_enhanced_scientific_ranking(decoded_team_name)
+                        components = enhanced_scientific.get('components', {})
+                    except Exception as e:
+                        print(f"Component calculation failed: {e}")
+                        components = {}
+                    
+                    scientific_result = {
+                        'total_score': adjusted_total,  # Use the same score as rankings
+                        'components': components,
+                        'basic_stats': {
+                            'wins': basic_stats['wins'],
+                            'losses': basic_stats['losses'],
+                            'total_games': basic_stats['wins'] + basic_stats['losses']
+                        }
                     }
-                }
+                else:
+                    # Fallback if not found in bulk data
+                    print(f"Team {decoded_team_name} not found in bulk data, using individual calculation")
+                    comprehensive_stats = calculate_comprehensive_stats(decoded_team_name)
+                    adjusted_total = comprehensive_stats['adjusted_total']
+                    current_rank = 'NR'
+                    total_teams_ranked = 0
+                    
+                    scientific_result = {
+                        'total_score': adjusted_total,
+                        'components': comprehensive_stats.get('scientific_breakdown', {}).get('components', {}),
+                        'basic_stats': {
+                            'wins': basic_stats['wins'],
+                            'losses': basic_stats['losses'],
+                            'total_games': basic_stats['wins'] + basic_stats['losses']
+                        }
+                    }
+                    
             except Exception as e:
                 print(f"Stats calculation failed for {decoded_team_name}: {e}")
                 scientific_result = create_default_ranking_result()
                 adjusted_total = 0.0
+                current_rank = 'NR'
+                total_teams_ranked = 0
         else:
             # Team exists in database but no games
             scientific_result = create_default_ranking_result()
             adjusted_total = 0.0
+            current_rank = 'NR'
+            total_teams_ranked = 0
     else:
         # Team not in database at all - create empty stats
         basic_stats = {
@@ -5628,8 +5795,10 @@ def public_team_detail(team_name):
         scientific_result = create_default_ranking_result()
         adjusted_total = 0.0
         has_games = False
+        current_rank = 'NR'
+        total_teams_ranked = 0
     
-    # FIXED: Calculate chart data directly instead of using broken function
+    # Calculate chart data directly instead of using broken function
     if basic_stats['games']:
         # Victory values and weeks
         game_weeks = []
@@ -5737,20 +5906,6 @@ def public_team_detail(team_name):
             'rivalry_bonus': rivalry_bonus,
             'overtime': game.get('overtime', False)
         })
-    
-    # Calculate current ranking using fast bulk method
-    if basic_stats['games']:
-        try:
-            # Use existing fast bulk loading
-            all_teams_stats = get_all_team_stats_bulk()
-            current_rank = next((i+1 for i, team in enumerate(all_teams_stats) if team['team'] == decoded_team_name), 'NR')
-            total_teams_ranked = len(all_teams_stats)
-        except:
-            current_rank = 'NR'
-            total_teams_ranked = 0
-    else:
-        current_rank = 'NR'
-        total_teams_ranked = 0
     
     # Calculate P4/G5 records
     p4_g5_records = calculate_p4_g5_records(decoded_team_name, basic_stats['games'])
@@ -5894,7 +6049,7 @@ def import_schedule():
         
         if not schedule_text or not week:
             flash('Please provide both schedule text and week!', 'error')
-            return redirect(url_for('weekly_results', week=week))
+            return redirect(url_for('scoreboard', week=week))
         
         # Parse the schedule text (your existing function should work)
         result = parse_schedule_text(schedule_text, week)
@@ -5903,11 +6058,11 @@ def import_schedule():
             games, unknown_teams = result
         except Exception as e:
             flash(f'Error parsing schedule: {e}', 'error')
-            return redirect(url_for('weekly_results', week=week))
+            return redirect(url_for('scoreboard', week=week))
         
         if not games:
             flash('No games could be parsed from the text. Please check the format.', 'error')
-            return redirect(url_for('weekly_results', week=week))
+            return redirect(url_for('scoreboard', week=week))
         
         # If we have unknown teams, go to clarification
         if unknown_teams:
@@ -5923,7 +6078,7 @@ def import_schedule():
         
     except Exception as e:
         flash(f'Error importing schedule: {e}', 'error')
-        return redirect(url_for('weekly_results', week=week))
+        return redirect(url_for('scoreboard', week=week))
 
 def complete_schedule_import(games, week):
     """Complete the schedule import after clarifications - DATABASE VERSION"""
@@ -6011,9 +6166,9 @@ def process_clarifications():
         flash(f'Error processing clarifications: {e}', 'error')
         return redirect(url_for('clarify_teams'))
 
-@app.route('/weekly_results')
-@app.route('/weekly_results/<week>')
-def weekly_results(week=None):
+@app.route('/scoreboard')
+@app.route('/scoreboard/<week>')
+def scoreboard(week=None):
     # Get all unique weeks from DATABASE instead of games_data
     all_games = get_games_data()  # Use our database function
     
@@ -6136,7 +6291,7 @@ def weekly_results(week=None):
     else:
         sorted_dates = sorted(all_dates)
     
-    return render_template('weekly_results.html', 
+    return render_template('scoreboard.html', 
                          selected_week=week, 
                          weeks_with_games=weeks_with_games,
                          week_games=week_games,  # Keep for backwards compatibility
@@ -6292,6 +6447,37 @@ def remove_game(game_id):
         flash(f'❌ Error removing game: {e}', 'error')
     
     return redirect(request.referrer or url_for('admin'))
+
+
+@app.route('/remove_scheduled_game/<int:scheduled_game_id>', methods=['POST'])
+@login_required
+def remove_scheduled_game(scheduled_game_id):
+    """Remove a specific scheduled game"""
+    try:
+        # Get the scheduled game to remove
+        scheduled_game = ScheduledGame.query.get_or_404(scheduled_game_id)
+        
+        # Store game info before deletion for the flash message
+        home_team = scheduled_game.home_team
+        away_team = scheduled_game.away_team
+        week = scheduled_game.week
+        game_date = scheduled_game.game_date
+        
+        # Remove the scheduled game
+        db.session.delete(scheduled_game)
+        db.session.commit()
+        
+        # Format the flash message
+        date_text = f" on {game_date}" if game_date else ""
+        flash(f'✅ Removed scheduled game: {home_team} vs {away_team} (Week {week}{date_text})', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Error removing scheduled game: {e}', 'error')
+    
+    # Redirect back to the weekly results page for the same week
+    return redirect(url_for('weekly_results', week=scheduled_game.week if 'scheduled_game' in locals() else request.form.get('week', '1')))
+
 
 def reverse_team_stats_in_db(team, opponent, team_score, opp_score, is_home, is_neutral_site, is_overtime):
     """Reverse the stats changes when removing a game"""
@@ -6678,8 +6864,8 @@ def find_matching_scheduled_game(home_team, away_team, week):
     home_normalized = normalize_team_name(home_team)
     away_normalized = normalize_team_name(away_team)
     
-    all_scheduled = get_scheduled_games_list()  # ✅ NEW LINE
-    for i, scheduled in enumerate(all_scheduled):  # ✅ NEW LINE
+    all_scheduled = get_scheduled_games_list()  # 
+    for i, scheduled in enumerate(all_scheduled):  # 
         if scheduled['week'] != week or scheduled['completed']:
             continue
             
@@ -6709,8 +6895,8 @@ def analyze_fcs_games():
     """Analyze all FCS games and their impact"""
     fcs_games = []
     
-    all_games = get_games_data()  # ✅ NEW LINE
-    for game in all_games:  # ✅ NEW LINE
+    all_games = get_games_data()  # 
+    for game in all_games:  # 
         home_team = game['home_team']
         away_team = game['away_team']
         
@@ -6794,10 +6980,10 @@ def analyze_fcs_games():
 @app.route('/team_simple/<team_name>')
 def team_simple(team_name):
     """Super simple template test"""
-    team_record = TeamStats.query.filter_by(team_name=team_name).first()  # ✅ NEW LINE
-    if not team_record:  # ✅ NEW LINE
-        return "Team not found"  # ✅ NEW LINE
-    basic_stats = team_record.to_dict()  # ✅ NEW LINE
+    team_record = TeamStats.query.filter_by(team_name=team_name).first()  # 
+    if not team_record:  # 
+        return "Team not found"  # 
+    basic_stats = team_record.to_dict()  # 
     opponent_details = []
     for game in basic_stats['games']:
         opponent_details.append({

@@ -120,6 +120,7 @@ class ScheduledGame(db.Model):
     location_note = db.Column(db.String(200), nullable=True)
     original_home = db.Column(db.String(100), nullable=True)
     original_away = db.Column(db.String(100), nullable=True)
+    bowl_game_name = db.Column(db.String(255), nullable=True)
     
     # NEW: Add these fields for final scores
     final_home_score = db.Column(db.Integer, nullable=True)
@@ -150,7 +151,8 @@ class ScheduledGame(db.Model):
             'original_away': self.original_away,
             'final_home_score': self.final_home_score,
             'final_away_score': self.final_away_score,
-            'overtime': self.overtime
+            'overtime': self.overtime,
+            'bowl_game_name': self.bowl_game_name
         }
         
 

@@ -371,3 +371,34 @@ h5 { font-size: 1.25rem; }
 .card-body small {
   color: var(--medium-gray) !important;
 }
+
+/* Delete button for scheduled games */
+.btn-delete-scheduled {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background-color: var(--danger-red);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.btn-delete-scheduled:hover {
+    opacity: 1;
+    background-color: #bb2d3b;
+    transform: scale(1.1);
+}
+
+.scheduled-game-card {
+    position: relative;
+}
