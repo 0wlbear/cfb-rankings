@@ -7,7 +7,7 @@ from functools import wraps
 import os
 import hashlib
 import time
-from models import db, Game, TeamStats, ScheduledGame, ArchivedSeason
+from models import db, Game, TeamStats, ScheduledGame, ArchivedSeason, WeeklySnapshot
 from sqlalchemy import text
 
 # Simple in-memory cache (for production, use Redis)
@@ -4324,6 +4324,19 @@ def complete_schedule_import_db(games, week):
 
 
 
+@app.route('/migrate_weekly_snapshots')
+@login_required
+def migrate_weekly_snapshots():
+    """Create weekly snapshots table"""
+    try:
+        db.create_all()
+        flash('✅ Weekly snapshots table created successfully!', 'success')
+    except Exception as e:
+        flash(f'❌ Migration error: {e}', 'error')
+    
+    return redirect(url_for('admin'))
+
+
 @app.route('/migrate_bowl_games')
 @login_required  
 def migrate_bowl_games():
@@ -4766,13 +4779,201 @@ def clean_team_name(team_name):
 @login_required
 def create_snapshot():
     try:
-        week_name = request.form.get('week_name', f"Week_Snapshot")  # 
-        save_weekly_snapshot(week_name)
-        flash(f'Snapshot "{week_name}" created successfully!', 'success')
+        week_name = request.form.get('week_name', '').strip()
+        if not week_name:
+            flash('Please enter a week name (e.g., "Week 5", "Week 10")!', 'error')
+            return redirect(url_for('admin'))
+        
+        # Check if snapshot already exists for this week
+        existing_snapshot = WeeklySnapshot.query.filter_by(week_name=week_name).first()
+        if existing_snapshot:
+            flash(f'Snapshot for "{week_name}" already exists! Delete it first if you want to recreate.', 'warning')
+            return redirect(url_for('admin'))
+        
+        # Get current rankings (top 50 to catch movement in/out of top 25)
+        comprehensive_stats = get_all_team_stats_bulk()
+        
+        # Prepare rankings data for storage
+        rankings_data = []
+        for rank, team_data in enumerate(comprehensive_stats[:50], 1):  # Top 50
+            rankings_data.append({
+                'rank': rank,
+                'team': team_data['team'],
+                'conference': team_data['conference'],
+                'adjusted_total': round(team_data['adjusted_total'], 3),
+                'record': f"{team_data['total_wins']}-{team_data['total_losses']}",
+                'total_wins': team_data['total_wins'],
+                'total_losses': team_data['total_losses']
+            })
+        
+        # Create and save snapshot
+        snapshot = WeeklySnapshot(
+            week_name=week_name,
+            rankings_json=json.dumps(rankings_data)
+        )
+        
+        db.session.add(snapshot)
+        db.session.commit()
+        
+        flash(f'✅ Weekly snapshot "{week_name}" created successfully! ({len(rankings_data)} teams saved)', 'success')
+        
     except Exception as e:
+        db.session.rollback()
         flash(f'Error creating snapshot: {e}', 'error')
     
     return redirect(url_for('admin'))
+
+@app.route('/weekly_movement')
+def weekly_movement():
+    """Show week-to-week ranking movements"""
+    try:
+        # Get all snapshots ordered by date (most recent first)
+        snapshots = WeeklySnapshot.query.order_by(WeeklySnapshot.snapshot_date.desc()).all()
+        
+        if len(snapshots) < 2:
+            flash('Need at least 2 weekly snapshots to show movement!', 'info')
+            return render_template('weekly_movement.html', 
+                                 movement_data=[], 
+                                 current_week=None, 
+                                 previous_week=None,
+                                 snapshots=[s.to_dict() for s in snapshots])
+
+        # Get current rankings using the FAST bulk method
+        all_current_rankings = get_all_team_stats_bulk()
+        
+        # ENSURE we get at least 25 teams (or all available)
+        current_rankings = []
+        for i, team_data in enumerate(all_current_rankings):
+            if i >= 25:  # Stop at 25
+                break
+            # Add record field if missing
+            if 'record' not in team_data:
+                team_data['record'] = f"{team_data.get('total_wins', 0)}-{team_data.get('total_losses', 0)}"
+            current_rankings.append(team_data)
+        
+        print(f"DEBUG: Showing {len(current_rankings)} teams from {len(all_current_rankings)} total")
+        
+        # Get most recent snapshot for comparison
+        previous_snapshot = snapshots[0]
+        previous_rankings = previous_snapshot.rankings[:25]  # Previous top 25
+        
+        # Calculate movement
+        movement_data = calculate_ranking_movement(current_rankings, previous_rankings)
+        
+        return render_template('weekly_movement.html',
+                             movement_data=movement_data,
+                             current_week="Current Rankings",
+                             previous_week=previous_snapshot.week_name,
+                             snapshots=[s.to_dict() for s in snapshots])
+        
+    except Exception as e:
+        flash(f'Error loading movement data: {e}', 'error')
+        return render_template('weekly_movement.html', 
+                             movement_data=[], 
+                             current_week=None, 
+                             previous_week=None,
+                             snapshots=[])
+
+# Route to compare specific weeks
+@app.route('/compare_weeks/<int:current_id>/<int:previous_id>')
+def compare_weeks(current_id, previous_id):
+    """Compare two specific weekly snapshots"""
+    try:
+        current_snapshot = WeeklySnapshot.query.get_or_404(current_id)
+        previous_snapshot = WeeklySnapshot.query.get_or_404(previous_id)
+        
+        current_rankings = current_snapshot.rankings[:25]
+        previous_rankings = previous_snapshot.rankings[:25]
+        
+        movement_data = calculate_ranking_movement(current_rankings, previous_rankings)
+        
+        # Get all snapshots for dropdown
+        all_snapshots = WeeklySnapshot.query.order_by(WeeklySnapshot.snapshot_date.desc()).all()
+        
+        return render_template('weekly_movement.html',
+                             movement_data=movement_data,
+                             current_week=current_snapshot.week_name,
+                             previous_week=previous_snapshot.week_name,
+                             snapshots=[s.to_dict() for s in all_snapshots],
+                             current_snapshot_id=current_id,
+                             previous_snapshot_id=previous_id)
+        
+    except Exception as e:
+        flash(f'Error comparing weeks: {e}', 'error')
+        return redirect(url_for('weekly_movement'))
+
+# Route to delete a snapshot
+@app.route('/delete_snapshot/<int:snapshot_id>', methods=['POST'])
+@login_required
+def delete_snapshot(snapshot_id):
+    """Delete a weekly snapshot"""
+    try:
+        snapshot = WeeklySnapshot.query.get_or_404(snapshot_id)
+        week_name = snapshot.week_name
+        
+        db.session.delete(snapshot)
+        db.session.commit()
+        
+        flash(f'✅ Deleted snapshot "{week_name}"', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting snapshot: {e}', 'error')
+    
+    return redirect(url_for('weekly_movement'))
+
+def calculate_ranking_movement(current_rankings, previous_rankings):
+    """Calculate movement between two sets of rankings"""
+    movement_data = []
+    
+    # Create lookup dictionaries
+    current_lookup = {team['team']: i + 1 for i, team in enumerate(current_rankings)}
+    previous_lookup = {team['team']: i + 1 for i, team in enumerate(previous_rankings)}
+    
+    # Process current top 25
+    for current_rank, team_data in enumerate(current_rankings, 1):
+        team_name = team_data['team']
+        
+        if team_name in previous_lookup:
+            # Team was ranked before
+            previous_rank = previous_lookup[team_name]
+            movement = previous_rank - current_rank  # Positive = moved up
+            
+            if movement > 0:
+                movement_text = f'<span class="movement-arrow-up">▲</span>{movement}'
+                movement_class = "rank-up"
+            elif movement < 0:
+                movement_text = f'<span class="movement-arrow-down">▼</span>{abs(movement)}'
+                movement_class = "rank-down"
+            else:
+                movement_text = "—"
+                movement_class = "rank-same"
+        else:
+            # New to rankings
+            movement_text = "NEW!"
+            movement_class = "rank-new"
+        
+        # Create record string from wins/losses (handle both formats)
+        if 'record' in team_data:
+            record = team_data['record']
+        else:
+            # Build record from total_wins and total_losses
+            wins = team_data.get('total_wins', 0)
+            losses = team_data.get('total_losses', 0)
+            record = f"{wins}-{losses}"
+        
+        movement_data.append({
+            'current_rank': current_rank,
+            'team': team_name,
+            'conference': team_data['conference'],
+            'record': record,
+            'adjusted_total': team_data['adjusted_total'],
+            'movement_text': movement_text,
+            'movement_class': movement_class,
+            'previous_rank': previous_lookup.get(team_name, None)
+        })
+    
+    return movement_data
 
 @app.route('/admin')
 @login_required

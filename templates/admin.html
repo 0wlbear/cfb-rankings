@@ -177,35 +177,42 @@
     </div>
 </div>
 
-<!-- Snapshot Modal -->
+<!-- Weekly Snapshot Modal -->
 <div class="modal fade" id="snapshotModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Create Weekly Snapshot</h5>
+                <h5 class="modal-title">📸 Create Weekly Snapshot</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ url_for('create_snapshot') }}">
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="week_name" class="form-label">Snapshot Name</label>
+                        <label for="week_name" class="form-label">Week Name</label>
                         <input type="text" class="form-control" id="week_name" name="week_name" 
-                               value="Week {{ historical_rankings|length + 1 }}" required>
-                        <div class="form-text">Give this snapshot a descriptive name (e.g., "Week 3", "After Bowl Games")</div>
+                               placeholder="e.g., Week 5, Week 10, Conference Championships" required>
+                        <div class="form-text">This will save current rankings to track week-to-week movement with arrows (↑↓)</div>
                     </div>
-                    <div class="alert alert-info">
-                        <small>This will save the current rankings so you can track changes over time.</small>
+                    
+                    <div class="alert alert-success">
+                        <strong>📈 New Feature:</strong> Weekly snapshots now power the Movement Tracker!
+                        <br><small>See how teams move up/down with arrows and "NEW!" indicators for teams entering the top 25.</small>
+                    </div>
+                    
+                    <div class="d-grid gap-2 mt-3">
+                        <a href="/weekly_movement" class="btn btn-outline-primary" target="_blank">
+                            📊 View Movement Tracker
+                        </a>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success">📸 Create Snapshot</button>
+                    <button type="submit" class="btn btn-success">📸 Create Weekly Snapshot</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
-
 <!-- Archive Season Modal -->
 <div class="modal fade" id="archiveModal" tabindex="-1">
     <div class="modal-dialog">

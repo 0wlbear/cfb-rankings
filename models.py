@@ -189,3 +189,32 @@ class ArchivedSeason(db.Model):
             'archive_data': json.loads(self.archive_data_json) if self.archive_data_json else {}
         }
 
+class WeeklySnapshot(db.Model):
+    __tablename__ = 'weekly_snapshots'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    week_name = db.Column(db.String(100), nullable=False)  # "Week 5", "Week 10", etc.
+    snapshot_date = db.Column(db.DateTime, default=datetime.utcnow)
+    rankings_json = db.Column(db.Text)  # Store the rankings data
+    
+    # Add indexes for performance
+    __table_args__ = (
+        db.Index('idx_weekly_snapshots_week', 'week_name'),
+        db.Index('idx_weekly_snapshots_date', 'snapshot_date'),
+    )
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'week_name': self.week_name,
+            'snapshot_date': self.snapshot_date.isoformat(),
+            'rankings': json.loads(self.rankings_json) if self.rankings_json else []
+        }
+    
+    @property
+    def rankings(self):
+        return json.loads(self.rankings_json) if self.rankings_json else []
+    
+    @rankings.setter 
+    def rankings(self, value):
+        self.rankings_json = json.dumps(value)

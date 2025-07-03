@@ -287,6 +287,7 @@
             <div class="navbar-nav mx-auto d-flex justify-content-center flex-wrap">
                 <a class="nav-link modern-nav-link" href="{{ url_for('rankings') }}">Rankings</a>
                 <a class="nav-link modern-nav-link" href="{{ url_for('scoreboard') }}">Scoreboard</a>
+                <a class="nav-link" href="/weekly_movement">Weekly Movement</a>
                 <a class="nav-link modern-nav-link" href="{{ url_for('cfp_bracket') }}">CFP Bracket</a>
                 <a class="nav-link modern-nav-link" href="{{ url_for('bowl_projections') }}">Bowl Projections</a>
                 <a class="nav-link modern-nav-link" href="{{ url_for('archived_seasons') }}">Past Seasons</a>
@@ -309,7 +310,7 @@
             <div class="navbar-nav ms-auto">
                 {% if is_admin %}
                     <a class="nav-link modern-nav-link logout-link me-2" href="{{ url_for('logout') }}">Logout</a>
-                    <button class="btn btn-modern-outline btn-sm" onclick="confirmReset()">Reset Data</button>
+                    
                 {% else %}
                     <a class="nav-link modern-nav-link login-link" href="{{ url_for('login') }}">Admin Login</a>
                 {% endif %}

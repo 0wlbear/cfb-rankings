@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block title %}Weekly Movement - CFB Rankings{% endblock %}
+
+{% block content %}
+<style>
+    .rank-up { 
+        color: #ffffff;
+        background: linear-gradient(135deg, #28a745, #20c997);
+        font-weight: bold;
+        padding: 4px 8px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        font-size: 0.9em;
+        box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+    }
+    
+    .rank-down { 
+        color: #ffffff;
+        background: linear-gradient(135deg, #dc3545, #e74c3c);
+        font-weight: bold;
+        padding: 4px 8px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        font-size: 0.9em;
+        box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
+    }
+    
+    .rank-same { 
+        color: #6c757d;
+        font-weight: bold;
+        padding: 4px 8px;
+        border-radius: 6px;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        font-size: 0.9em;
+    }
+    
+    .rank-new { 
+        color: #ffffff;
+        background: linear-gradient(135deg, #007bff, #0056b3);
+        font-weight: bold;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.85em;
+        box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+    }
+    
+    .movement-arrow-up {
+        font-size: 1.1em;
+        margin-right: 1px;
+    }
+    
+    .movement-arrow-down {
+        font-size: 1.1em;
+        margin-right: 1px;
+    }
+    .movement-cell { 
+        text-align: center; 
+        font-size: 1.1em; 
+        min-width: 60px;
+    }
+    .rank-cell {
+        font-weight: bold;
+        text-align: center;
+        width: 50px;
+    }
+    .team-logo {
+        width: 30px;
+        height: 30px;
+        margin-right: 8px;
+        vertical-align: middle;
+    }
+    .snapshot-controls {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    .comparison-info {
+        background: #e9ecef;
+        padding: 15px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+    }
+</style>
+
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">📈 Weekly Movement Tracker</h1>
+
+        {% if movement_data %}
+        <!-- Comparison Info -->
+        <div class="comparison-info">
+            <h5>📊 Comparing: {{ current_week }} vs {{ previous_week }}</h5>
+            <p class="mb-0">
+                <span class="rank-up">↑ Up</span> • 
+                <span class="rank-down">↓ Down</span> • 
+                <span class="rank-same">— No Change</span> • 
+                <span class="rank-new">NEW!</span> New to Top 25
+            </p>
+        </div>
+
+        <!-- Week Comparison Controls -->
+        {% if snapshots|length > 1 %}
+        <div class="snapshot-controls">
+            <form method="GET" action="/compare_weeks/0/0" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Current Week:</label>
+                    <select name="current" class="form-select" onchange="updateCompareUrl()">
+                        <option value="current">Current Rankings</option>
+                        {% for snapshot in snapshots %}
+                        <option value="{{ snapshot.id }}" 
+                            {% if current_snapshot_id == snapshot.id %}selected{% endif %}>
+                            {{ snapshot.week_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Previous Week:</label>
+                    <select name="previous" class="form-select" onchange="updateCompareUrl()">
+                        {% for snapshot in snapshots %}
+                        <option value="{{ snapshot.id }}"
+                            {% if previous_snapshot_id == snapshot.id %}selected{% endif %}>
+                            {{ snapshot.week_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="button" class="btn btn-primary d-block" onclick="compareWeeks()">
+                        Compare Weeks
+                    </button>
+                </div>
+            </form>
+        </div>
+        {% endif %}
+
+        <!-- Rankings Movement Table -->
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th class="rank-cell">Rank</th>
+                        <th>Team</th>
+                        <th>Conference</th>
+                        <th>Record</th>
+                        <th>Rating</th>
+                        <th class="movement-cell">Movement</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for team in movement_data %}
+                    <tr>
+                        <td class="rank-cell">{{ team.current_rank }}</td>
+                        <td>
+                            {% if get_team_logo_url(team.team) %}
+                            <img src="{{ get_team_logo_url(team.team) }}" alt="{{ team.team }}" class="team-logo">
+                            {% endif %}
+                            <a href="/team/{{ team.team }}" class="text-decoration-none">
+                                {{ team.team }}
+                            </a>
+                        </td>
+                        <td>{{ team.conference }}</td>
+                        <td>{{ team.record }}</td>
+                        <td>{{ "%.2f"|format(team.adjusted_total) }}</td>
+                        <td class="movement-cell {{ team.movement_class }}">
+                            {{ team.movement_text | safe }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% else %}
+        <!-- No Movement Data -->
+        <div class="alert alert-info">
+            <h4>📊 Weekly Movement Tracker</h4>
+            <p>Track how teams move up and down in the rankings week by week!</p>
+            
+            {% if snapshots|length == 0 %}
+            <p><strong>To get started:</strong></p>
+            <ol>
+                <li>Go to the <a href="{{ url_for('admin') }}">Admin Panel</a></li>
+                <li>Create your first weekly snapshot using the "Create Snapshot" button</li>
+                <li>Come back next week and create another snapshot</li>
+                <li>You'll then see movement arrows showing how teams moved!</li>
+            </ol>
+            {% elif snapshots|length == 1 %}
+            <p><strong>You have 1 snapshot:</strong> {{ snapshots[0].week_name }}</p>
+            <p>Create one more snapshot to start seeing week-to-week movement!</p>
+            <p><a href="{{ url_for('admin') }}" class="btn btn-primary">Go to Admin Panel</a></p>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Snapshot Management -->
+        {% if snapshots %}
+        <div class="mt-5">
+            <h3>📸 Saved Snapshots</h3>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Week</th>
+                            <th>Date Saved</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for snapshot in snapshots %}
+                        <tr>
+                            <td><strong>{{ snapshot.week_name }}</strong></td>
+                            <td>{{ snapshot.snapshot_date[:16] }}</td>
+                            <td>
+                                {% if is_admin %}
+                                <form method="POST" action="/delete_snapshot/{{ snapshot.id }}" 
+                                      style="display: inline;" 
+                                      onsubmit="return confirm('Delete {{ snapshot.week_name }}?')">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Back to Rankings -->
+        <div class="mt-4">
+            <a href="{{ url_for('rankings') }}" class="btn btn-secondary">← Back to Current Rankings</a>
+            {% if is_admin %}
+            <a href="{{ url_for('admin') }}" class="btn btn-primary">Admin Panel</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    function compareWeeks() {
+        const currentSelect = document.querySelector('select[name="current"]');
+        const previousSelect = document.querySelector('select[name="previous"]');
+        
+        const currentValue = currentSelect.value;
+        const previousValue = previousSelect.value;
+        
+        if (currentValue === 'current') {
+            window.location.href = '/weekly_movement';
+        } else {
+            window.location.href = `/compare_weeks/${currentValue}/${previousValue}`;
+        }
+    }
+</script>
+{% endblock %}
