@@ -13,7 +13,7 @@ class Game(db.Model):
     This replaces your games_data.json file
     Each row in this table = one game from your JSON file
     """
-    __tablename__ = 'games'
+    __tablename__ = 'cfb_games'
     
     # Columns (think of these as the keys in your JSON objects)
     id = db.Column(db.Integer, primary_key=True)  # Unique ID for each game
@@ -56,7 +56,7 @@ class TeamStats(db.Model):
     This replaces your team_stats.json file
     Each row = one team's statistics
     """
-    __tablename__ = 'team_stats'
+    __tablename__ = 'cfb_team_stats'
     
     id = db.Column(db.Integer, primary_key=True)
     team_name = db.Column(db.String(100), nullable=False, unique=True, index=True)  # "Alabama"
@@ -106,7 +106,7 @@ class TeamStats(db.Model):
 # Add these fields to your existing ScheduledGame model in models.py
 
 class ScheduledGame(db.Model):
-    __tablename__ = 'scheduled_games'
+    __tablename__ = 'cfb_scheduled_games'
     
     id = db.Column(db.Integer, primary_key=True)
     week = db.Column(db.String(10), nullable=False)
@@ -157,7 +157,7 @@ class ScheduledGame(db.Model):
         
 
 class ArchivedSeason(db.Model):
-    __tablename__ = 'archived_seasons'
+    __tablename__ = 'cfb_archived_seasons'
     
     id = db.Column(db.Integer, primary_key=True)
     season_name = db.Column(db.String(100), nullable=False)
@@ -190,7 +190,7 @@ class ArchivedSeason(db.Model):
         }
 
 class WeeklySnapshot(db.Model):
-    __tablename__ = 'weekly_snapshots'
+    __tablename__ = 'cfb_weekly_snapshots'
     
     id = db.Column(db.Integer, primary_key=True)
     week_name = db.Column(db.String(100), nullable=False)  # "Week 5", "Week 10", etc.
