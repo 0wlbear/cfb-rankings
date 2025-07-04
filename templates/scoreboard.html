@@ -221,13 +221,19 @@
                                                     {% if game.get('bowl_game_name') %}
                                                         <small class="badge bg-warning text-dark mb-2">🏆 {{ game.bowl_game_name }}</small><br>
                                                     {% endif %}
-                                                    {% if game.get('overtime') == True %}
-                                                        <small class="badge bg-warning text-dark mb-2">⚡ OVERTIME</small><br>
-                                                    {% endif %}
                                                     <small class="badge bg-success mb-2">Final</small>
                                                 </div>
                                                 
                                                 <div class="text-center">
+                                                    <!-- OT badge positioned to the right over scores -->
+                                                    {% if game.get('overtime') == True %}
+                                                        <div class="d-flex justify-content-end mb-2">
+                                                            <div class="mx-2">
+                                                                <span class="badge bg-warning text-dark fs-6">OT</span>
+                                                            </div>
+                                                        </div>
+                                                    {% endif %}
+                                                    
                                                     <!-- Teams and Scores - AWAY TEAM FIRST -->
                                                     <div class="d-flex justify-content-between align-items-center mb-2">
                                                         <div class="text-{{ 'success' if game.away_score > game.home_score else 'muted' }} d-flex align-items-center">
@@ -240,13 +246,10 @@
                                                                 <small class="text-muted ms-1">(A)</small>
                                                             {% endif %}
                                                         </div>
-                                                        <div class="mx-2 position-relative">
+                                                        <div class="mx-2">
                                                             <span class="badge bg-{{ 'success' if game.away_score > game.home_score else 'secondary' }} fs-6">
                                                                 {{ game.away_score }}
                                                             </span>
-                                                            {% if game.get('overtime') == True %}
-                                                                <span class="badge bg-warning text-dark position-absolute top-0 start-100 translate-middle" style="font-size: 10px; padding: 2px 6px;">OT</span>
-                                                            {% endif %}
                                                         </div>
                                                     </div>
                                                     
@@ -275,7 +278,7 @@
                                                             <small class="badge bg-info text-dark">Neutral Site</small>
                                                         </div>
                                                     {% endif %}
-                                                </div> <!-- FIXED: Added missing closing div -->
+                                                </div>
                                             </div>
                                             <div class="card-footer text-center">
                                                 <small class="text-muted">

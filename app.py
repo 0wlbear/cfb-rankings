@@ -2547,14 +2547,22 @@ def calculate_fast_stats(team_name, team_data, opponent_quality_cache):
     for game in team_data['games']:
         if game['result'] == 'W':
             opponent = game['opponent']
-            opponent_quality = opponent_quality_cache.get(opponent, 5.0)
             
-            # Simplified victory calculation (no recursion)
-            margin = game['team_score'] - game['opp_score']
-            location_mult = {'Home': 1.0, 'Away': 1.3, 'Neutral': 1.15}.get(game['home_away'], 1.0)
-            margin_bonus = min(2.0, margin * 0.1)
+            # ✅ FIX: Check for FCS games first!
+            is_fcs_game = (opponent == 'FCS' or opponent.upper() == 'FCS')
             
-            victory_value += (opponent_quality * location_mult) + margin_bonus
+            if is_fcs_game:
+                # ✅ FCS games get minimal credit
+                margin = game['team_score'] - game['opp_score']
+                margin_bonus = min(0.2, margin * 0.02)  # Max 0.2
+                victory_value += min(1.0, 0.5 + margin_bonus)  # Capped at 1.0
+            else:
+                # Normal calculation for real opponents
+                opponent_quality = opponent_quality_cache.get(opponent, 5.0)
+                margin = game['team_score'] - game['opp_score']
+                location_mult = {'Home': 1.0, 'Away': 1.3, 'Neutral': 1.15}.get(game['home_away'], 1.0)
+                margin_bonus = min(2.0, margin * 0.1)
+                victory_value += (opponent_quality * location_mult) + margin_bonus
     
     # Simple loss penalty
     loss_penalty = team_data['losses'] * 3.0
@@ -4838,36 +4846,29 @@ def weekly_movement():
                                  previous_week=None,
                                  snapshots=[s.to_dict() for s in snapshots])
 
-        # Get current rankings using the FAST bulk method
-        all_current_rankings = get_all_team_stats_bulk()
+        # ✅ FIX: Compare the two most recent snapshots instead of current vs snapshot
+        current_snapshot = snapshots[0]    # Most recent (Week 2)
+        previous_snapshot = snapshots[1]   # Second most recent (Week 1)
         
-        # ENSURE we get at least 25 teams (or all available)
-        current_rankings = []
-        for i, team_data in enumerate(all_current_rankings):
-            if i >= 25:  # Stop at 25
-                break
-            # Add record field if missing
-            if 'record' not in team_data:
-                team_data['record'] = f"{team_data.get('total_wins', 0)}-{team_data.get('total_losses', 0)}"
-            current_rankings.append(team_data)
+        current_rankings = current_snapshot.rankings[:25]   # Week 2 top 25
+        previous_rankings = previous_snapshot.rankings[:25] # Week 1 top 25
         
-        print(f"DEBUG: Showing {len(current_rankings)} teams from {len(all_current_rankings)} total")
-        
-        # Get most recent snapshot for comparison
-        previous_snapshot = snapshots[0]
-        previous_rankings = previous_snapshot.rankings[:25]  # Previous top 25
+        print(f"DEBUG: Comparing {current_snapshot.week_name} vs {previous_snapshot.week_name}")
+        print(f"DEBUG: Current rankings count: {len(current_rankings)}")
+        print(f"DEBUG: Previous rankings count: {len(previous_rankings)}")
         
         # Calculate movement
         movement_data = calculate_ranking_movement(current_rankings, previous_rankings)
         
         return render_template('weekly_movement.html',
                              movement_data=movement_data,
-                             current_week="Current Rankings",
-                             previous_week=previous_snapshot.week_name,
+                             current_week=current_snapshot.week_name,    # Week 2
+                             previous_week=previous_snapshot.week_name,  # Week 1
                              snapshots=[s.to_dict() for s in snapshots])
         
     except Exception as e:
         flash(f'Error loading movement data: {e}', 'error')
+        print(f"ERROR in weekly_movement: {e}")
         return render_template('weekly_movement.html', 
                              movement_data=[], 
                              current_week=None, 
@@ -6614,6 +6615,73 @@ def add_game():
                          weeks=WEEKS, 
                          recent_games=recent_games, 
                          selected_week=selected_week)
+
+
+@app.route('/add_bulk_games', methods=['POST'])
+@login_required
+def add_bulk_games():
+    """Add multiple games at once"""
+    try:
+        games_data = request.form.to_dict(flat=False)
+        games_added = 0
+        
+        # Parse the games array
+        game_indices = set()
+        for key in games_data.keys():
+            if key.startswith('games[') and '][' in key:
+                index = key.split('[')[1].split(']')[0]
+                game_indices.add(int(index))
+        
+        for index in sorted(game_indices):
+            # Extract game data for this index
+            week = games_data.get(f'games[{index}][week]', [''])[0]
+            home_team = games_data.get(f'games[{index}][home_team]', [''])[0]
+            away_team = games_data.get(f'games[{index}][away_team]', [''])[0]
+            home_score = games_data.get(f'games[{index}][home_score]', [''])[0]
+            away_score = games_data.get(f'games[{index}][away_score]', [''])[0]
+            neutral_site = f'games[{index}][neutral_site]' in games_data
+            overtime = f'games[{index}][overtime]' in games_data
+            
+            # Validate required fields
+            if not all([week, home_team, away_team, home_score, away_score]):
+                continue  # Skip incomplete games
+            
+            try:
+                home_score = int(home_score)
+                away_score = int(away_score)
+            except ValueError:
+                continue  # Skip invalid scores
+            
+            # Add the game (reuse existing logic)
+            game = Game(
+                week=week,
+                home_team=home_team,
+                away_team=away_team,
+                home_score=home_score,
+                away_score=away_score,
+                is_neutral_site=neutral_site,
+                overtime=overtime
+            )
+            db.session.add(game)
+            
+            # Update team stats
+            update_team_stats_in_db(home_team, away_team, home_score, away_score, True, neutral_site, overtime)
+            update_team_stats_in_db(away_team, home_team, away_score, home_score, False, neutral_site, overtime)
+            
+            games_added += 1
+        
+        db.session.commit()
+        
+        if games_added > 0:
+            flash(f'✅ Successfully added {games_added} games!', 'success')
+        else:
+            flash('❌ No valid games were added. Please check your input.', 'error')
+            
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error adding games: {e}', 'error')
+    
+    return redirect(url_for('add_game'))
 
 @app.route('/remove_game/<int:game_id>', methods=['POST'])
 @login_required

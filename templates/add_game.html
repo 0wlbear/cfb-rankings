@@ -1,127 +1,136 @@
 {% extends "base.html" %}
 
-{% block title %}Add Game - College Football Rankings{% endblock %}
+{% block title %}Add Games - College Football Rankings{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-8">
-        <h2>Add New Game</h2>
-        <p class="text-muted">The system automatically determines opponent quality and bonuses based on team conferences and current strength.</p>
-        
-        <form method="POST">
-            <!-- Recent Games Display -->
-            {% if recent_games %}
-            <div class="alert alert-info mb-4">
-                <h6><i class="fas fa-info-circle"></i> Recent Games Added:</h6>
-                <div class="small">
-                    {% for game in recent_games[:3] %}
-                        <div>{{ game.home_team }} {{ game.home_score }} - {{ game.away_score }} {{ game.away_team }} (Week {{ game.week }}){% if game.get('is_neutral_site') %} - Neutral{% endif %}{% if game.get('overtime') %} - OT{% endif %}</div>
-                    {% endfor %}
-                    {% if recent_games|length > 3 %}
-                        <div class="text-muted">... and {{ recent_games|length - 3 }} more</div>
-                    {% endif %}
-                </div>
-            </div>
-            {% endif %}
-
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label for="week" class="form-label">Week</label>
-                    <select class="form-select" id="week" name="week" required>
-                        <option value="">Select Week</option>
-                        {% for week in weeks %}
-                            <option value="{{ week }}" {% if week == selected_week %}selected{% endif %}>
-                                {% if week == 'Bowls' %}
-                                    Bowl Games
-                                {% elif week == 'CFP' %}
-                                    CFP
-                                {% else %}
-                                    Week {{ week }}
-                                {% endif %}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="neutral_site" name="neutral_site" onchange="updateNeutralSiteLabels()">
-                        <label class="form-check-label" for="neutral_site">
-                            <strong>Neutral Site Game</strong><br>
-                            <small class="text-muted">Neither team gets home/road win credit</small>
-                        </label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="overtime" name="overtime">
-                        <label class="form-check-label" for="overtime">
-                            <strong>Overtime?</strong><br>
-                            <small class="text-muted">Reduces penalty for losing team</small>
-                        </label>
-                    </div>
-                </div>
+    <div class="col-md-12">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2>Add Games</h2>
+                <!-- Regular button for mobile -->
+                <button type="button" class="btn btn-success d-md-none" onclick="addGameRow()">
+                    + Add Game
+                </button>
             </div>
 
-            <div class="row">
-                <!-- Away Team Card -->
-                <div class="col-lg-6 mb-3">
-                    <div class="card">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0" id="away_team_header">Away Team</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="mb-3">
-                                <label for="away_team" class="form-label">Team</label>
-                                <select class="form-select" id="away_team" name="away_team" required>
-                                    <option value="">Select Away Team</option>
-                                    {% for conf_name, teams in conferences.items() %}
-                                        <optgroup label="{{ conf_name }}">
-                                            {% for team in teams %}
-                                                <option value="{{ team }}">{{ team }}</option>
-                                            {% endfor %}
-                                        </optgroup>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label for="away_score" class="form-label">Score</label>
-                                <input type="number" class="form-control" id="away_score" name="away_score" min="0" max="200" required>
-                            </div>
-                        </div>
-                    </div>
+            <!-- Floating Add Button (circular) -->
+                <div class="floating-add-button d-none d-md-block">
+                    <button type="button" class="btn btn-success" onclick="addGameRow()" title="Add another game">
+                        <span style="font-size: 20px; font-weight: bold;">+</span>
+                    </button>
                 </div>
         
-                <!-- Home Team Card -->
-                <div class="col-lg-6 mb-3">
+        <!-- Recent Games Display -->
+        {% if recent_games %}
+        <div class="alert alert-info mb-4">
+            <h6><i class="fas fa-info-circle"></i> Recent Games Added:</h6>
+            <div class="small">
+                {% for game in recent_games[:3] %}
+                    <div>{{ game.home_team }} {{ game.home_score }} - {{ game.away_score }} {{ game.away_team }} (Week {{ game.week }}){% if game.get('is_neutral_site') %} - Neutral{% endif %}{% if game.get('overtime') %} - OT{% endif %}</div>
+                {% endfor %}
+                {% if recent_games|length > 3 %}
+                    <div class="text-muted">... and {{ recent_games|length - 3 }} more</div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('add_bulk_games') }}">
+            <div id="games-container">
+                <!-- First game row -->
+                <div class="game-row mb-4" data-game-index="0">
                     <div class="card">
-                        <div class="card-header bg-success text-white">
-                            <h5 class="mb-0" id="home_team_header">Home Team</h5>
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Game 1</h5>
+                            <button type="button" class="btn btn-sm btn-outline-danger remove-game-btn" onclick="removeGameRow(0)" style="display: none;">Remove</button>
                         </div>
                         <div class="card-body">
-                            <div class="mb-3">
-                                <label for="home_team" class="form-label">Team</label>
-                                <select class="form-select" id="home_team" name="home_team" required>
-                                    <option value="">Select Home Team</option>
-                                    {% for conf_name, teams in conferences.items() %}
-                                        <optgroup label="{{ conf_name }}">
-                                            {% for team in teams %}
-                                                <option value="{{ team }}">{{ team }}</option>
-                                            {% endfor %}
-                                        </optgroup>
-                                    {% endfor %}
-                                </select>
+                            <div class="row mb-3">
+                                <div class="col-md-3">
+                                    <label class="form-label">Week</label>
+                                    <select class="form-select week-select" name="games[0][week]" required>
+                                        <option value="">Select Week</option>
+                                        {% for week in weeks %}
+                                            <option value="{{ week }}" {% if week == selected_week %}selected{% endif %}>
+                                                {% if week == 'Bowls' %}Bowl Games{% elif week == 'CFP' %}CFP{% else %}Week {{ week }}{% endif %}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check mt-4">
+                                        <input class="form-check-input neutral-checkbox" type="checkbox" name="games[0][neutral_site]" onchange="updateNeutralLabels(0)">
+                                        <label class="form-check-label">Neutral Site</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check mt-4">
+                                        <input class="form-check-input" type="checkbox" name="games[0][overtime]">
+                                        <label class="form-check-label">Overtime</label>
+                                    </div>
+                                </div>
                             </div>
-                            
-                            <div class="mb-3">
-                                <label for="home_score" class="form-label">Score</label>
-                                <input type="number" class="form-control" id="home_score" name="home_score" min="0" max="200" required>
+
+                            <div class="row">
+                                <!-- Away Team -->
+                                <div class="col-lg-6 mb-3">
+                                    <div class="card border-primary">
+                                        <div class="card-header bg-primary text-white">
+                                            <h6 class="mb-0 away-header">Away Team</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="mb-2">
+                                                <select class="form-select" name="games[0][away_team]" required>
+                                                    <option value="">Select Away Team</option>
+                                                    {% for conf_name, teams in conferences.items() %}
+                                                        <optgroup label="{{ conf_name }}">
+                                                            {% for team in teams %}
+                                                                <option value="{{ team }}">{{ team }}</option>
+                                                            {% endfor %}
+                                                        </optgroup>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="mb-0">
+                                                <input type="number" class="form-control" name="games[0][away_score]" placeholder="Score" min="0" max="200" required>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Home Team -->
+                                <div class="col-lg-6 mb-3">
+                                    <div class="card border-success">
+                                        <div class="card-header bg-success text-white">
+                                            <h6 class="mb-0 home-header">Home Team</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="mb-2">
+                                                <select class="form-select" name="games[0][home_team]" required>
+                                                    <option value="">Select Home Team</option>
+                                                    {% for conf_name, teams in conferences.items() %}
+                                                        <optgroup label="{{ conf_name }}">
+                                                            {% for team in teams %}
+                                                                <option value="{{ team }}">{{ team }}</option>
+                                                            {% endfor %}
+                                                        </optgroup>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="mb-0">
+                                                <input type="number" class="form-control" name="games[0][home_score]" placeholder="Score" min="0" max="200" required>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <div class="mt-4 text-center">
-                <button type="submit" class="btn btn-primary btn-lg">Add Game</button>
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-primary btn-lg">Add All Games</button>
                 <a href="{{ url_for('rankings') }}" class="btn btn-secondary btn-lg">View Rankings</a>
                 <a href="{{ url_for('scoreboard') }}" class="btn btn-outline-secondary btn-lg">Weekly Results</a>
             </div>
@@ -130,68 +139,198 @@
 </div>
 
 <script>
-function updateNeutralSiteLabels() {
-    const neutralSite = document.getElementById('neutral_site').checked;
-    const homeHeader = document.getElementById('home_team_header');
-    const awayHeader = document.getElementById('away_team_header');
+let gameCount = 1;
+
+function addGameRow() {
+    const container = document.getElementById('games-container');
+    const newIndex = gameCount;
     
-    if (neutralSite) {
-        homeHeader.innerHTML = 'Team 1 <small class="text-light">(Neutral Site)</small>';
-        awayHeader.innerHTML = 'Team 2 <small class="text-light">(Neutral Site)</small>';
-    } else {
-        homeHeader.innerHTML = 'Home Team';
-        awayHeader.innerHTML = 'Away Team';
+    // ✅ GET THE SELECTED WEEK FROM GAME 1
+    const firstWeekSelect = document.querySelector('select[name="games[0][week]"]');
+    const selectedWeek = firstWeekSelect ? firstWeekSelect.value : '';
+    
+    const gameRow = document.createElement('div');
+    gameRow.className = 'game-row mb-4';
+    gameRow.setAttribute('data-game-index', newIndex);
+    
+    gameRow.innerHTML = `
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Game ${newIndex + 1}</h5>
+                <button type="button" class="btn btn-sm btn-outline-danger remove-game-btn" onclick="removeGameRow(${newIndex})">Remove</button>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Week</label>
+                        <select class="form-select week-select" name="games[${newIndex}][week]" required>
+                            <option value="">Select Week</option>
+                            {% for week in weeks %}
+                                <option value="{{ week }}">
+                                    {% if week == 'Bowls' %}Bowl Games{% elif week == 'CFP' %}CFP{% else %}Week {{ week }}{% endif %}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-check mt-4">
+                            <input class="form-check-input neutral-checkbox" type="checkbox" name="games[${newIndex}][neutral_site]" onchange="updateNeutralLabels(${newIndex})">
+                            <label class="form-check-label">Neutral Site</label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-check mt-4">
+                            <input class="form-check-input" type="checkbox" name="games[${newIndex}][overtime]">
+                            <label class="form-check-label">Overtime</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-lg-6 mb-3">
+                        <div class="card border-primary">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0 away-header">Away Team</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-2">
+                                    <select class="form-select" name="games[${newIndex}][away_team]" required>
+                                        <option value="">Select Away Team</option>
+                                        {% for conf_name, teams in conferences.items() %}
+                                            <optgroup label="{{ conf_name }}">
+                                                {% for team in teams %}
+                                                    <option value="{{ team }}">{{ team }}</option>
+                                                {% endfor %}
+                                            </optgroup>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="mb-0">
+                                    <input type="number" class="form-control" name="games[${newIndex}][away_score]" placeholder="Score" min="0" max="200" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 mb-3">
+                        <div class="card border-success">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="mb-0 home-header">Home Team</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-2">
+                                    <select class="form-select" name="games[${newIndex}][home_team]" required>
+                                        <option value="">Select Home Team</option>
+                                        {% for conf_name, teams in conferences.items() %}
+                                            <optgroup label="{{ conf_name }}">
+                                                {% for team in teams %}
+                                                    <option value="{{ team }}">{{ team }}</option>
+                                                {% endfor %}
+                                            </optgroup>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="mb-0">
+                                    <input type="number" class="form-control" name="games[${newIndex}][home_score]" placeholder="Score" min="0" max="200" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    container.appendChild(gameRow);
+    
+    // ✅ SET THE WEEK TO MATCH GAME 1
+    const newWeekSelect = gameRow.querySelector('select[name="games[' + newIndex + '][week]"]');
+    if (newWeekSelect && selectedWeek) {
+        newWeekSelect.value = selectedWeek;
+    }
+    
+    gameCount++;
+    
+    // Show remove buttons if more than 1 game
+    updateRemoveButtons();
+}
+
+function removeGameRow(index) {
+    const gameRow = document.querySelector(`[data-game-index="${index}"]`);
+    if (gameRow) {
+        gameRow.remove();
+        updateRemoveButtons();
+        renumberGames();
     }
 }
 
-// Clear form after successful game addition (if there's a success message)
-document.addEventListener('DOMContentLoaded', function() {
-    const successAlert = document.querySelector('.alert-success');
-    if (successAlert) {
-        // Preserve the selected week
-        const currentWeek = document.getElementById('week').value;
-        
-        // Clear form fields EXCEPT week
-        document.getElementById('home_team').value = '';
-        document.getElementById('away_team').value = '';
-        document.getElementById('home_score').value = '';
-        document.getElementById('away_score').value = '';
-        document.getElementById('neutral_site').checked = false;
-        document.getElementById('overtime').checked = false;  // NEW: Clear overtime checkbox
-        
-        // Restore week selection
-        document.getElementById('week').value = currentWeek;
-        
-        // Reset headers
-        updateNeutralSiteLabels();
-        
-        // Focus on home team input for next entry
-        document.getElementById('home_team').focus();
-    }
-});
-
-// Add form validation to prevent same team selection
-document.addEventListener('DOMContentLoaded', function() {
-    function validateTeamSelection() {
-        const homeTeam = document.getElementById('home_team').value;
-        const awayTeam = document.getElementById('away_team').value;
-        const submitButton = document.querySelector('button[type="submit"]');
-        
-        if (homeTeam && awayTeam && homeTeam === awayTeam) {
-            submitButton.disabled = true;
-            submitButton.textContent = 'Teams must be different';
-            submitButton.classList.remove('btn-primary');
-            submitButton.classList.add('btn-danger');
-        } else {
-            submitButton.disabled = false;
-            submitButton.textContent = 'Add Game';
-            submitButton.classList.remove('btn-danger');
-            submitButton.classList.add('btn-primary');
-        }
-    }
+function updateRemoveButtons() {
+    const gameRows = document.querySelectorAll('.game-row');
+    const removeButtons = document.querySelectorAll('.remove-game-btn');
     
-    document.getElementById('home_team').addEventListener('change', validateTeamSelection);
-    document.getElementById('away_team').addEventListener('change', validateTeamSelection);
-});
+    if (gameRows.length <= 1) {
+        removeButtons.forEach(btn => btn.style.display = 'none');
+    } else {
+        removeButtons.forEach(btn => btn.style.display = 'inline-block');
+    }
+}
+
+function renumberGames() {
+    const gameRows = document.querySelectorAll('.game-row');
+    gameRows.forEach((row, index) => {
+        const header = row.querySelector('.card-header h5');
+        header.textContent = `Game ${index + 1}`;
+    });
+}
+
+function updateNeutralLabels(index) {
+    const gameRow = document.querySelector(`[data-game-index="${index}"]`);
+    const neutralCheckbox = gameRow.querySelector('.neutral-checkbox');
+    const awayHeader = gameRow.querySelector('.away-header');
+    const homeHeader = gameRow.querySelector('.home-header');
+    
+    if (neutralCheckbox.checked) {
+        awayHeader.innerHTML = 'Team 1 <small>(Neutral)</small>';
+        homeHeader.innerHTML = 'Team 2 <small>(Neutral)</small>';
+    } else {
+        awayHeader.textContent = 'Away Team';
+        homeHeader.textContent = 'Home Team';
+    }
+}
 </script>
+<style>
+.floating-add-button {
+    position: fixed;
+    top: 100px;
+    right: 20px;
+    z-index: 1050;
+    transition: all 0.3s ease;
+}
+
+.floating-add-button .btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    border: 2px solid #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.floating-add-button .btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+}
+
+/* Hide button on very small screens to avoid overlap */
+@media (max-width: 768px) {
+    .floating-add-button {
+        position: relative;
+        top: auto;
+        right: auto;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+}
+</style>
 {% endblock %}

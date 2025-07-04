@@ -76,16 +76,10 @@
         width: 50px;
     }
     .team-logo {
-        width: 30px;
-        height: 30px;
+        width: 40px;
+        height: 40px;
         margin-right: 8px;
         vertical-align: middle;
-    }
-    .snapshot-controls {
-        background: #f8f9fa;
-        padding: 20px;
-        border-radius: 8px;
-        margin-bottom: 20px;
     }
     .comparison-info {
         background: #e9ecef;
@@ -93,6 +87,81 @@
         border-radius: 6px;
         margin-bottom: 20px;
     }
+.movement-cell { 
+    text-align: center !important; 
+    font-size: 1.1em; 
+    min-width: 60px;
+    vertical-align: middle !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+.rank-up { 
+    color: #ffffff;
+    background: linear-gradient(135deg, #28a745, #20c997);
+    font-weight: bold;
+    padding: 4px 8px;
+    border-radius: 6px;
+    display: inline-flex !important;
+    align-items: center;
+    gap: 2px;
+    font-size: 0.9em;
+    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+}
+
+.rank-down { 
+    color: #ffffff;
+    background: linear-gradient(135deg, #dc3545, #e74c3c);
+    font-weight: bold;
+    padding: 4px 8px;
+    border-radius: 6px;
+    display: inline-flex !important;
+    align-items: center;
+    gap: 2px;
+    font-size: 0.9em;
+    box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
+}
+
+.rank-same { 
+    color: #6c757d;
+    font-weight: bold;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    font-size: 0.9em;
+    display: inline-flex !important;
+    align-items: center;
+}
+
+.rank-new { 
+    color: #ffffff;
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    font-weight: bold;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.85em;
+    box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+    animation: pulse 2s infinite;
+    display: inline-flex !important;
+    align-items: center;
+}
+
+/* Center the movement arrows and text */
+.movement-arrow-up,
+.movement-arrow-down {
+    font-size: 1.1em;
+    margin-right: 2px;
+    vertical-align: middle;
+}
+
+/* Additional centering for table cells */
+td.movement-cell {
+    text-align: center !important;
+    padding: 8px !important;
+}
+    
 </style>
 
 <div class="row">
@@ -100,9 +169,9 @@
         <h1 class="mb-4">📈 Weekly Movement Tracker</h1>
 
         {% if movement_data %}
-        <!-- Comparison Info -->
+        <!-- Automatic Comparison Info -->
         <div class="comparison-info">
-            <h5>📊 Comparing: {{ current_week }} vs {{ previous_week }}</h5>
+            <h5>📊 Movement: {{ previous_week }} → {{ current_week }}</h5>
             <p class="mb-0">
                 <span class="rank-up">↑ Up</span> • 
                 <span class="rank-down">↓ Down</span> • 
@@ -110,43 +179,6 @@
                 <span class="rank-new">NEW!</span> New to Top 25
             </p>
         </div>
-
-        <!-- Week Comparison Controls -->
-        {% if snapshots|length > 1 %}
-        <div class="snapshot-controls">
-            <form method="GET" action="/compare_weeks/0/0" class="row g-3">
-                <div class="col-md-4">
-                    <label class="form-label">Current Week:</label>
-                    <select name="current" class="form-select" onchange="updateCompareUrl()">
-                        <option value="current">Current Rankings</option>
-                        {% for snapshot in snapshots %}
-                        <option value="{{ snapshot.id }}" 
-                            {% if current_snapshot_id == snapshot.id %}selected{% endif %}>
-                            {{ snapshot.week_name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Previous Week:</label>
-                    <select name="previous" class="form-select" onchange="updateCompareUrl()">
-                        {% for snapshot in snapshots %}
-                        <option value="{{ snapshot.id }}"
-                            {% if previous_snapshot_id == snapshot.id %}selected{% endif %}>
-                            {{ snapshot.week_name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">&nbsp;</label>
-                    <button type="button" class="btn btn-primary d-block" onclick="compareWeeks()">
-                        Compare Weeks
-                    </button>
-                </div>
-            </form>
-        </div>
-        {% endif %}
 
         <!-- Rankings Movement Table -->
         <div class="table-responsive">
@@ -176,9 +208,9 @@
                         <td>{{ team.conference }}</td>
                         <td>{{ team.record }}</td>
                         <td>{{ "%.2f"|format(team.adjusted_total) }}</td>
-                        <td class="movement-cell {{ team.movement_class }}">
-                            {{ team.movement_text | safe }}
-                        </td>
+                        <td class="text-center {{ team.movement_class }}" style="text-align: center !important; vertical-align: middle !important;">
+                        {{ team.movement_text | safe }}
+                    </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -197,11 +229,11 @@
                 <li>Go to the <a href="{{ url_for('admin') }}">Admin Panel</a></li>
                 <li>Create your first weekly snapshot using the "Create Snapshot" button</li>
                 <li>Come back next week and create another snapshot</li>
-                <li>You'll then see movement arrows showing how teams moved!</li>
+                <li>Movement will automatically show the latest week vs previous week!</li>
             </ol>
             {% elif snapshots|length == 1 %}
             <p><strong>You have 1 snapshot:</strong> {{ snapshots[0].week_name }}</p>
-            <p>Create one more snapshot to start seeing week-to-week movement!</p>
+            <p>Create one more snapshot to start seeing automatic week-to-week movement!</p>
             <p><a href="{{ url_for('admin') }}" class="btn btn-primary">Go to Admin Panel</a></p>
             {% endif %}
         </div>
@@ -251,20 +283,4 @@
         </div>
     </div>
 </div>
-
-<script>
-    function compareWeeks() {
-        const currentSelect = document.querySelector('select[name="current"]');
-        const previousSelect = document.querySelector('select[name="previous"]');
-        
-        const currentValue = currentSelect.value;
-        const previousValue = previousSelect.value;
-        
-        if (currentValue === 'current') {
-            window.location.href = '/weekly_movement';
-        } else {
-            window.location.href = `/compare_weeks/${currentValue}/${previousValue}`;
-        }
-    }
-</script>
 {% endblock %}
