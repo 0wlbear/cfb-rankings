@@ -4,7 +4,7 @@
 
 /* CSS Variables for Consistency */
 :root {
-  --primary-blue: #0d6efd;
+  --primary-green: #22c55e;
   --success-green: #198754;
   --warning-yellow: #ffc107;
   --danger-red: #dc3545;
@@ -138,7 +138,7 @@ body {
   text-transform: uppercase;
   font-size: 0.875rem;
   padding: 1rem;
-  border-bottom: 2px solid var(--primary-blue);
+  border-bottom: 2px solid var(--primary-green);
 }
 
 .table tbody td {
@@ -220,14 +220,14 @@ body {
 }
 
 .btn-primary {
-  background: var(--primary-blue);
-  border-color: var(--primary-blue);
+  background: var(--primary-green);
+  border-color: var(--primary-green);
   color: white;
 }
 
 .btn-primary:hover {
-  background: #0b5ed7;
-  border-color: #0a58ca;
+  background: #16a34a;
+  border-color: #15803d;
   color: white;
 }
 
@@ -243,7 +243,7 @@ h3 { font-size: 1.75rem; }
 h4 { font-size: 1.5rem; }
 h5 { font-size: 1.25rem; }
 
-.text-primary { color: var(--primary-blue) !important; }
+.text-primary { color: var(--primary-green) !important; }
 .text-success { color: var(--success-green) !important; }
 .text-danger { color: var(--danger-red) !important; }
 .text-warning { color: #212529 !important; }

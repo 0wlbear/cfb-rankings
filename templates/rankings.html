@@ -64,7 +64,7 @@
                                     <div class="d-flex align-items-center">
                                         {% set logo_url = get_team_logo_url(team.team) %}
                                         {% if logo_url %}
-                                            <img src="{{ logo_url }}" alt="{{ team.team }}" style="width: 28px; height: 28px; margin-right: 10px; flex-shrink: 0;">
+                                            <img src="{{ logo_url }}" alt="{{ team.team }}" style="width: 40px; height: 40px; margin-right: 10px; flex-shrink: 0;">
                                         {% endif %}
                                         <a href="{{ url_for('public_team_detail', team_name=team.team) }}" class="text-decoration-none">{{ team.team }}</a>
                                     </div>

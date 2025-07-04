@@ -6564,6 +6564,7 @@ def add_game():
                     scheduled_game.completed = True
                     scheduled_game.final_home_score = home_score if scheduled_game.home_team == home_team else away_score
                     scheduled_game.final_away_score = away_score if scheduled_game.away_team == away_team else home_score
+                    scheduled_game.overtime = is_overtime
                     print(f"✅ Found matching scheduled game and marked as completed: {scheduled_game.home_team} vs {scheduled_game.away_team}")
                 else:
                     print(f"ℹ️ No matching scheduled game found for {home_team} vs {away_team} in week {week}")

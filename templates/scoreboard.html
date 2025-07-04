@@ -160,9 +160,9 @@
                                                         <div class="text-muted d-flex align-items-center">
                                                             {% set away_logo_url = get_team_logo_url(game.away_team) %}
                                                             {% if away_logo_url %}
-                                                                <img src="{{ away_logo_url }}" alt="{{ game.away_team }}" style="width: 20px; height: 20px; margin-right: 5px;">
+                                                                <img src="{{ away_logo_url }}" alt="{{ game.away_team }}" style="width: 40px; height: 40px; margin-right: 5px;">
                                                             {% endif %}
-                                                            <strong>{{ game.away_team }}</strong>
+                                                            <strong><a href="{{ url_for('public_team_detail', team_name=game.away_team) }}" class="text-decoration-none text-dark">{{ game.away_team }}</a></strong>
                                                             {% if not game.get('neutral') %}
                                                                 <small class="text-muted ms-1">(A)</small>
                                                             {% endif %}
@@ -177,9 +177,9 @@
                                                         <div class="text-muted d-flex align-items-center">
                                                             {% set home_logo_url = get_team_logo_url(game.home_team) %}
                                                             {% if home_logo_url %}
-                                                                <img src="{{ home_logo_url }}" alt="{{ game.home_team }}" style="width: 20px; height: 20px; margin-right: 5px;">
+                                                                <img src="{{ home_logo_url }}" alt="{{ game.home_team }}" style="width: 40px; height: 40px; margin-right: 5px;">
                                                             {% endif %}
-                                                            <strong>{{ game.home_team }}</strong>
+                                                            <strong><a href="{{ url_for('public_team_detail', team_name=game.home_team) }}" class="text-decoration-none text-dark">{{ game.home_team }}</a></strong>
                                                             {% if not game.get('neutral') %}
                                                                 <small class="text-muted ms-1">(H)</small>
                                                             {% endif %}
@@ -221,11 +221,8 @@
                                                     {% if game.get('bowl_game_name') %}
                                                         <small class="badge bg-warning text-dark mb-2">🏆 {{ game.bowl_game_name }}</small><br>
                                                     {% endif %}
-                                                    {% if game.get('is_neutral_site') %}
-                                                        <small class="badge bg-info text-dark mb-2">Neutral Site</small><br>
-                                                    {% endif %}
-                                                    {% if game.get('overtime') %}
-                                                        <small class="badge bg-warning text-dark mb-2">OT</small><br>
+                                                    {% if game.get('overtime') == True %}
+                                                        <small class="badge bg-warning text-dark mb-2">⚡ OVERTIME</small><br>
                                                     {% endif %}
                                                     <small class="badge bg-success mb-2">Final</small>
                                                 </div>
@@ -236,28 +233,31 @@
                                                         <div class="text-{{ 'success' if game.away_score > game.home_score else 'muted' }} d-flex align-items-center">
                                                             {% set away_logo_url = get_team_logo_url(game.away_team) %}
                                                             {% if away_logo_url %}
-                                                                <img src="{{ away_logo_url }}" alt="{{ game.away_team }}" style="width: 20px; height: 20px; margin-right: 5px;">
+                                                                <img src="{{ away_logo_url }}" alt="{{ game.away_team }}" style="width: 40px; height: 40px; margin-right: 5px;">
                                                             {% endif %}
-                                                            <strong>{{ game.away_team }}</strong>
+                                                            <strong><a href="{{ url_for('public_team_detail', team_name=game.away_team) }}" class="text-decoration-none text-{{ 'success' if game.away_score > game.home_score else 'muted' }}">{{ game.away_team }}</a></strong>
                                                             {% if not game.get('is_neutral_site') %}
                                                                 <small class="text-muted ms-1">(A)</small>
                                                             {% endif %}
                                                         </div>
-                                                        <div class="mx-2">
+                                                        <div class="mx-2 position-relative">
                                                             <span class="badge bg-{{ 'success' if game.away_score > game.home_score else 'secondary' }} fs-6">
                                                                 {{ game.away_score }}
                                                             </span>
+                                                            {% if game.get('overtime') == True %}
+                                                                <span class="badge bg-warning text-dark position-absolute top-0 start-100 translate-middle" style="font-size: 10px; padding: 2px 6px;">OT</span>
+                                                            {% endif %}
                                                         </div>
                                                     </div>
                                                     
                                                     <!-- HOME TEAM SECOND -->
-                                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                                    <div class="d-flex justify-content-between align-items-center mb-2">
                                                         <div class="text-{{ 'success' if game.home_score > game.away_score else 'muted' }} d-flex align-items-center">
                                                             {% set home_logo_url = get_team_logo_url(game.home_team) %}
                                                             {% if home_logo_url %}
-                                                                <img src="{{ home_logo_url }}" alt="{{ game.home_team }}" style="width: 20px; height: 20px; margin-right: 5px;">
+                                                                <img src="{{ home_logo_url }}" alt="{{ game.home_team }}" style="width: 40px; height: 40px; margin-right: 5px;">
                                                             {% endif %}
-                                                            <strong>{{ game.home_team }}</strong>
+                                                            <strong><a href="{{ url_for('public_team_detail', team_name=game.home_team) }}" class="text-decoration-none text-{{ 'success' if game.home_score > game.away_score else 'muted' }}">{{ game.home_team }}</a></strong>
                                                             {% if not game.get('is_neutral_site') %}
                                                                 <small class="text-muted ms-1">(H)</small>
                                                             {% endif %}
@@ -268,7 +268,14 @@
                                                             </span>
                                                         </div>
                                                     </div>
-                                                </div>
+                                                    
+                                                    <!-- Neutral Site Badge - positioned under teams -->
+                                                    {% if game.get('is_neutral_site') %}
+                                                        <div class="mb-2">
+                                                            <small class="badge bg-info text-dark">Neutral Site</small>
+                                                        </div>
+                                                    {% endif %}
+                                                </div> <!-- FIXED: Added missing closing div -->
                                             </div>
                                             <div class="card-footer text-center">
                                                 <small class="text-muted">
