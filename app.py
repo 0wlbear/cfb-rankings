@@ -1193,12 +1193,12 @@ def calculate_victory_value_with_rivalry(game, team_name):
 
 
 def get_team_logo_url(team_name):
-    """Get ESPN logo URL for a team"""
+    """Get local logo URL for a team"""
     team_id = TEAM_LOGOS.get(team_name)
     if team_id:
-        return f"https://a.espncdn.com/i/teamlogos/ncaa/500/{team_id}.png"
+        return f"/static/images/team-logos/{team_id}.png"
     return None
-
+    
 # All conferences organized
 CONFERENCES = {
     'ACC': ACC_TEAMS,
