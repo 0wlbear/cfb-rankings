@@ -253,101 +253,46 @@
 </style>
 
 <script>
-// Global variables for sorting state
-let lastSortedColumn = -1;
-let lastSortDirection = 'asc';
+// Skip JavaScript on mobile devices
+if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+    console.log("Mobile detected - skipping table sorting");
+    function simpleSortTable() { return; }
+    function toggleColumns() { return; }
+    function resetColumns() { return; }
+} else {
+    // Desktop JavaScript
+    let lastSortedColumn = -1;
+    let lastSortDirection = 'asc';
 
-function simpleSortTable(columnIndex, dataType) {
-    const table = document.getElementById('statsTable');
-    const tbody = document.getElementById('tableBody');
-    
-    if (!table || !tbody) {
-        return;
-    }
-    
-    // Get all rows
-    const rows = Array.from(tbody.querySelectorAll('tr'));
-    
-    if (rows.length === 0) {
-        return;
-    }
-    
-    // Determine sort direction
-    let sortDirection = 'asc';
-    if (lastSortedColumn === columnIndex && lastSortDirection === 'asc') {
-        sortDirection = 'desc';
-    }
-    
-    // Clear all sort indicators
-    document.querySelectorAll('.sort-indicator').forEach(indicator => {
-        indicator.className = 'sort-indicator';
-    });
-    
-    // Set current sort indicator
-    const currentIndicator = document.getElementById(`sort-${columnIndex}`);
-    if (currentIndicator) {
-        currentIndicator.className = `sort-indicator ${sortDirection}`;
-    }
-    
-    // Extract values for sorting
-    const rowData = rows.map((row) => {
-        const cell = row.cells[columnIndex];
-        if (!cell) {
-            return { row, value: '' };
+    function simpleSortTable(columnIndex, dataType) {
+        const table = document.getElementById('statsTable');
+        const tbody = document.getElementById('tableBody');
+        
+        if (!table || !tbody) {
+            return;
         }
         
-        const rawText = cell.textContent || cell.innerText || '';
-        const cleanText = rawText.trim();
+        // Get all rows
+        const rows = Array.from(tbody.querySelectorAll('tr'));
         
-        let sortValue;
-        if (dataType === 'number') {
-            // Extract just the numbers
-            const numberMatch = cleanText.match(/[\d.-]+/);
-            sortValue = numberMatch ? parseFloat(numberMatch[0]) : 0;
-        } else {
-            sortValue = cleanText.toLowerCase();
-        }
-        
-        return {
-            row: row,
-            value: sortValue
-        };
-    });
-    
-    // Sort the data
-    rowData.sort((a, b) => {
-        if (dataType === 'number') {
-            return sortDirection === 'asc' ? a.value - b.value : b.value - a.value;
-        } else {
-            return sortDirection === 'asc' ? 
-                a.value.localeCompare(b.value) : 
-                b.value.localeCompare(a.value);
-        }
-    });
-    
-    // Clear tbody and re-append sorted rows
-    tbody.innerHTML = '';
-    rowData.forEach(item => {
-        tbody.appendChild(item.row);
-    });
-    
-    // Update global state
-    lastSortedColumn = columnIndex;
-    lastSortDirection = sortDirection;
-}
+        // Update global state
+        lastSortedColumn = columnIndex;
+        lastSortDirection = sortDirection;
+    }
 
-function toggleColumns(className) {
-    const elements = document.querySelectorAll('.' + className);
-    elements.forEach(el => {
-        el.style.display = el.style.display === 'none' ? '' : 'none';
-    });
-}
+    function toggleColumns(className) {
+        const elements = document.querySelectorAll('.' + className);
+        elements.forEach(el => {
+            el.style.display = el.style.display === 'none' ? '' : 'none';
+        });
+    }
 
-function resetColumns() {
-    const hiddenElements = document.querySelectorAll('.hide-xl, .hide-lg');
-    hiddenElements.forEach(el => {
-        el.style.display = '';
-    });
+    function resetColumns() {
+        const hiddenElements = document.querySelectorAll('.hide-xl, .hide-lg');
+        hiddenElements.forEach(el => {
+            el.style.display = '';
+        });
+    }
 }
 </script>
 {% endblock %}
