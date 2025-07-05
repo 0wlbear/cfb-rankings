@@ -7887,3 +7887,21 @@ if __name__ == '__main__':
     print("Starting Flask development server...")
     
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5001)), debug=False)
+
+@app.route('/test-mobile')
+def test_mobile():
+    """Minimal test page for mobile debugging"""
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Mobile Test</title>
+    </head>
+    <body>
+        <h1>Test Page</h1>
+        <p>If this loads fast, the issue is in your templates.</p>
+        <a href="/rankings">Go to Rankings</a>
+    </body>
+    </html>
+    """
