@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile-Optimized Rankings</title>
+    <!-- Minimal CSS - no Bootstrap on mobile -->
+    <style>
+        /* Mobile-first minimal CSS */
+        body {
+            margin: 0;
+            padding: 10px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f8f9fa;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .header h2 {
+            margin: 0 0 5px 0;
+            color: #333;
+            font-size: 1.5rem;
+        }
+        
+        .header p {
+            margin: 0;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        /* Minimal table styles */
+        .rankings-table {
+            width: 100%;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .rankings-table th,
+        .rankings-table td {
+            padding: 12px 8px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .rankings-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #495057;
+        }
+        
+        .rankings-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        /* Team cell styling */
+        .team-cell {
+            display: flex;
+            align-items: center;
+        }
+        
+        .team-logo {
+            width: 32px;
+            height: 32px;
+            margin-right: 10px;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+        
+        .team-info {
+            min-width: 0;
+        }
+        
+        .team-name {
+            font-weight: 600;
+            color: #007bff;
+            text-decoration: none;
+            font-size: 0.95rem;
+        }
+        
+        .team-name:hover {
+            text-decoration: underline;
+        }
+        
+        .conference-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            margin-top: 2px;
+            color: white;
+        }
+        
+        /* Conference colors */
+        .conf-acc { background: #003366; }
+        .conf-big-ten { background: #1e6091; }
+        .conf-big-xii { background: #f39c12; color: #333; }
+        .conf-pac-12 { background: #17a2b8; }
+        .conf-sec { background: #dc3545; }
+        .conf-independent { background: #6c757d; }
+        .conf-american { background: #343a40; }
+        .conf-cusa { background: #e9ecef; color: #333; }
+        .conf-mac { background: #007bff; }
+        .conf-mw { background: #28a745; }
+        .conf-sun-belt { background: #ffc107; color: #333; }
+        
+        /* Center aligned columns */
+        .text-center {
+            text-align: center;
+        }
+        
+        .rank-col {
+            font-weight: 700;
+            color: #495057;
+            width: 40px;
+        }
+        
+        .record-col {
+            width: 70px;
+        }
+        
+        .rating-col {
+            width: 70px;
+            font-weight: 600;
+            color: #007bff;
+        }
+        
+        .record-detail {
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-top: 2px;
+        }
+        
+        .sos-detail {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+        
+        /* Desktop enhancements - loaded only on larger screens */
+        @media (min-width: 992px) {
+            body {
+                padding: 20px;
+            }
+            
+            .container {
+                max-width: 1200px;
+                margin: 0 auto;
+            }
+            
+            .header h2 {
+                font-size: 2rem;
+            }
+            
+            .rankings-table {
+                font-size: 1rem;
+            }
+            
+            .team-logo {
+                width: 40px;
+                height: 40px;
+            }
+            
+            /* Add sorting capability on desktop */
+            .sortable-header {
+                cursor: pointer;
+                user-select: none;
+                transition: background-color 0.2s;
+            }
+            
+            .sortable-header:hover {
+                background-color: #e9ecef;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>2025 Team Rankings</h2>
+            <p>Comprehensive statistics and power ratings</p>
+        </div>
+        
+        <table class="rankings-table">
+            <thead>
+                <tr>
+                    <th class="text-center rank-col">#</th>
+                    <th>Team</th>
+                    <th class="text-center record-col">Record</th>
+                    <th class="text-center rating-col">Rating</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Sample data - replace with your Flask template logic -->
+                <tr>
+                    <td class="text-center rank-col">1</td>
+                    <td>
+                        <div class="team-cell">
+                            <img src="/static/logos/georgia.png" alt="Georgia" class="team-logo">
+                            <div class="team-info">
+                                <a href="/team/georgia" class="team-name">Georgia</a>
+                                <div>
+                                    <span class="conference-badge conf-sec">SEC</span>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="text-center">
+                        <div class="fw-bold">11-2</div>
+                        <div class="record-detail">8P4 3G5</div>
+                    </td>
+                    <td class="text-center">
+                        <div class="rating-col">95.42</div>
+                        <div class="sos-detail">SoS: 0.812</div>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td class="text-center rank-col">2</td>
+                    <td>
+                        <div class="team-cell">
+                            <img src="/static/logos/texas.png" alt="Texas" class="team-logo">
+                            <div class="team-info">
+                                <a href="/team/texas" class="team-name">Texas</a>
+                                <div>
+                                    <span class="conference-badge conf-sec">SEC</span>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="text-center">
+                        <div class="fw-bold">12-1</div>
+                        <div class="record-detail">9P4 3G5</div>
+                    </td>
+                    <td class="text-center">
+                        <div class="rating-col">94.18</div>
+                        <div class="sos-detail">SoS: 0.789</div>
+                    </td>
+                </tr>
+                
+                <!-- Add more rows with your Flask template data -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // Only load desktop JavaScript on larger screens
+        if (window.innerWidth >= 992) {
+            // Add desktop-only features like sorting
+            console.log('Desktop features loaded');
+        }
+    </script>
+</body>
+</html>

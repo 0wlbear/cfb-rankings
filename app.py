@@ -6207,9 +6207,25 @@ def rankings():
     """Main rankings page with comprehensive team statistics"""
     comprehensive_stats = get_all_team_stats_bulk()
     recent_games = get_games_data()[-10:]
-    return render_template('rankings.html', 
-                         comprehensive_stats=comprehensive_stats, 
-                         recent_games=recent_games)
+    
+    # Add mobile detection
+    user_agent = request.headers.get('User-Agent', '')
+    is_mobile = any(browser in user_agent for browser in [
+        'Mobile', 'Android', 'iPhone', 'iPad', 'iPod', 
+        'BlackBerry', 'IEMobile', 'Opera Mini'
+    ])
+    
+    # Choose template based on device
+    if is_mobile:
+        # Use lightweight mobile template
+        return render_template('rankings_mobile.html', 
+                             comprehensive_stats=comprehensive_stats, 
+                             recent_games=recent_games)
+    else:
+        # Use existing desktop template
+        return render_template('rankings.html', 
+                             comprehensive_stats=comprehensive_stats, 
+                             recent_games=recent_games)
 
 
 def prepare_team_chart_data(team_name):
@@ -7905,6 +7921,31 @@ def test_mobile():
     </body>
     </html>
     """
+
+@app.route('/test-rankings-simple')
+def test_rankings_simple():
+    """Minimal rankings without Bootstrap/CSS"""
+    comprehensive_stats = get_all_team_stats_bulk()
+    html = """
+    <!DOCTYPE html>
+    <html>
+    <head><title>Simple Rankings</title></head>
+    <body>
+        <h1>Simple Rankings Test</h1>
+        <table border="1">
+            <tr><th>Rank</th><th>Team</th><th>Rating</th></tr>
+    """
+    
+    for i, team in enumerate(comprehensive_stats[:10], 1):
+        html += f"<tr><td>{i}</td><td>{team['team']}</td><td>{team['adjusted_total']}</td></tr>"
+    
+    html += """
+        </table>
+        <p>If this loads fast, the issue is Bootstrap/CSS rendering</p>
+    </body>
+    </html>
+    """
+    return html
 
 @app.route('/test-rankings-simple')
 def test_rankings_simple():
