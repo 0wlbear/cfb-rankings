@@ -7905,3 +7905,28 @@ def test_mobile():
     </body>
     </html>
     """
+
+@app.route('/test-rankings-simple')
+def test_rankings_simple():
+    """Minimal rankings without Bootstrap/CSS"""
+    comprehensive_stats = get_all_team_stats_bulk()
+    html = """
+    <!DOCTYPE html>
+    <html>
+    <head><title>Simple Rankings</title></head>
+    <body>
+        <h1>Simple Rankings Test</h1>
+        <table border="1">
+            <tr><th>Rank</th><th>Team</th><th>Rating</th></tr>
+    """
+    
+    for i, team in enumerate(comprehensive_stats[:10], 1):
+        html += f"<tr><td>{i}</td><td>{team['team']}</td><td>{team['adjusted_total']}</td></tr>"
+    
+    html += """
+        </table>
+        <p>If this loads fast, the issue is Bootstrap/CSS rendering</p>
+    </body>
+    </html>
+    """
+    return html
