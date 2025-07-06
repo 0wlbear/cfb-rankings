@@ -9,6 +9,8 @@ import hashlib
 import time
 from models import db, Game, TeamStats, ScheduledGame, ArchivedSeason, WeeklySnapshot
 from sqlalchemy import text
+from dotenv import load_dotenv
+load_dotenv()  # This loads the .env file your workflow creates
 
 # Simple in-memory cache (for production, use Redis)
 performance_cache = {}
