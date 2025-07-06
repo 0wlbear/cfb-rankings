@@ -6435,6 +6435,17 @@ def scoreboard(week=None):
     elif not week:
         week = '1'  # Default to week 1 if no games exist
     
+    # NEW: Get current rankings for display
+    try:
+        all_teams_stats = get_all_team_stats_bulk()
+        team_rankings = {}
+        for i, team_data in enumerate(all_teams_stats, 1):
+            if i <= 25:  # Only rank top 25
+                team_rankings[team_data['team']] = i
+    except Exception as e:
+        print(f"Error getting rankings: {e}")
+        team_rankings = {}
+    
     # NEW: Get scheduled games for the selected week - separate completed from uncompleted
     all_scheduled = get_scheduled_games_list()  # Use database function
     week_scheduled = [game for game in all_scheduled 
@@ -6462,6 +6473,16 @@ def scoreboard(week=None):
     week_scheduled.sort(key=sort_key)
     week_completed_scheduled.sort(key=sort_key)
     
+    # NEW: Sort function for games (ranked teams first)
+    def sort_games_by_ranking(games_list):
+        def get_game_rank_priority(game):
+            home_rank = team_rankings.get(game.get('home_team', ''), 999)
+            away_rank = team_rankings.get(game.get('away_team', ''), 999)
+            best_rank = min(home_rank, away_rank)
+            return best_rank
+        
+        return sorted(games_list, key=get_game_rank_priority)
+    
     # Group scheduled games by date
     scheduled_by_date = {}
     for game in week_scheduled:
@@ -6476,7 +6497,7 @@ def scoreboard(week=None):
                 scheduled_by_date['No Date'] = []
             scheduled_by_date['No Date'].append(game)
     
-    ## NEW: Group completed scheduled games by date - HANDLE NONE SCORES
+    # Group completed scheduled games by date - HANDLE NONE SCORES
     completed_by_date = {}
     for game in week_completed_scheduled:
         game_date = game.get('game_date')
@@ -6535,6 +6556,13 @@ def scoreboard(week=None):
             game['from_schedule'] = False  # Flag to indicate this was manually added
             completed_by_date[game_date].append(game)
     
+    # NEW: Apply sorting to games within each date (ranked teams first)
+    for date in scheduled_by_date:
+        scheduled_by_date[date] = sort_games_by_ranking(scheduled_by_date[date])
+    
+    for date in completed_by_date:
+        completed_by_date[date] = sort_games_by_ranking(completed_by_date[date])
+    
     # Sort dates for display
     all_dates = set(list(scheduled_by_date.keys()) + list(completed_by_date.keys()))
     if 'No Date' in all_dates:
@@ -6551,7 +6579,8 @@ def scoreboard(week=None):
                          scheduled_by_date=scheduled_by_date,
                          completed_by_date=completed_by_date,
                          sorted_dates=sorted_dates,
-                         all_weeks=WEEKS) 
+                         all_weeks=WEEKS,
+                         team_rankings=team_rankings)  # NEW: Pass rankings to template
 
 
 @app.route('/add_game', methods=['GET', 'POST'])

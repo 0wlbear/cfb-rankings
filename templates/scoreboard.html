@@ -43,6 +43,26 @@
 
 .scheduled-game-card {
     position: relative;
+
+/* Ranking badges */
+.badge.rank-badge {
+    font-size: 0.7em !important;
+    font-weight: bold !important;
+    min-width: 1.5em;
+    padding: 0.25em 0.4em !important;
+}
+
+/* Special styling for Top 10 teams */
+.badge.bg-primary {
+    background-color: #0d6efd !important;
+}
+
+/* Winning team rank badge gets gold color */
+.badge.bg-warning {
+    background-color: #ffc107 !important;
+    color: #000 !important;
+}
+
 }
 </style>
 <div class="row">
@@ -162,7 +182,15 @@
                                                             {% if away_logo_url %}
                                                                 <img src="{{ away_logo_url }}" alt="{{ game.away_team }}" style="width: 40px; height: 40px; margin-right: 5px;">
                                                             {% endif %}
-                                                            <strong><a href="{{ url_for('public_team_detail', team_name=game.away_team) }}" class="text-decoration-none text-dark">{{ game.away_team }}</a></strong>
+                                                            <strong>
+                                                                <a href="{{ url_for('public_team_detail', team_name=game.away_team) }}" class="text-decoration-none text-dark">
+                                                                    {% set away_rank = team_rankings.get(game.away_team) %}
+                                                                    {% if away_rank %}
+                                                                        <span class="badge bg-primary me-1" style="font-size: 0.7em;">{{ away_rank }}</span>
+                                                                    {% endif %}
+                                                                    {{ game.away_team }}
+                                                                </a>
+                                                            </strong>
                                                             {% if not game.get('neutral') %}
                                                                 <small class="text-muted ms-1">(A)</small>
                                                             {% endif %}
@@ -179,7 +207,15 @@
                                                             {% if home_logo_url %}
                                                                 <img src="{{ home_logo_url }}" alt="{{ game.home_team }}" style="width: 40px; height: 40px; margin-right: 5px;">
                                                             {% endif %}
-                                                            <strong><a href="{{ url_for('public_team_detail', team_name=game.home_team) }}" class="text-decoration-none text-dark">{{ game.home_team }}</a></strong>
+                                                            <strong>
+                                                                <a href="{{ url_for('public_team_detail', team_name=game.home_team) }}" class="text-decoration-none text-dark">
+                                                                    {% set home_rank = team_rankings.get(game.home_team) %}
+                                                                    {% if home_rank %}
+                                                                        <span class="badge bg-primary me-1" style="font-size: 0.7em;">{{ home_rank }}</span>
+                                                                    {% endif %}
+                                                                    {{ game.home_team }}
+                                                                </a>
+                                                            </strong>
                                                             {% if not game.get('neutral') %}
                                                                 <small class="text-muted ms-1">(H)</small>
                                                             {% endif %}
@@ -241,7 +277,15 @@
                                                             {% if away_logo_url %}
                                                                 <img src="{{ away_logo_url }}" alt="{{ game.away_team }}" style="width: 40px; height: 40px; margin-right: 5px;">
                                                             {% endif %}
-                                                            <strong><a href="{{ url_for('public_team_detail', team_name=game.away_team) }}" class="text-decoration-none text-{{ 'success' if game.away_score > game.home_score else 'muted' }}">{{ game.away_team }}</a></strong>
+                                                            <strong>
+                                                                <a href="{{ url_for('public_team_detail', team_name=game.away_team) }}" class="text-decoration-none text-{{ 'success' if game.away_score > game.home_score else 'muted' }}">
+                                                                    {% set away_rank = team_rankings.get(game.away_team) %}
+                                                                    {% if away_rank %}
+                                                                        <span class="badge bg-{{ 'warning' if game.away_score > game.home_score else 'secondary' }} me-1" style="font-size: 0.7em;">{{ away_rank }}</span>
+                                                                    {% endif %}
+                                                                    {{ game.away_team }}
+                                                                </a>
+                                                            </strong>
                                                             {% if not game.get('is_neutral_site') %}
                                                                 <small class="text-muted ms-1">(A)</small>
                                                             {% endif %}
@@ -260,7 +304,15 @@
                                                             {% if home_logo_url %}
                                                                 <img src="{{ home_logo_url }}" alt="{{ game.home_team }}" style="width: 40px; height: 40px; margin-right: 5px;">
                                                             {% endif %}
-                                                            <strong><a href="{{ url_for('public_team_detail', team_name=game.home_team) }}" class="text-decoration-none text-{{ 'success' if game.home_score > game.away_score else 'muted' }}">{{ game.home_team }}</a></strong>
+                                                            <strong>
+                                                            <a href="{{ url_for('public_team_detail', team_name=game.home_team) }}" class="text-decoration-none text-{{ 'success' if game.home_score > game.away_score else 'muted' }}">
+                                                                {% set home_rank = team_rankings.get(game.home_team) %}
+                                                                {% if home_rank %}
+                                                                    <span class="badge bg-{{ 'warning' if game.home_score > game.away_score else 'secondary' }} me-1" style="font-size: 0.7em;">{{ home_rank }}</span>
+                                                                {% endif %}
+                                                                {{ game.home_team }}
+                                                            </a>
+                                                        </strong>
                                                             {% if not game.get('is_neutral_site') %}
                                                                 <small class="text-muted ms-1">(H)</small>
                                                             {% endif %}
