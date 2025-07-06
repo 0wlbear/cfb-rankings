@@ -6207,25 +6207,9 @@ def rankings():
     """Main rankings page with comprehensive team statistics"""
     comprehensive_stats = get_all_team_stats_bulk()
     recent_games = get_games_data()[-10:]
-    
-    # Add mobile detection
-    user_agent = request.headers.get('User-Agent', '')
-    is_mobile = any(browser in user_agent for browser in [
-        'Mobile', 'Android', 'iPhone', 'iPad', 'iPod', 
-        'BlackBerry', 'IEMobile', 'Opera Mini'
-    ])
-    
-    # Choose template based on device
-    if is_mobile:
-        # Use lightweight mobile template
-        return render_template('rankings_mobile.html', 
-                             comprehensive_stats=comprehensive_stats, 
-                             recent_games=recent_games)
-    else:
-        # Use existing desktop template
-        return render_template('rankings.html', 
-                             comprehensive_stats=comprehensive_stats, 
-                             recent_games=recent_games)
+    return render_template('rankings.html', 
+                         comprehensive_stats=comprehensive_stats, 
+                         recent_games=recent_games)
 
 
 def prepare_team_chart_data(team_name):
