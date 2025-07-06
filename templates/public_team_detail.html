@@ -9,7 +9,7 @@
     <div class="col-md-12">
         <!-- Header -->
         <div class="text-center mb-4">
-            {% set logo_url = get_team_logo_url(team_name) %}
+            {% set logo_url = get_team_logo_url(team_name, '120') %}
             {% if logo_url %}
                 <img src="{{ logo_url }}" alt="{{ team_name }}" style="width: 120px; height: 120px;" class="mb-3">
             {% endif %}

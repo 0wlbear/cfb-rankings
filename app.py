@@ -1192,11 +1192,20 @@ def calculate_victory_value_with_rivalry(game, team_name):
     return round(total_value, 2)
 
 
-def get_team_logo_url(team_name):
-    """Get local logo URL for a team"""
+def get_team_logo_url(team_name, size='60'):
+    """
+    Get local logo URL for a team with specified size
+    
+    Args:
+        team_name (str): Name of the team
+        size (str): Logo size - '20', '60', '120' (default: '60')
+    
+    Returns:
+        str: URL path to logo, or None if team not found
+    """
     team_id = TEAM_LOGOS.get(team_name)
     if team_id:
-        return f"/static/images/team-logos/{team_id}.png"
+        return f"/static/images/team-logos/{team_id}_{size}.png"
     return None
     
 # All conferences organized
@@ -7907,70 +7916,4 @@ if __name__ == '__main__':
     
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5001)), debug=False)
 
-@app.route('/test-mobile')
-def test_mobile():
-    """Minimal test page for mobile debugging"""
-    return """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Mobile Test</title>
-    </head>
-    <body>
-        <h1>Test Page</h1>
-        <p>If this loads fast, the issue is in your templates.</p>
-        <a href="/rankings">Go to Rankings</a>
-    </body>
-    </html>
-    """
 
-@app.route('/test-rankings-simple')
-def test_rankings_simple():
-    """Minimal rankings without Bootstrap/CSS"""
-    comprehensive_stats = get_all_team_stats_bulk()
-    html = """
-    <!DOCTYPE html>
-    <html>
-    <head><title>Simple Rankings</title></head>
-    <body>
-        <h1>Simple Rankings Test</h1>
-        <table border="1">
-            <tr><th>Rank</th><th>Team</th><th>Rating</th></tr>
-    """
-    
-    for i, team in enumerate(comprehensive_stats[:10], 1):
-        html += f"<tr><td>{i}</td><td>{team['team']}</td><td>{team['adjusted_total']}</td></tr>"
-    
-    html += """
-        </table>
-        <p>If this loads fast, the issue is Bootstrap/CSS rendering</p>
-    </body>
-    </html>
-    """
-    return html
-
-@app.route('/test-rankings-simple')
-def test_rankings_simple():
-    """Minimal rankings without Bootstrap/CSS"""
-    comprehensive_stats = get_all_team_stats_bulk()
-    html = """
-    <!DOCTYPE html>
-    <html>
-    <head><title>Simple Rankings</title></head>
-    <body>
-        <h1>Simple Rankings Test</h1>
-        <table border="1">
-            <tr><th>Rank</th><th>Team</th><th>Rating</th></tr>
-    """
-    
-    for i, team in enumerate(comprehensive_stats[:10], 1):
-        html += f"<tr><td>{i}</td><td>{team['team']}</td><td>{team['adjusted_total']}</td></tr>"
-    
-    html += """
-        </table>
-        <p>If this loads fast, the issue is Bootstrap/CSS rendering</p>
-    </body>
-    </html>
-    """
-    return html
