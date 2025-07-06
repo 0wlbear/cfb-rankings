@@ -6205,22 +6205,31 @@ def public_landing():
 @app.route('/rankings')
 def rankings():
     
-    import time
-    start_time = time.time()
-    print(f"=== RANKINGS REQUEST START: {start_time} ===")
-
-
     """Main rankings page with comprehensive team statistics"""
     comprehensive_stats = get_all_team_stats_bulk()
-    print(f"Data fetched in: {time.time() - start_time:.2f}s")
-
     recent_games = get_games_data()[-10:]
-    print(f"Total server time: {time.time() - start_time:.2f}s")
-    
+
+
     return render_template('rankings.html', 
                          comprehensive_stats=comprehensive_stats, 
                          recent_games=recent_games)
 
+
+# Add this to your app.py to test
+@app.route('/test-simple')
+def test_simple():
+    import time
+    start_time = time.time()
+    print(f"=== SIMPLE TEST START: {start_time} ===")
+    
+    # Just return simple response - no database, no templates
+    response_time = time.time() - start_time
+    return f"""
+    <h1>Simple Test</h1>
+    <p>Response time: {response_time:.3f} seconds</p>
+    <p>Time: {time.time()}</p>
+    <p>If this loads fast on mobile, the issue is in your rankings code.</p>
+    """
 
 def prepare_team_chart_data(team_name):
     """Prepare data for team detail page visualizations"""
