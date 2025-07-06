@@ -6204,9 +6204,19 @@ def public_landing():
 
 @app.route('/rankings')
 def rankings():
+    
+    import time
+    start_time = time.time()
+    print(f"=== RANKINGS REQUEST START: {start_time} ===")
+
+
     """Main rankings page with comprehensive team statistics"""
     comprehensive_stats = get_all_team_stats_bulk()
+    print(f"Data fetched in: {time.time() - start_time:.2f}s")
+
     recent_games = get_games_data()[-10:]
+    print(f"Total server time: {time.time() - start_time:.2f}s")
+    
     return render_template('rankings.html', 
                          comprehensive_stats=comprehensive_stats, 
                          recent_games=recent_games)
