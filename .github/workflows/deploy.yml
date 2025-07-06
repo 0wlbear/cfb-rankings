@@ -23,63 +23,34 @@ jobs:
         key: ${{ secrets.SERVER_SSH_KEY }}
         envs: ADMIN_USERNAME,ADMIN_PASSWORD
         script: |
-          echo "🚀 Starting bulletproof deployment..."
+          echo "🚀 Starting deployment..."
           
-          # Backup current app.py
-          cp /home/ubuntu/cfb-app/app.py /home/ubuntu/app.py.backup
-          echo "✅ Backup created"
-          
-          # Update git and test new version
+          # Update git
           cd /home/ubuntu/cfb-app-git
           git pull origin main
           echo "✅ Git updated"
           
-          # Test new app.py can import without errors
-          cd /home/ubuntu/cfb-app-git
-          source /home/ubuntu/cfb-app/venv/bin/activate
+          # Create environment file in the git directory (where service runs from)
+          echo "ADMIN_USERNAME=$ADMIN_USERNAME" > /home/ubuntu/cfb-app-git/.env
+          echo "ADMIN_PASSWORD=$ADMIN_PASSWORD" >> /home/ubuntu/cfb-app-git/.env
+          echo "DATA_DIR=/home/ubuntu/cfb-app-git/data" >> /home/ubuntu/cfb-app-git/.env
+          echo "✅ Environment file created"
+          
+          # Test the code
+          source /home/ubuntu/cfb-app-git/venv/bin/activate
           if python -c "from app import app; print('✅ Import test passed')" 2>/dev/null; then
               echo "✅ New code validated"
               
-              # Copy all necessary files (UPDATED SECTION)
-              cp /home/ubuntu/cfb-app-git/app.py /home/ubuntu/cfb-app/
-              cp /home/ubuntu/cfb-app-git/models.py /home/ubuntu/cfb-app/
-              cp /home/ubuntu/cfb-app-git/requirements.txt /home/ubuntu/cfb-app/
-              cp -r /home/ubuntu/cfb-app-git/templates/ /home/ubuntu/cfb-app/
-              cp -r /home/ubuntu/cfb-app-git/static/ /home/ubuntu/cfb-app/
-              echo "✅ App, models, templates, static files, and requirements copied"
-              
-              # Create environment file with GitHub secrets
-              echo "ADMIN_USERNAME=$ADMIN_USERNAME" | sudo tee /home/ubuntu/cfb-app/.env
-              echo "ADMIN_PASSWORD=$ADMIN_PASSWORD" | sudo tee -a /home/ubuntu/cfb-app/.env
-              echo "DATA_DIR=/home/ubuntu/cfb-app/data" | sudo tee -a /home/ubuntu/cfb-app/.env
-              echo "✅ Environment file created with GitHub secrets"
-              
-              # Clean up service file and add environment file
-              sudo sed -i '/Environment="ADMIN_USERNAME/d' /etc/systemd/system/cfb-rankings.service
-              sudo sed -i '/Environment="ADMIN_PASSWORD/d' /etc/systemd/system/cfb-rankings.service
-              
-              # Add EnvironmentFile line if not already present
-              if ! grep -q "EnvironmentFile" /etc/systemd/system/cfb-rankings.service; then
-                  sudo sed -i '/Environment="DATA_DIR/a EnvironmentFile=/home/ubuntu/cfb-app/.env' /etc/systemd/system/cfb-rankings.service
-                  echo "✅ Service updated to use environment file"
-              fi
-              
-              echo "✅ All files copied successfully"
-              
               # Restart service
-              sudo systemctl daemon-reload
               sudo systemctl restart cfb-rankings
               sleep 3
               
               # Check if service is running
               if sudo systemctl is-active cfb-rankings >/dev/null; then
                   echo "🎉 Deployment successful!"
-                  rm /home/ubuntu/app.py.backup
               else
-                  echo "❌ Service failed, rolling back"
-                  cp /home/ubuntu/app.py.backup /home/ubuntu/cfb-app/app.py
-                  sudo systemctl restart cfb-rankings
-                  echo "✅ Rollback complete"
+                  echo "❌ Service failed to start"
+                  sudo systemctl status cfb-rankings
               fi
           else
               echo "❌ New code failed validation - no deployment"
