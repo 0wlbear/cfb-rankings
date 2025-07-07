@@ -164,12 +164,7 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td class="text-center">
-                                    <div class="fw-bold">{{ team.total_wins }}-{{ team.total_losses }}</div>
-                                    <small class="text-muted">
-                                        {{ team.p4_wins if team.p4_wins is defined else 0 }}P4 {{ team.g5_wins if team.g5_wins is defined else 0 }}G5
-                                    </small>
-                                </td>
+                                
                                 <td class="text-center">
                                     <div class="fw-bold text-primary">{{ "%.2f"|format(team.adjusted_total) }}</div>
                                     <small class="text-muted">SoS: {{ "%.3f"|format(team.strength_of_schedule) }}</small>
