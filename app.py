@@ -2466,22 +2466,76 @@ def create_default_ranking_result():
 # (around where calculate_comprehensive_stats, calculate_victory_value, etc. are)
 
 def get_all_team_stats_bulk():
-    """Load all team stats using the CORRECT enhanced scientific ranking"""
+    """Load all team stats using the CORRECT enhanced scientific ranking WITH proper SOS"""
     try:
         # Get all teams with games
         teams_with_games = TeamStats.query.filter(
             (TeamStats.wins + TeamStats.losses) > 0
         ).all()
         
+        # Pre-calculate opponent quality cache for performance
+        opponent_quality_cache = {}
+        for team_record in teams_with_games:
+            opponent_quality_cache[team_record.team_name] = get_current_opponent_quality(team_record.team_name)
+        
         # Calculate stats for all teams using the SAME method as individual pages
         comprehensive_stats = []
         for team_record in teams_with_games:
             team_name = team_record.team_name
+            team_data = team_record.to_dict()
             
-            # Use the SAME calculation as individual team pages
-            stats = calculate_comprehensive_stats(team_name)
-            stats['team'] = team_name
-            stats['conference'] = get_team_conference(team_name)
+            # Calculate enhanced scientific ranking (for power rating)
+            try:
+                enhanced_result = calculate_enhanced_scientific_ranking(team_name)
+                adjusted_total = enhanced_result['total_score']
+            except:
+                adjusted_total = 0.0
+            
+            # FIXED: Calculate proper Strength of Schedule
+            opponent_total_wins = 0
+            opponent_total_losses = 0
+            opponent_total_games = 0
+            
+            for game in team_data['games']:
+                opponent = game['opponent']
+                
+                # Skip FCS opponents for SOS calculation
+                if opponent == 'FCS' or opponent.upper() == 'FCS':
+                    continue
+                    
+                # Get opponent's record
+                opp_stats_record = TeamStats.query.filter_by(team_name=opponent).first()
+                if opp_stats_record:
+                    opp_stats = opp_stats_record.to_dict()
+                    opponent_total_wins += opp_stats['wins']
+                    opponent_total_losses += opp_stats['losses']
+                    opponent_total_games += (opp_stats['wins'] + opp_stats['losses'])
+            
+            # Calculate SOS as opponents' winning percentage
+            strength_of_schedule = opponent_total_wins / opponent_total_games if opponent_total_games > 0 else 0.0
+            
+            # Build the stats object
+            stats = {
+                'team': team_name,
+                'conference': get_team_conference(team_name),
+                'adjusted_total': adjusted_total,
+                'total_wins': team_data['wins'],
+                'total_losses': team_data['losses'],
+                'points_fielded': team_data['points_for'],
+                'points_allowed': team_data['points_against'],
+                'margin_of_victory': team_data['margin_of_victory_total'],
+                'point_differential': team_data['points_for'] - team_data['points_against'],
+                'home_wins': team_data['home_wins'],
+                'road_wins': team_data['road_wins'],
+                'strength_of_schedule': strength_of_schedule,  # ✅ NOW PROPERLY CALCULATED
+                'totals': adjusted_total,
+                'scientific_breakdown': {'total_score': adjusted_total},
+                'opp_w': opponent_total_wins,
+                'opp_l': opponent_total_losses,
+                'opp_wl_differential': opponent_total_wins - opponent_total_losses,
+                'strength_of_record': strength_of_schedule * (team_data['wins'] / max(1, team_data['wins'] + team_data['losses']))
+            }
+            
             comprehensive_stats.append(stats)
         
         # Sort by ranking (adjusted_total is the power rating)
@@ -2492,6 +2546,122 @@ def get_all_team_stats_bulk():
         print(f"Error in bulk loading: {e}")
         return []
 
+
+@app.route('/debug_sos/<team_name>')
+@login_required
+def debug_sos(team_name):
+    """Debug SOS calculation for a specific team"""
+    team_record = TeamStats.query.filter_by(team_name=team_name).first()
+    if not team_record:
+        return f"<h1>Team {team_name} not found</h1>"
+    
+    team_data = team_record.to_dict()
+    games = team_data['games']
+    
+    if not games:
+        return f"<h1>{team_name} has no games</h1>"
+    
+    # Calculate SOS step by step
+    opponent_details = []
+    opponent_total_wins = 0
+    opponent_total_losses = 0
+    opponent_total_games = 0
+    
+    for game in games:
+        opponent = game['opponent']
+        
+        # Check if this is FCS
+        is_fcs = (opponent == 'FCS' or opponent.upper() == 'FCS')
+        
+        if is_fcs:
+            opponent_details.append({
+                'opponent': opponent,
+                'wins': 'N/A',
+                'losses': 'N/A',
+                'total_games': 'N/A',
+                'win_pct': 'N/A',
+                'included_in_sos': False,
+                'reason': 'FCS opponent excluded'
+            })
+        else:
+            # Get opponent's record
+            opp_record = TeamStats.query.filter_by(team_name=opponent).first()
+            if opp_record:
+                opp_data = opp_record.to_dict()
+                opp_wins = opp_data['wins']
+                opp_losses = opp_data['losses']
+                opp_games = opp_wins + opp_losses
+                opp_win_pct = opp_wins / opp_games if opp_games > 0 else 0
+                
+                opponent_total_wins += opp_wins
+                opponent_total_losses += opp_losses
+                opponent_total_games += opp_games
+                
+                opponent_details.append({
+                    'opponent': opponent,
+                    'wins': opp_wins,
+                    'losses': opp_losses,
+                    'total_games': opp_games,
+                    'win_pct': f"{opp_win_pct:.3f}",
+                    'included_in_sos': True,
+                    'reason': 'Included in SOS'
+                })
+            else:
+                opponent_details.append({
+                    'opponent': opponent,
+                    'wins': 'N/A',
+                    'losses': 'N/A',
+                    'total_games': 'N/A',
+                    'win_pct': 'N/A',
+                    'included_in_sos': False,
+                    'reason': 'Opponent not found in database'
+                })
+    
+    # Calculate final SOS
+    final_sos = opponent_total_wins / opponent_total_games if opponent_total_games > 0 else 0
+    
+    return f"""
+    <html><body style="font-family: Arial; margin: 40px;">
+        <h1>SOS Debug for {team_name}</h1>
+        
+        <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h3>📊 Final SOS Calculation</h3>
+            <p><strong>Total Opponent Wins:</strong> {opponent_total_wins}</p>
+            <p><strong>Total Opponent Games:</strong> {opponent_total_games}</p>
+            <p><strong>Strength of Schedule:</strong> {final_sos:.3f} ({final_sos:.1%})</p>
+        </div>
+        
+        <h2>Opponent Breakdown</h2>
+        <table border="1" style="border-collapse: collapse; width: 100%;">
+            <tr style="background: #f0f0f0;">
+                <th style="padding: 8px;">Opponent</th>
+                <th style="padding: 8px;">Record</th>
+                <th style="padding: 8px;">Win %</th>
+                <th style="padding: 8px;">Included?</th>
+                <th style="padding: 8px;">Reason</th>
+            </tr>
+            {''.join(f'''
+            <tr style="background: {'#d4edda' if opp['included_in_sos'] else '#f8d7da'};">
+                <td style="padding: 8px;">{opp['opponent']}</td>
+                <td style="padding: 8px;">{opp['wins']}-{opp['losses']} ({opp['total_games']} games)</td>
+                <td style="padding: 8px;">{opp['win_pct']}</td>
+                <td style="padding: 8px;">{'✅ YES' if opp['included_in_sos'] else '❌ NO'}</td>
+                <td style="padding: 8px;">{opp['reason']}</td>
+            </tr>
+            ''' for opp in opponent_details)}
+        </table>
+        
+        <h3>How SOS Works:</h3>
+        <ul>
+            <li>SOS = Total Opponent Wins ÷ Total Opponent Games</li>
+            <li>FCS opponents are excluded from SOS calculation</li>
+            <li>Only opponents with games in the database count</li>
+            <li>Higher SOS = stronger schedule</li>
+        </ul>
+        
+        <p><a href="/rankings">Back to Rankings</a> | <a href="/admin">Admin Panel</a></p>
+    </body></html>
+    """
 
 @app.route('/debug_values')
 @login_required  
@@ -6847,9 +7017,45 @@ def add_game():
             if is_fcs_opponent(home_team) or is_fcs_opponent(away_team):
                 flash('⚠️ FCS game detected - minimal ranking credit will be awarded for this victory', 'warning')
             
-            # NEW: Check for matching scheduled game and mark it completed
+            # DEBUG: Show what we're looking for
+            flash(f'🔍 DEBUG: Looking for scheduled game: {home_team} vs {away_team} in Week {week}', 'info')
+            
+            # STEP 1: First, add the game and update team stats
+            game = Game(
+                week=week,
+                home_team=home_team,
+                away_team=away_team,
+                home_score=home_score,
+                away_score=away_score,
+                is_neutral_site=is_neutral_site,
+                overtime=is_overtime
+            )
+            db.session.add(game)
+            
+            # Update team statistics
+            update_team_stats_in_db(home_team, away_team, home_score, away_score, True, is_neutral_site, is_overtime)
+            update_team_stats_in_db(away_team, home_team, away_score, home_score, False, is_neutral_site, is_overtime)
+            
+            # Commit the game addition first
+            db.session.commit()
+            flash(f'✅ Game added to database successfully', 'success')
+            
+            # STEP 2: Look for scheduled game
             try:
-                # Find the scheduled game that matches this completed game
+                # Check what scheduled games exist for this week
+                all_week_games = ScheduledGame.query.filter_by(week=week).all()
+                flash(f'📊 Found {len(all_week_games)} total scheduled games for week {week}', 'info')
+                
+                # Show what games we found
+                game_list = []
+                for g in all_week_games:
+                    status = "✅ Completed" if g.completed else "❌ Uncompleted"
+                    game_list.append(f"{g.home_team} vs {g.away_team} ({status})")
+                
+                if game_list:
+                    flash(f'Games found: {"; ".join(game_list)}', 'info')
+                
+                # Look for the specific matching game
                 scheduled_game = ScheduledGame.query.filter_by(
                     week=week,
                     completed=False
@@ -6861,42 +7067,66 @@ def add_game():
                 ).first()
                 
                 if scheduled_game:
-                    # Mark the scheduled game as completed
-                    scheduled_game.completed = True
-                    scheduled_game.final_home_score = home_score if scheduled_game.home_team == home_team else away_score
-                    scheduled_game.final_away_score = away_score if scheduled_game.away_team == away_team else home_score
-                    scheduled_game.overtime = is_overtime
-                    print(f"✅ Found matching scheduled game and marked as completed: {scheduled_game.home_team} vs {scheduled_game.away_team}")
-                else:
-                    print(f"ℹ️ No matching scheduled game found for {home_team} vs {away_team} in week {week}")
+                    flash(f'🎯 FOUND MATCHING SCHEDULED GAME: {scheduled_game.home_team} vs {scheduled_game.away_team} (ID: {scheduled_game.id})', 'info')
                     
+                    # Store original state for debugging
+                    original_completed = scheduled_game.completed
+                    game_id = scheduled_game.id
+                    
+                    # Update the scheduled game
+                    scheduled_game.completed = True
+                    
+                    # Assign scores
+                    if scheduled_game.home_team == home_team:
+                        scheduled_game.final_home_score = home_score
+                        scheduled_game.final_away_score = away_score
+                        flash(f'📝 Setting scores (same orientation): {home_score}-{away_score}', 'info')
+                    else:
+                        scheduled_game.final_home_score = away_score
+                        scheduled_game.final_away_score = home_score
+                        flash(f'📝 Setting scores (flipped orientation): {away_score}-{home_score}', 'info')
+                    
+                    scheduled_game.overtime = is_overtime
+                    
+                    # Commit the scheduled game update
+                    db.session.add(scheduled_game)  # Make sure it's tracked
+                    db.session.commit()
+                    flash(f'💾 Committed scheduled game update to database', 'info')
+                    
+                    # VERIFICATION: Check if it actually worked
+                    verification_game = ScheduledGame.query.get(game_id)
+                    if verification_game and verification_game.completed:
+                        flash(f'🎉 SUCCESS! Scheduled game marked as completed with scores {verification_game.final_home_score}-{verification_game.final_away_score}', 'success')
+                    else:
+                        completed_status = verification_game.completed if verification_game else "NOT FOUND"
+                        flash(f'❌ FAILED! Verification shows completed = {completed_status}', 'error')
+                        
+                        # Try a more aggressive update
+                        flash(f'🔧 Trying direct SQL update...', 'warning')
+                        db.session.execute(
+                            text("UPDATE scheduled_games SET completed = true, final_home_score = :home, final_away_score = :away WHERE id = :id"),
+                            {"home": scheduled_game.final_home_score, "away": scheduled_game.final_away_score, "id": game_id}
+                        )
+                        db.session.commit()
+                        flash(f'🔧 Direct SQL update completed', 'warning')
+                
+                else:
+                    flash(f'❌ NO MATCHING SCHEDULED GAME FOUND', 'warning')
+                    uncompleted_games = ScheduledGame.query.filter_by(week=week, completed=False).all()
+                    if uncompleted_games:
+                        uncompleted_list = [f"{g.home_team} vs {g.away_team}" for g in uncompleted_games]
+                        flash(f'Available uncompleted games: {"; ".join(uncompleted_list)}', 'info')
+                    else:
+                        flash(f'No uncompleted scheduled games found for week {week}', 'info')
+                
             except Exception as e:
-                print(f"Error finding/updating scheduled game: {e}")
-                # Don't let this error stop the game from being added
-            
-            # Add game to DATABASE (existing logic)
-            game = Game(
-                week=week,
-                home_team=home_team,
-                away_team=away_team,
-                home_score=home_score,
-                away_score=away_score,
-                is_neutral_site=is_neutral_site,
-                overtime=is_overtime
-            )
-            db.session.add(game)
-            db.session.commit()
-            
-            # Update team statistics in database
-            update_team_stats_in_db(home_team, away_team, home_score, away_score, True, is_neutral_site, is_overtime)
-            update_team_stats_in_db(away_team, home_team, away_score, home_score, False, is_neutral_site, is_overtime)
+                flash(f'❌ ERROR in scheduled game update: {str(e)}', 'error')
+                import traceback
+                flash(f'Full error: {traceback.format_exc()}', 'error')
             
             # Remember the selected week for next time
             session['last_selected_week'] = week
             
-            location_text = " (Neutral Site)" if is_neutral_site else ""
-            overtime_text = " (OT)" if is_overtime else ""
-            flash(f'Game added: {home_team} {home_score} - {away_score} {away_team}{location_text}{overtime_text}', 'success')
             return redirect(url_for('add_game'))
             
         except ValueError:
@@ -6909,7 +7139,7 @@ def add_game():
     
     # GET request - render the form
     selected_week = request.args.get('selected_week') or session.get('last_selected_week', '')
-    recent_games = get_games_data()[-10:]  # Get last 10 games from database
+    recent_games = get_games_data()[-10:]
     return render_template('add_game.html', 
                          conferences=CONFERENCES, 
                          weeks=WEEKS, 
@@ -6917,13 +7147,147 @@ def add_game():
                          selected_week=selected_week)
 
 
+# Add this route to check database state
+@app.route('/verify_scheduled_games/<week>')
+@login_required  
+def verify_scheduled_games(week):
+    """Verify the actual database state of scheduled games"""
+    
+    scheduled_games = ScheduledGame.query.filter_by(week=week).all()
+    
+    return f"""
+    <html><body style="font-family: Arial; margin: 40px;">
+        <h1>Database State for Week {week}</h1>
+        
+        <h2>All Scheduled Games ({len(scheduled_games)} total)</h2>
+        <table border="1" style="border-collapse: collapse; width: 100%;">
+            <tr style="background: #f0f0f0;">
+                <th style="padding: 8px;">ID</th>
+                <th style="padding: 8px;">Teams</th>
+                <th style="padding: 8px;">Completed</th>
+                <th style="padding: 8px;">Final Score</th>
+                <th style="padding: 8px;">Overtime</th>
+                <th style="padding: 8px;">Date Added</th>
+            </tr>
+            {''.join(f'''
+            <tr style="background: {'#d4edda' if game.completed else '#fff3cd'};">
+                <td style="padding: 8px;">{game.id}</td>
+                <td style="padding: 8px;">{game.home_team} vs {game.away_team}</td>
+                <td style="padding: 8px;">{'✅ TRUE' if game.completed else '❌ FALSE'}</td>
+                <td style="padding: 8px;">{game.final_home_score or 'NULL'}-{game.final_away_score or 'NULL'}</td>
+                <td style="padding: 8px;">{'✅' if game.overtime else '❌'}</td>
+                <td style="padding: 8px;">{game.game_date or 'No Date'}</td>
+            </tr>
+            ''' for game in scheduled_games)}
+        </table>
+        
+        <h2>Refresh & Test</h2>
+        <p><a href="/verify_scheduled_games/{week}" style="background: #007bff; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px;">🔄 Refresh This Page</a></p>
+        <p><a href="/add_game?selected_week={week}" style="background: #28a745; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px;">➕ Add Game for Week {week}</a></p>
+        <p><a href="/scoreboard/{week}" style="background: #17a2b8; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px;">📊 View Scoreboard</a></p>
+        
+        <h3>Instructions:</h3>
+        <ol>
+            <li>Look at the Kansas State vs Iowa State row - it should show "❌ FALSE" for completed</li>
+            <li>Add the Iowa State vs Kansas State game</li>
+            <li>Come back here and refresh - the row should turn green and show "✅ TRUE"</li>
+            <li>If it doesn't change, we know the database update isn't working</li>
+        </ol>
+    </body></html>
+    """
+
+# Add this test route anywhere in your app.py for debugging
+@app.route('/test_game_matching/<week>/<home_team>/<away_team>')
+@login_required
+def test_game_matching(week, home_team, away_team):
+    """Test if a game would match a scheduled game"""
+    from urllib.parse import unquote
+    
+    # Decode URL parameters
+    home_team = unquote(home_team)
+    away_team = unquote(away_team)
+    
+    # Get all scheduled games for this week
+    all_scheduled = ScheduledGame.query.filter_by(week=week).all()
+    uncompleted = ScheduledGame.query.filter_by(week=week, completed=False).all()
+    
+    # Try the exact query that add_game uses
+    matching_game = ScheduledGame.query.filter_by(
+        week=week,
+        completed=False
+    ).filter(
+        db.or_(
+            db.and_(ScheduledGame.home_team == home_team, ScheduledGame.away_team == away_team),
+            db.and_(ScheduledGame.home_team == away_team, ScheduledGame.away_team == home_team)
+        )
+    ).first()
+    
+    results = []
+    for game in all_scheduled:
+        exact_match = (game.home_team == home_team and game.away_team == away_team)
+        flipped_match = (game.home_team == away_team and game.away_team == home_team)
+        would_match = (exact_match or flipped_match) and not game.completed
+        
+        results.append({
+            'scheduled_home': game.home_team,
+            'scheduled_away': game.away_team,
+            'completed': game.completed,
+            'exact_match': exact_match,
+            'flipped_match': flipped_match,
+            'would_match': would_match,
+            'is_the_match': game == matching_game
+        })
+    
+    return f"""
+    <html><body style="font-family: Arial; margin: 40px;">
+        <h1>Game Matching Test</h1>
+        <p><strong>Testing:</strong> {home_team} vs {away_team} in Week {week}</p>
+        <p><strong>Found Match:</strong> {'✅ YES' if matching_game else '❌ NO'}</p>
+        
+        {f'<p><strong>Matched Game:</strong> {matching_game.home_team} vs {matching_game.away_team}</p>' if matching_game else ''}
+        
+        <h2>All Scheduled Games for Week {week}:</h2>
+        <table border="1" style="border-collapse: collapse; width: 100%;">
+            <tr style="background: #f0f0f0;">
+                <th style="padding: 8px;">Scheduled Game</th>
+                <th style="padding: 8px;">Completed?</th>
+                <th style="padding: 8px;">Exact Match?</th>
+                <th style="padding: 8px;">Flipped Match?</th>
+                <th style="padding: 8px;">Would Match?</th>
+                <th style="padding: 8px;">Is The Match?</th>
+            </tr>
+            {''.join(f'''
+            <tr style="background: {'#d4edda' if result['would_match'] else '#f8d7da' if result['completed'] else '#fff'};">
+                <td style="padding: 8px;">{result['scheduled_home']} vs {result['scheduled_away']}</td>
+                <td style="padding: 8px;">{'✅' if result['completed'] else '❌'}</td>
+                <td style="padding: 8px;">{'✅' if result['exact_match'] else '❌'}</td>
+                <td style="padding: 8px;">{'✅' if result['flipped_match'] else '❌'}</td>
+                <td style="padding: 8px;">{'✅ YES' if result['would_match'] else '❌ NO'}</td>
+                <td style="padding: 8px;">{'🎯 THIS ONE' if result['is_the_match'] else ''}</td>
+            </tr>
+            ''' for result in results)}
+        </table>
+        
+        <h3>Debug Info:</h3>
+        <ul>
+            <li>Total scheduled games for week: {len(all_scheduled)}</li>
+            <li>Uncompleted scheduled games: {len(uncompleted)}</li>
+            <li>Query found match: {'Yes' if matching_game else 'No'}</li>
+        </ul>
+        
+        <p><a href="/add_game">Back to Add Game</a></p>
+    </body></html>
+    """
+
+
 @app.route('/add_bulk_games', methods=['POST'])
 @login_required
 def add_bulk_games():
-    """Add multiple games at once"""
+    """Add multiple games at once WITH scheduled game matching"""
     try:
         games_data = request.form.to_dict(flat=False)
         games_added = 0
+        scheduled_games_updated = 0
         
         # Parse the games array
         game_indices = set()
@@ -6969,11 +7333,45 @@ def add_bulk_games():
             update_team_stats_in_db(away_team, home_team, away_score, home_score, False, neutral_site, overtime)
             
             games_added += 1
+            
+            # NEW: Check for matching scheduled game and mark it completed
+            try:
+                scheduled_game = ScheduledGame.query.filter_by(
+                    week=week,
+                    completed=False
+                ).filter(
+                    db.or_(
+                        db.and_(ScheduledGame.home_team == home_team, ScheduledGame.away_team == away_team),
+                        db.and_(ScheduledGame.home_team == away_team, ScheduledGame.away_team == home_team)
+                    )
+                ).first()
+                
+                if scheduled_game:
+                    # Mark the scheduled game as completed
+                    scheduled_game.completed = True
+                    
+                    # Assign scores based on team orientation
+                    if scheduled_game.home_team == home_team:
+                        scheduled_game.final_home_score = home_score
+                        scheduled_game.final_away_score = away_score
+                    else:
+                        scheduled_game.final_home_score = away_score
+                        scheduled_game.final_away_score = home_score
+                    
+                    scheduled_game.overtime = overtime
+                    scheduled_games_updated += 1
+                    
+            except Exception as e:
+                flash(f'Warning: Could not update scheduled game for {home_team} vs {away_team}: {e}', 'warning')
         
+        # Commit all changes at once
         db.session.commit()
         
         if games_added > 0:
-            flash(f'✅ Successfully added {games_added} games!', 'success')
+            if scheduled_games_updated > 0:
+                flash(f'✅ Successfully added {games_added} games and updated {scheduled_games_updated} scheduled games!', 'success')
+            else:
+                flash(f'✅ Successfully added {games_added} games!', 'success')
         else:
             flash('❌ No valid games were added. Please check your input.', 'error')
             
