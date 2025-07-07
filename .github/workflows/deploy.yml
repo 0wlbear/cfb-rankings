@@ -27,7 +27,9 @@ jobs:
           
           # Update git
           cd /home/ubuntu/cfb-app-git
-          git pull origin main
+          git fetch origin main
+	  git reset --hard origin/main
+  	  git clean -fd
           echo "✅ Git updated"
           
           # Create environment file in the git directory (where service runs from)
