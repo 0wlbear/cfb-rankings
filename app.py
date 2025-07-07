@@ -1297,7 +1297,8 @@ def is_admin():
 def inject_user():
     return dict(
         is_admin=session.get('admin_logged_in', False),
-        get_team_logo_url=get_team_logo_url
+        get_team_logo_url=get_team_logo_url,
+        get_current_week_info=get_current_week_info  # NEW: Make available globally
     )
 
 
@@ -4424,6 +4425,64 @@ def update_team_stats_in_db(team, opponent, team_score, opp_score, is_home, is_n
         print(f"Error updating team stats for {team}: {e}")
         raise e
 
+def get_current_week_from_snapshots():
+    """
+    Determine the current week based on the most recent weekly snapshot.
+    Logic: If you snapshot Week N, then Week N+1 becomes current.
+    """
+    try:
+        # Get the most recent snapshot
+        latest_snapshot = WeeklySnapshot.query.order_by(WeeklySnapshot.snapshot_date.desc()).first()
+        
+        if not latest_snapshot:
+            return '1'  # Default to Week 1 if no snapshots exist
+        
+        week_name = latest_snapshot.week_name  # e.g., "Week 5"
+        print(f"Latest snapshot: {week_name}")
+        
+        # Handle standard week format: "Week N"
+        if week_name.startswith('Week '):
+            try:
+                week_num = int(week_name.split(' ')[1])
+                next_week = week_num + 1
+                
+                # Handle season progression
+                if next_week <= 15:  # Regular season goes to Week 15
+                    return str(next_week)
+                elif next_week == 16:  # After Week 15 comes Bowls
+                    return 'Bowls'
+                else:  # After Week 16+ would be CFP
+                    return 'CFP'
+                    
+            except (ValueError, IndexError):
+                print(f"Could not parse week number from: {week_name}")
+                return '1'  # Fallback to Week 1
+        
+        # Handle special week transitions
+        elif week_name == 'Bowls':
+            return 'CFP'  # After Bowls comes CFP
+        elif week_name == 'CFP':
+            return 'CFP'  # Stay on CFP (season is over)
+        
+        # Handle other formats - try to extract number
+        else:
+            import re
+            numbers = re.findall(r'\d+', week_name)
+            if numbers:
+                try:
+                    week_num = int(numbers[0])
+                    return str(week_num + 1)
+                except:
+                    pass
+        
+        # Ultimate fallback
+        return '1'
+        
+    except Exception as e:
+        print(f"Error determining current week from snapshots: {e}")
+        return '1'  # Safe fallback
+
+
 @app.route('/debug_bowl_games')
 @login_required
 def debug_bowl_games():
@@ -5138,11 +5197,15 @@ def admin():
     recent_games = get_games_data()[-10:]
     all_games = get_games_data()
     
+    # NEW: Add current week information
+    week_info = get_current_week_info()
+    
     return render_template('admin.html', 
                          comprehensive_stats=comprehensive_stats, 
                          recent_games=recent_games,
                          games_data=all_games,
-                         historical_rankings=[])
+                         historical_rankings=[],
+                         get_current_week_info=get_current_week_info)
 
 @app.route('/admin/apply_performance_indexes')
 @login_required
@@ -6562,6 +6625,11 @@ def process_clarifications():
 @app.route('/scoreboard')
 @app.route('/scoreboard/<week>')
 def scoreboard(week=None):
+    
+    if not week:
+        week = get_current_week_from_snapshots()
+        print(f"Auto-selected current week: {week}")
+
     # Get all unique weeks from DATABASE instead of games_data
     all_games = get_games_data()  # Use our database function
     
@@ -6722,6 +6790,38 @@ def scoreboard(week=None):
                          sorted_dates=sorted_dates,
                          all_weeks=WEEKS,
                          team_rankings=team_rankings)  # NEW: Pass rankings to template
+
+
+
+
+
+def get_current_week_info():
+    """Get information about the current week for admin display"""
+    try:
+        current_week = get_current_week_from_snapshots()
+        latest_snapshot = WeeklySnapshot.query.order_by(WeeklySnapshot.snapshot_date.desc()).first()
+        
+        if latest_snapshot:
+            return {
+                'current_week': current_week,
+                'last_snapshot': latest_snapshot.week_name,
+                'snapshot_date': latest_snapshot.snapshot_date.strftime('%Y-%m-%d %H:%M'),
+                'has_snapshots': True
+            }
+        else:
+            return {
+                'current_week': current_week,
+                'last_snapshot': 'None',
+                'snapshot_date': 'Never',
+                'has_snapshots': False
+            }
+    except Exception as e:
+        return {
+            'current_week': '1',
+            'last_snapshot': 'Error',
+            'snapshot_date': 'Error',
+            'has_snapshots': False
+        }
 
 
 @app.route('/add_game', methods=['GET', 'POST'])

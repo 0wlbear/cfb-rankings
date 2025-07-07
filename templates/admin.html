@@ -7,6 +7,81 @@
             <h2>Admin Dashboard</h2>
             <p class="text-muted">Manage your college football ranking system</p>
             
+            <!-- Current Week Status Card -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="card border-primary">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0">📅 Current Week Status</h5>
+                            </div>
+                            <div class="card-body">
+                                {% set week_info = get_current_week_info() %}
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <div class="text-center">
+                                            <h3 class="text-primary mb-1">Week {{ week_info.current_week }}</h3>
+                                            <small class="text-muted">Current Scoreboard Week</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <p class="mb-1"><strong>Last Snapshot:</strong> {{ week_info.last_snapshot }}</p>
+                                        <p class="mb-0"><small class="text-muted">{{ week_info.snapshot_date }}</small></p>
+                                    </div>
+                                    <div class="col-md-5">
+                                        {% if week_info.has_snapshots %}
+                                            <div class="alert alert-success mb-0 py-2">
+                                                ✅ Auto-progression active<br>
+                                                <small>Scoreboard shows Week {{ week_info.current_week }} (next after {{ week_info.last_snapshot }})</small>
+                                            </div>
+                                        {% else %}
+                                            <div class="alert alert-warning mb-0 py-2">
+                                                ⚠️ No snapshots yet<br>
+                                                <small>Scoreboard defaults to Week 1. Create your first snapshot!</small>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="row mt-3">
+                                    <div class="col-md-12">
+                                        <div class="bg-light p-3 rounded">
+                                            <h6 class="text-primary mb-2">📋 How Auto-Week Progression Works:</h6>
+                                            <ul class="mb-0" style="font-size: 0.9em;">
+                                                <li><strong>Create Snapshot for Week N</strong> → Scoreboard automatically shows <strong>Week N+1</strong></li>
+                                                <li><strong>Example:</strong> Snapshot "Week 5" → Scoreboard shows "Week 6"</li>
+                                                <li><strong>Special Transitions:</strong> Week 15 → Bowls → CFP</li>
+                                                <li><strong>Benefit:</strong> No manual week selection needed - just snapshot when week is complete!</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row mt-3">
+                                    <div class="col-md-6">
+                                        <a href="/scoreboard" class="btn btn-outline-primary btn-sm">
+                                            📊 View Current Week ({{ week_info.current_week }})
+                                        </a>
+                                    </div>
+                                    <div class="col-md-6 text-end">
+                                        {% if week_info.has_snapshots %}
+                                            <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#newSnapshotModal">
+                                                📸 Snapshot {{ week_info.current_week }} (Complete Week)
+                                            </button>
+                                        {% else %}
+                                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#newSnapshotModal">
+                                                📸 Create First Snapshot
+                                            </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            
+
+
+
             <!-- Action Buttons -->
             <div class="row mb-4">
                 <div class="col-md-6">
@@ -310,6 +385,54 @@
         </div>
     </div>
 </div>
+
+<!-- Enhanced Snapshot Modal -->
+<div class="modal fade" id="newSnapshotModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">📸 Create Weekly Snapshot</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('create_snapshot') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="week_name_new" class="form-label">Week Name</label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="week_name_new" 
+                               name="week_name" 
+                               placeholder="Week {{ get_current_week_info().current_week }}" 
+                               value="Week {{ get_current_week_info().current_week }}"
+                               required>
+                        <div class="form-text">
+                            💡 <strong>Tip:</strong> Creating this snapshot will mark Week {{ get_current_week_info().current_week }} as complete 
+                            and advance the scoreboard to the next week.
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <strong>📋 What happens when you create this snapshot:</strong>
+                        <ol class="mb-0">
+                            <li>Current rankings are saved for this week</li>
+                            <li>Scoreboard automatically advances to next week</li>
+                            <li>You can import schedules for the upcoming week</li>
+                            <li>Weekly movement tracking becomes available</li>
+                        </ol>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        📸 Create Snapshot & Advance Week
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
 
 <script>
 // Safe reset confirmation with modal
