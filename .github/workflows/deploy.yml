@@ -52,10 +52,10 @@ jobs:
                   echo "🎉 Deployment successful!"
               else
                   echo "❌ Service failed to start"
-		  echo "=== Service Status ==="
+                  echo "=== Service Status ==="
                   sudo systemctl status cfb-rankings
-		  echo "=== Recent Logs ==="
-		  sudo journalctl -u cfb-rankings --no-parger n 20
+                  echo "=== Recent Logs ==="
+                  sudo journalctl -u cfb-rankings --no-pager -n 20
               fi
           else
               echo "❌ New code failed validation - no deployment"
