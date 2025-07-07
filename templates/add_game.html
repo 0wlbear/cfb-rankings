@@ -322,6 +322,32 @@ function updateNeutralLabels(index) {
     box-shadow: 0 6px 16px rgba(0,0,0,0.3);
 }
 
+/* REMOVE ALL ANNOYING HOVER EFFECTS */
+.card:hover,
+.card .card-body:hover,
+.card .card-header:hover,
+.game-row:hover,
+.card.border-primary:hover,
+.card.border-success:hover {
+    transform: none !important;
+    transition: none !important;
+    box-shadow: none !important;
+    scale: none !important;
+}
+
+/* Disable any Bootstrap hover animations */
+.card {
+    transition: none !important;
+}
+
+.card-body {
+    transition: none !important;
+}
+
+.card-header {
+    transition: none !important;
+}
+
 /* Hide button on very small screens to avoid overlap */
 @media (max-width: 768px) {
     .floating-add-button {

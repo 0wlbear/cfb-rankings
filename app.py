@@ -2465,38 +2465,25 @@ def create_default_ranking_result():
 # (around where calculate_comprehensive_stats, calculate_victory_value, etc. are)
 
 def get_all_team_stats_bulk():
-    """Load all team stats in one efficient operation"""
+    """Load all team stats using the CORRECT enhanced scientific ranking"""
     try:
-        # Get all teams with games in one query
+        # Get all teams with games
         teams_with_games = TeamStats.query.filter(
             (TeamStats.wins + TeamStats.losses) > 0
         ).all()
         
-        # Pre-calculate opponent quality lookup table
-        opponent_quality_cache = {}
-        for team_record in teams_with_games:
-            team_name = team_record.team_name
-            # Simple quality calculation (avoid recursion)
-            total_games = team_record.wins + team_record.losses
-            if total_games > 0:
-                base_quality = 2.0 + (team_record.wins / total_games * 6.0)
-                opponent_quality_cache[team_name] = base_quality
-            else:
-                opponent_quality_cache[team_name] = 5.0
-        
-        # Calculate stats for all teams efficiently
+        # Calculate stats for all teams using the SAME method as individual pages
         comprehensive_stats = []
         for team_record in teams_with_games:
             team_name = team_record.team_name
-            team_data = team_record.to_dict()
             
-            # Fast calculation using cached opponent qualities
-            stats = calculate_fast_stats(team_name, team_data, opponent_quality_cache)
+            # Use the SAME calculation as individual team pages
+            stats = calculate_comprehensive_stats(team_name)
             stats['team'] = team_name
             stats['conference'] = get_team_conference(team_name)
             comprehensive_stats.append(stats)
         
-        # Sort by ranking
+        # Sort by ranking (adjusted_total is the power rating)
         comprehensive_stats.sort(key=lambda x: x['adjusted_total'], reverse=True)
         return comprehensive_stats
         
@@ -2575,6 +2562,17 @@ def calculate_fast_stats(team_name, team_data, opponent_quality_cache):
                 margin_bonus = min(2.0, margin * 0.1)
                 victory_value += (opponent_quality * location_mult) + margin_bonus
     
+
+    # CONFERENCE MULTIPLIER HERE ←
+    team_conf = get_team_conference(team_name)
+    if team_conf in G5_CONFERENCES or team_name in G5_INDEPENDENT_TEAMS:
+        conference_multiplier = 0.85
+    else:
+        conference_multiplier = 1.0
+    
+    adjusted_victory_value = victory_value * conference_multiplier
+    
+
     # Simple loss penalty
     loss_penalty = team_data['losses'] * 3.0
     
@@ -2600,6 +2598,149 @@ def calculate_fast_stats(team_name, team_data, opponent_quality_cache):
         'opp_wl_differential': 0,  # Simplified for speed
         'strength_of_record': 0.500  # Simplified for speed
     }
+
+
+@app.route('/debug_conference_multiplier')
+@login_required
+def debug_conference_multiplier():
+    """Debug conference multiplier application"""
+    
+    # Use your actual teams that have games
+    test_teams = ['Kansas', 'Fresno State', 'Western Kentucky', 'Sam Houston']
+    
+    results = []
+    for team_name in test_teams:
+        # Check if team exists
+        team_record = TeamStats.query.filter_by(team_name=team_name).first()
+        if not team_record:
+            results.append({
+                'team': team_name,
+                'conference': 'NOT FOUND',
+                'is_g5': False,
+                'expected_multiplier': 'N/A',
+                'bulk_score': 'No data',
+                'individual_score': 'No data',
+                'has_games': False
+            })
+            continue
+            
+        # Get conference
+        team_conf = get_team_conference(team_name)
+        
+        # Check if G5
+        is_g5 = team_conf in G5_CONFERENCES or team_name in G5_INDEPENDENT_TEAMS
+        
+        # Get games count
+        team_data = team_record.to_dict()
+        total_games = team_data['wins'] + team_data['losses']
+        
+        # Calculate both ways
+        bulk_stats = None
+        all_teams_stats = get_all_team_stats_bulk()
+        for team_stats in all_teams_stats:
+            if team_stats['team'] == team_name:
+                bulk_stats = team_stats
+                break
+                
+        individual_stats = calculate_comprehensive_stats(team_name)
+        
+        # Get raw victory value (before multiplier)
+        try:
+            enhanced_result = calculate_enhanced_scientific_ranking(team_name)
+            raw_victory_value = enhanced_result['components']['victory_value']
+            adjusted_victory_value = enhanced_result['components']['adjusted_victory_value']
+            conference_multiplier = enhanced_result['components']['conference_multiplier']
+        except:
+            raw_victory_value = 'Error'
+            adjusted_victory_value = 'Error'
+            conference_multiplier = 'Error'
+        
+        results.append({
+            'team': team_name,
+            'conference': team_conf,
+            'is_g5': is_g5,
+            'expected_multiplier': 0.85 if is_g5 else 1.0,
+            'actual_multiplier': conference_multiplier,
+            'raw_victory_value': raw_victory_value,
+            'adjusted_victory_value': adjusted_victory_value,
+            'bulk_score': bulk_stats['adjusted_total'] if bulk_stats else 'Not found',
+            'individual_score': individual_stats['adjusted_total'],
+            'has_games': total_games > 0,
+            'total_games': total_games
+        })
+    
+    debug_html = """
+    <html><body style="font-family: Arial; margin: 40px;">
+    <h1>Conference Multiplier Debug</h1>
+    <table border="1" style="border-collapse: collapse;">
+        <tr>
+            <th>Team</th>
+            <th>Conference</th>
+            <th>Games</th>
+            <th>Is G5?</th>
+            <th>Expected Mult</th>
+            <th>Actual Mult</th>
+            <th>Raw Victory</th>
+            <th>Adjusted Victory</th>
+            <th>Bulk Score</th>
+            <th>Individual Score</th>
+        </tr>
+    """
+    
+    for result in results:
+        debug_html += f"""
+        <tr>
+            <td>{result['team']}</td>
+            <td>{result['conference']}</td>
+            <td>{result['total_games']}</td>
+            <td>{result['is_g5']}</td>
+            <td>{result['expected_multiplier']}</td>
+            <td>{result.get('actual_multiplier', 'N/A')}</td>
+            <td>{result.get('raw_victory_value', 'N/A')}</td>
+            <td>{result.get('adjusted_victory_value', 'N/A')}</td>
+            <td>{result['bulk_score']}</td>
+            <td>{result['individual_score']}</td>
+        </tr>
+        """
+    
+    debug_html += """
+    </table>
+    
+    <h2>Expected Results:</h2>
+    <p><strong>Kansas (Big XII - P4):</strong> Should get 1.0 multiplier</p>
+    <p><strong>Fresno State (Mountain West - G5):</strong> Should get 0.85 multiplier</p>
+    <p><strong>Western Kentucky (Conference USA - G5):</strong> Should get 0.85 multiplier</p>
+    <p><strong>Sam Houston (Conference USA - G5):</strong> Should get 0.85 multiplier</p>
+    
+    <h2>Conference Classifications:</h2>
+    <p><strong>P4 Conferences:</strong> ACC, Big Ten, Big XII, Pac 12, SEC</p>
+    <p><strong>G5 Conferences:</strong> """ + ", ".join(G5_CONFERENCES) + """</p>
+    <p><strong>G5 Independent Teams:</strong> """ + ", ".join(G5_INDEPENDENT_TEAMS) + """</p>
+    
+    <p><a href="/admin">Back to Admin</a></p>
+    </body></html>
+    """
+    
+    return debug_html
+
+
+@app.route('/debug_clear_cache')
+@login_required
+def debug_clear_cache():
+    """Clear the performance cache"""
+    global performance_cache
+    old_count = len(performance_cache)
+    performance_cache.clear()
+    
+    return f"""
+    <html><body style="font-family: Arial; margin: 40px;">
+    <h1>Cache Cleared!</h1>
+    <p>Cleared {old_count} cache entries.</p>
+    <p><a href="/debug_conference_multiplier">Test Conference Multiplier Again</a></p>
+    <p><a href="/rankings">Check Rankings Page</a></p>
+    <p><a href="/admin">Back to Admin</a></p>
+    </body></html>
+    """
 
 def create_default_stats():
     """Default stats for teams with no games"""
