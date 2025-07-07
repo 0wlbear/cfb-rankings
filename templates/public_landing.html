@@ -68,7 +68,7 @@
                                                     </div>
                                                 </div>
                                                 <div>
-                                                    <span class="conference-tag">{{ team.conference }}</span>
+                                                    <span class="conference-tag {% if team.conference == 'Conference USA' %}conference-usa-desktop-fix{% endif %}">{{ team.conference }}</span>
                                                 </div>
                                             </div>
                                         </td>
@@ -125,7 +125,7 @@
                                                             'American': 'dark', 'Conference USA': 'light text-dark',
                                                             'MAC': 'primary', 'Mountain West': 'success', 'Sun Belt': 'warning text-dark'
                                                         }.get(team.conference, 'secondary') %}
-                                                        <span class="badge bg-{{ badge_class }}" style="font-size: 0.65rem;">
+                                                        <span class="badge bg-{{ badge_class }} {% if team.conference == 'Conference USA' %}conference-usa-fix{% endif %}" style="font-size: 0.65rem;">
                                                             {{ team.conference }}
                                                         </span>
                                                     </div>
@@ -301,6 +301,14 @@
     text-transform: uppercase;
 }
 
+/* Fix for Conference USA desktop tag */
+.conference-tag.conference-usa-desktop-fix {
+    background: #e9ecef !important;
+    color: #212529 !important;
+    border: 2px solid #495057 !important;
+    font-weight: 700 !important;
+}
+
 .rating-badge {
     display: inline-block;
     padding: 6px 12px;
@@ -320,6 +328,15 @@
     border-radius: 4px;
     font-weight: 600;
     font-size: 0.8rem;
+}
+
+/* Fix for Conference USA badge readability */
+.badge.conference-usa-fix {
+    background-color: #e9ecef !important;
+    color: #212529 !important;
+    border: 2px solid #495057 !important;
+    text-shadow: none !important;
+    font-weight: 700 !important;
 }
 
 .legend-item {
