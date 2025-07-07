@@ -32,54 +32,119 @@
                     </div>
                 </div>
                 <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead style="background-color: #f8f9fa;">
-                                <tr>
-                                    <th class="text-center py-3 text-dark fw-semibold">RANK</th>
-                                    <th class="py-3 text-dark fw-semibold">TEAM</th>
-                                    <th class="text-center py-3 text-dark fw-semibold">RECORD</th>
-                                    <th class="text-center py-3 text-dark fw-semibold">POWER RATING</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for team in top_25 %}
-                                <tr style="{% if loop.index <= 4 %}background-color: rgba(25, 135, 84, 0.1);{% elif loop.index <= 12 %}background-color: rgba(255, 193, 7, 0.1);{% endif %}">
-                                    <td class="text-center py-3">
-                                        <span class="rank-badge {% if loop.index <= 4 %}playoff-bye{% elif loop.index <= 12 %}playoff-game{% else %}bubble{% endif %}">
-                                            {{ loop.index }}
-                                        </span>
-                                    </td>
-                                    <td class="py-3">
-                                        <div class="d-flex align-items-center justify-content-between">
+                    
+                    <!-- Desktop Table -->
+                    <div class="d-none d-lg-block">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead style="background-color: #f8f9fa;">
+                                    <tr>
+                                        <th class="text-center py-3 text-dark fw-semibold">RANK</th>
+                                        <th class="py-3 text-dark fw-semibold">TEAM</th>
+                                        <th class="text-center py-3 text-dark fw-semibold">RECORD</th>
+                                        <th class="text-center py-3 text-dark fw-semibold">POWER RATING</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for team in top_25 %}
+                                    <tr style="{% if loop.index <= 4 %}background-color: rgba(25, 135, 84, 0.1);{% elif loop.index <= 12 %}background-color: rgba(255, 193, 7, 0.1);{% endif %}">
+                                        <td class="text-center py-3">
+                                            <span class="rank-badge {% if loop.index <= 4 %}playoff-bye{% elif loop.index <= 12 %}playoff-game{% else %}bubble{% endif %}">
+                                                {{ loop.index }}
+                                            </span>
+                                        </td>
+                                        <td class="py-3">
+                                            <div class="d-flex align-items-center justify-content-between">
+                                                <div class="d-flex align-items-center">
+                                                    {% set logo_url = get_team_logo_url(team.team) %}
+                                                    {% if logo_url %}
+                                                        <img src="{{ logo_url }}" alt="{{ team.team }}" class="team-logo me-3">
+                                                    {% endif %}
+                                                    <div>
+                                                        <a href="{{ url_for('public_team_detail', team_name=team.team) }}" 
+                                                           class="text-decoration-none text-dark fw-bold team-name">
+                                                            {{ team.team }}
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <span class="conference-tag">{{ team.conference }}</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="text-center py-3">
+                                            <span class="text-dark fw-semibold">{{ team.total_wins }}-{{ team.total_losses }}</span>
+                                        </td>
+                                        <td class="text-center py-3">
+                                            <span class="rating-badge">{{ "%.2f"|format(team.adjusted_total) }}</span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Mobile Table -->
+                    <div class="d-lg-none">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead style="background-color: #f8f9fa;">
+                                    <tr>
+                                        <th class="text-center py-2 text-dark fw-semibold">#</th>
+                                        <th class="py-2 text-dark fw-semibold">TEAM</th>
+                                        <th class="text-center py-2 text-dark fw-semibold">RECORD</th>
+                                        <th class="text-center py-2 text-dark fw-semibold">RATING</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for team in top_25 %}
+                                    <tr style="{% if loop.index <= 4 %}background-color: rgba(25, 135, 84, 0.1);{% elif loop.index <= 12 %}background-color: rgba(255, 193, 7, 0.1);{% endif %}">
+                                        <td class="text-center py-2">
+                                            <span class="rank-badge-mobile {% if loop.index <= 4 %}playoff-bye{% elif loop.index <= 12 %}playoff-game{% else %}bubble{% endif %}">
+                                                {{ loop.index }}
+                                            </span>
+                                        </td>
+                                        <td class="py-2">
                                             <div class="d-flex align-items-center">
                                                 {% set logo_url = get_team_logo_url(team.team) %}
                                                 {% if logo_url %}
-                                                    <img src="{{ logo_url }}" alt="{{ team.team }}" class="team-logo me-3">
+                                                    <img src="{{ logo_url }}" alt="{{ team.team }}" class="team-logo-mobile me-2">
                                                 {% endif %}
                                                 <div>
-                                                    <a href="{{ url_for('public_team_detail', team_name=team.team) }}" 
-                                                       class="text-decoration-none text-dark fw-bold team-name">
-                                                        {{ team.team }}
-                                                    </a>
+                                                    <div class="fw-bold">
+                                                        <a href="{{ url_for('public_team_detail', team_name=team.team) }}" 
+                                                           class="text-decoration-none text-dark team-name-mobile">
+                                                            {{ team.team }}
+                                                        </a>
+                                                    </div>
+                                                    <div class="mt-1">
+                                                        {% set badge_class = {
+                                                            'ACC': 'primary', 'Big Ten': 'success', 'Big XII': 'warning text-dark',
+                                                            'Pac 12': 'info', 'SEC': 'danger', 'Independent': 'secondary',
+                                                            'American': 'dark', 'Conference USA': 'light text-dark',
+                                                            'MAC': 'primary', 'Mountain West': 'success', 'Sun Belt': 'warning text-dark'
+                                                        }.get(team.conference, 'secondary') %}
+                                                        <span class="badge bg-{{ badge_class }}" style="font-size: 0.65rem;">
+                                                            {{ team.conference }}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div>
-                                                <span class="conference-tag">{{ team.conference }}</span>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="text-center py-3">
-                                        <span class="text-dark fw-semibold">{{ team.total_wins }}-{{ team.total_losses }}</span>
-                                    </td>
-                                    <td class="text-center py-3">
-                                        <span class="rating-badge">{{ "%.2f"|format(team.adjusted_total) }}</span>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                                        </td>
+                                        <td class="text-center py-2">
+                                            <div class="fw-bold text-dark">{{ team.total_wins }}-{{ team.total_losses }}</div>
+                                        </td>
+                                        <td class="text-center py-2">
+                                            <div class="rating-badge-mobile">{{ "%.2f"|format(team.adjusted_total) }}</div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
+
                 </div>
                 <div class="card-footer bg-white border-top-0 text-center py-3">
                     <div class="d-flex justify-content-center align-items-center gap-3 flex-wrap">
@@ -160,6 +225,33 @@
     background: #6f42c1;
 }
 
+/* Mobile-specific rank badge */
+.rank-badge-mobile {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 0.8rem;
+    color: white;
+    background: #6c757d;
+}
+
+.rank-badge-mobile.playoff-bye {
+    background: #198754;
+}
+
+.rank-badge-mobile.playoff-game {
+    background: #ffc107;
+    color: #212529;
+}
+
+.rank-badge-mobile.bubble {
+    background: #6f42c1;
+}
+
 .team-logo {
     width: 50px;
     height: 50px;
@@ -168,12 +260,32 @@
     border: 1px solid #e9ecef;
 }
 
+/* Mobile-specific team logo */
+.team-logo-mobile {
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    object-fit: cover;
+    border: 1px solid #e9ecef;
+    flex-shrink: 0;
+}
+
 .team-name {
     font-size: 1rem;
     transition: color 0.2s ease;
 }
 
 .team-name:hover {
+    color: #0d6efd !important;
+}
+
+/* Mobile-specific team name */
+.team-name-mobile {
+    font-size: 0.9rem;
+    transition: color 0.2s ease;
+}
+
+.team-name-mobile:hover {
     color: #0d6efd !important;
 }
 
@@ -197,6 +309,17 @@
     border-radius: 6px;
     font-weight: 600;
     font-size: 0.9rem;
+}
+
+/* Mobile-specific rating badge */
+.rating-badge-mobile {
+    display: inline-block;
+    padding: 4px 8px;
+    background: #0d6efd;
+    color: white !important;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 0.8rem;
 }
 
 .legend-item {
@@ -380,28 +503,17 @@
     .tagline-description {
         font-size: 0.9rem;
     }
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .rank-badge {
-        width: 28px;
-        height: 28px;
-        font-size: 0.8rem;
-    }
-    
-    .team-logo {
-        width: 28px;
-        height: 28px;
-    }
     
     .feature-card {
         padding: 1.5rem;
         margin-bottom: 1rem;
     }
     
+    /* Mobile table adjustments */
+    .table thead th,
     .table tbody td {
-        padding: 0.75rem 0.5rem;
+        padding: 0.5rem 0.25rem;
+        font-size: 0.85rem;
     }
 }
 </style>
