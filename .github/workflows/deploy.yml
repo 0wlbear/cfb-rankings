@@ -25,6 +25,10 @@ jobs:
         script: |
           echo "🚀 Starting deployment..."
           
+          # Stop service FIRST before updating files
+          sudo systemctl stop cfb-rankings
+          echo "✅ Service stopped"
+          
           # Update git
           cd /home/ubuntu/cfb-app-git
           git fetch origin main
@@ -32,7 +36,7 @@ jobs:
           git clean -fd
           echo "✅ Git updated"
           
-          # Create environment file in the git directory (where service runs from)
+          # Create environment file
           echo "ADMIN_USERNAME=$ADMIN_USERNAME" > /home/ubuntu/cfb-app-git/.env
           echo "ADMIN_PASSWORD=$ADMIN_PASSWORD" >> /home/ubuntu/cfb-app-git/.env
           echo "DATA_DIR=/home/ubuntu/cfb-app-git/data" >> /home/ubuntu/cfb-app-git/.env
@@ -43,18 +47,16 @@ jobs:
           if python -c "from app import app; print('✅ Import test passed')" 2>/dev/null; then
               echo "✅ New code validated"
               
-              # Restart service
-              sudo systemctl restart cfb-rankings
-              sleep 3
+              # Start service (not restart)
+              sudo systemctl start cfb-rankings
+              sleep 8
               
               # Check if service is running
               if sudo systemctl is-active cfb-rankings >/dev/null; then
                   echo "🎉 Deployment successful!"
               else
                   echo "❌ Service failed to start"
-                  echo "=== Service Status ==="
-                  sudo systemctl status cfb-rankings
-                  echo "=== Recent Logs ==="
+                  sudo systemctl status cfb-rankings --no-pager -l
                   sudo journalctl -u cfb-rankings --no-pager -n 20
               fi
           else
