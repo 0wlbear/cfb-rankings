@@ -1,0 +1,168 @@
+<!-- =============================================== -->
+<!-- 3. cfb_prediction_factors.html - Factor Analysis -->
+<!-- =============================================== -->
+
+{% extends "base.html" %}
+
+{% block title %}CFB Prediction Factors Analysis{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>🔬 CFB Prediction Factors Analysis</h2>
+                <a href="{{ url_for('cfb_ml_dashboard') }}" class="btn btn-outline-primary">
+                    ← Back to ML Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Summary -->
+    {% if performance %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h5>📊 Algorithm Performance Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-2">
+                            <strong>Total Predictions:</strong><br>
+                            <span class="h4">{{ performance.total_predictions }}</span>
+                        </div>
+                        <div class="col-md-2">
+                            <strong>Winner Accuracy:</strong><br>
+                            <span class="h4 text-success">{{ "%.1f"|format(performance.winner_accuracy) }}%</span>
+                        </div>
+                        <div class="col-md-2">
+                            <strong>Avg Accuracy:</strong><br>
+                            <span class="h4 text-info">{{ "%.1f"|format(performance.average_accuracy) }}%</span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Avg Margin Error:</strong><br>
+                            <span class="h4 text-warning">{{ "%.1f"|format(performance.average_margin_error) }} pts</span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Algorithm Version:</strong><br>
+                            <span class="h5">{{ performance.algorithm_version }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Factor Importance Analysis -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>🎯 Prediction Factor Importance</h5>
+                </div>
+                <div class="card-body">
+                    {% if factor_importance %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Factor Name</th>
+                                    <th>Average Accuracy</th>
+                                    <th>Sample Count</th>
+                                    <th>Consistency</th>
+                                    <th>Impact Assessment</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for factor_name, stats in factor_importance.items() %}
+                                <tr class="{{ 'table-success' if loop.index <= 3 else 'table-warning' if loop.index <= 6 else 'table-light' }}">
+                                    <td>
+                                        <span class="badge badge-{{ 'success' if loop.index <= 3 else 'warning' if loop.index <= 6 else 'secondary' }}">
+                                            #{{ loop.index }}
+                                        </span>
+                                    </td>
+                                    <td><strong>{{ factor_name }}</strong></td>
+                                    <td>
+                                        <span class="badge badge-{{ 'success' if stats.average_accuracy >= 75 else 'warning' if stats.average_accuracy >= 60 else 'danger' }}">
+                                            {{ "%.1f"|format(stats.average_accuracy) }}%
+                                        </span>
+                                    </td>
+                                    <td>{{ stats.sample_count }}</td>
+                                    <td>
+                                        {% set consistency = 100 - (stats.accuracy_variance|sqrt) %}
+                                        <span class="badge badge-{{ 'success' if consistency >= 80 else 'warning' if consistency >= 60 else 'danger' }}">
+                                            {{ "%.0f"|format(consistency) }}%
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if loop.index <= 3 %}
+                                            <span class="text-success">🌟 High Impact</span>
+                                        {% elif loop.index <= 6 %}
+                                            <span class="text-warning">⚖️ Moderate Impact</span>
+                                        {% else %}
+                                            <span class="text-muted">📉 Low Impact</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-4">
+                        <h5>No factor analysis data available</h5>
+                        <p>Factor importance will be calculated after sufficient predictions with verified results.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Optimization Suggestions -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>💡 Optimization Suggestions</h5>
+                </div>
+                <div class="card-body">
+                    {% if optimization_suggestions %}
+                    {% for suggestion in optimization_suggestions %}
+                    <div class="alert alert-{{ 'success' if suggestion.type == 'positive' else 'warning' if suggestion.type == 'improvement' else 'info' if suggestion.type == 'insight' else 'danger' if suggestion.type == 'critical' else 'primary' }}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6>
+                                    {% if suggestion.type == 'positive' %}🎉
+                                    {% elif suggestion.type == 'improvement' %}🔧
+                                    {% elif suggestion.type == 'insight' %}💡
+                                    {% elif suggestion.type == 'critical' %}⚠️
+                                    {% elif suggestion.type == 'temporal' %}⏱️
+                                    {% else %}📊
+                                    {% endif %}
+                                    {{ suggestion.category }}
+                                </h6>
+                                <p class="mb-0">{{ suggestion.suggestion }}</p>
+                            </div>
+                            <span class="badge badge-{{ 'danger' if suggestion.priority == 'high' else 'warning' if suggestion.priority == 'medium' else 'info' }}">
+                                {{ suggestion.priority|title }} Priority
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="text-center text-muted py-4">
+                        <h5>No optimization suggestions available</h5>
+                        <p>Suggestions will be generated based on prediction performance patterns.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

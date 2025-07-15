@@ -1,0 +1,167 @@
+<!-- =============================================== -->
+<!-- 2. cfb_temporal_weights.html - Temporal Weight Analysis -->
+<!-- =============================================== -->
+
+{% extends "base.html" %}
+
+{% block title %}CFB Temporal Weights Analysis{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>⏱️ CFB Temporal Weights Analysis</h2>
+                <a href="{{ url_for('cfb_ml_dashboard') }}" class="btn btn-outline-primary">
+                    ← Back to ML Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overview Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Total Weeks Analyzed</h5>
+                    <h2 class="text-info">{{ weight_comparison|length }}</h2>
+                    <small class="text-muted">With verified predictions</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-success">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Weeks Needing Adjustment</h5>
+                    <h2 class="text-success">
+                        {{ weight_comparison|selectattr('difference', 'abs')|selectattr('difference', '>', 0.05)|list|length }}
+                    </h2>
+                    <small class="text-muted">±0.05 threshold</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-warning">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Avg Accuracy Impact</h5>
+                    <h2 class="text-warning">
+                        {% set total_accuracy = weight_comparison|sum(attribute='accuracy') %}
+                        {% set count = weight_comparison|length %}
+                        {{ "%.1f"|format(total_accuracy / count if count > 0 else 0) }}%
+                    </h2>
+                    <small class="text-muted">Across analyzed weeks</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Weight Comparison Table -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>📊 Week-by-Week Weight Analysis</h5>
+                </div>
+                <div class="card-body">
+                    {% if weight_comparison %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Week</th>
+                                    <th>Current Weight</th>
+                                    <th>Suggested Weight</th>
+                                    <th>Difference</th>
+                                    <th>Prediction Accuracy</th>
+                                    <th>Predictions Made</th>
+                                    <th>Avg Confidence</th>
+                                    <th>Recommendation</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for week in weight_comparison %}
+                                <tr class="{{ 'table-warning' if week.difference|abs > 0.05 else 'table-light' }}">
+                                    <td><strong>Week {{ week.week }}</strong></td>
+                                    <td>{{ "%.3f"|format(week.current_weight) }}</td>
+                                    <td>{{ "%.3f"|format(week.suggested_weight) }}</td>
+                                    <td>
+                                        <span class="badge badge-{{ 'success' if week.difference > 0 else 'danger' if week.difference < 0 else 'secondary' }}">
+                                            {{ "{:+.3f}"|format(week.difference) }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-{{ 'success' if week.accuracy >= 75 else 'warning' if week.accuracy >= 60 else 'danger' }}">
+                                            {{ "%.1f"|format(week.accuracy) }}%
+                                        </span>
+                                    </td>
+                                    <td>{{ week.predictions }}</td>
+                                    <td>{{ "%.1f"|format(week.confidence * 100) }}%</td>
+                                    <td>
+                                        {% if week.difference|abs < 0.02 %}
+                                            <span class="text-success">✅ Keep current</span>
+                                        {% elif week.difference > 0.05 %}
+                                            <span class="text-primary">📈 Increase weight</span>
+                                        {% elif week.difference < -0.05 %}
+                                            <span class="text-danger">📉 Decrease weight</span>
+                                        {% else %}
+                                            <span class="text-warning">⚠️ Minor adjustment</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-4">
+                        <h5>No temporal analysis data available</h5>
+                        <p>Data will appear after predictions are made and verified with actual results.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Implementation Guide -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-info">
+                <div class="card-header bg-info text-white">
+                    <h5>🛠️ How to Apply Weight Adjustments</h5>
+                </div>
+                <div class="card-body">
+                    <p>Based on this analysis, consider updating your temporal weights in the <code>get_temporal_weight_by_week()</code> function:</p>
+                    
+                    {% if weight_comparison %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Current Weights (in your code):</h6>
+                            <pre class="bg-light p-3"><code>week_weights = {
+{% for week in weight_comparison -%}
+    '{{ week.week }}': {{ "%.3f"|format(week.current_weight) }},
+{% endfor -%}
+}</code></pre>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Suggested Weights (ML optimized):</h6>
+                            <pre class="bg-success text-white p-3"><code>week_weights = {
+{% for week in weight_comparison -%}
+    '{{ week.week }}': {{ "%.3f"|format(week.suggested_weight) }},
+{% endfor -%}
+}</code></pre>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-warning mt-3">
+                        <strong>⚠️ Implementation Note:</strong> Apply weight changes gradually and test impact on overall ranking quality. 
+                        Large changes should be made incrementally over multiple weeks.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

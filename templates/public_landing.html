@@ -68,7 +68,7 @@
                                                     </div>
                                                 </div>
                                                 <div>
-                                                    <span class="conference-tag {% if team.conference == 'Conference USA' %}conference-usa-desktop-fix{% endif %}">{{ team.conference }}</span>
+                                                    <span class="conference-tag">{{ team.conference }}</span>
                                                 </div>
                                             </div>
                                         </td>
@@ -119,13 +119,7 @@
                                                         </a>
                                                     </div>
                                                     <div class="mt-1">
-                                                        {% set badge_class = {
-                                                            'ACC': 'primary', 'Big Ten': 'success', 'Big XII': 'warning text-dark',
-                                                            'Pac 12': 'info', 'SEC': 'danger', 'Independent': 'secondary',
-                                                            'American': 'dark', 'Conference USA': 'light text-dark',
-                                                            'MAC': 'primary', 'Mountain West': 'success', 'Sun Belt': 'warning text-dark'
-                                                        }.get(team.conference, 'secondary') %}
-                                                        <span class="badge bg-{{ badge_class }} {% if team.conference == 'Conference USA' %}conference-usa-fix{% endif %}" style="font-size: 0.65rem;">
+                                                        <span class="conference-badge-mobile">
                                                             {{ team.conference }}
                                                         </span>
                                                     </div>
@@ -289,24 +283,32 @@
     color: #0d6efd !important;
 }
 
+/* UPDATED: Consistent conference tag styling for desktop */
 .conference-tag {
+    display: inline-block;
+    padding: 6px 12px;
+    background: #f8f9fa;
+    border: 2px solid #495057;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #212529;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* UPDATED: Consistent conference badge styling for mobile */
+.conference-badge-mobile {
     display: inline-block;
     padding: 4px 8px;
     background: #f8f9fa;
-    border: 1px solid #e9ecef;
+    border: 2px solid #495057;
     border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: #6c757d;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #212529;
     text-transform: uppercase;
-}
-
-/* Fix for Conference USA desktop tag */
-.conference-tag.conference-usa-desktop-fix {
-    background: #e9ecef !important;
-    color: #212529 !important;
-    border: 2px solid #495057 !important;
-    font-weight: 700 !important;
+    letter-spacing: 0.3px;
 }
 
 .rating-badge {
@@ -328,15 +330,6 @@
     border-radius: 4px;
     font-weight: 600;
     font-size: 0.8rem;
-}
-
-/* Fix for Conference USA badge readability */
-.badge.conference-usa-fix {
-    background-color: #e9ecef !important;
-    color: #212529 !important;
-    border: 2px solid #495057 !important;
-    text-shadow: none !important;
-    font-weight: 700 !important;
 }
 
 .legend-item {

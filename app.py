@@ -1,16 +1,64 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, render_template_string
+# Standard library imports
 import json
 import math
+import os
+import time
+import hashlib
+import signal
+import sys
 from datetime import datetime
 from collections import defaultdict
 from functools import wraps
-import os
-import hashlib
-import time
-from models import db, Game, TeamStats, ScheduledGame, ArchivedSeason, WeeklySnapshot
+
+# Third-party imports
+from flask import Flask, render_template, request, redirect, url_for, flash, session, render_template_string
 from sqlalchemy import text
 from dotenv import load_dotenv
-load_dotenv()  # This loads the .env file your workflow creates
+
+# Load environment variables
+load_dotenv()
+
+# Local imports - Database models
+from models import (
+    db, 
+    Game, 
+    TeamStats, 
+    ScheduledGame, 
+    ArchivedSeason, 
+    WeeklySnapshot, 
+    CFBPredictionLog,
+    ExternalPoll
+)
+
+# Local imports - CFB ML tracking (with error handling)
+CFB_ML_ENABLED = False
+try:
+    import cfb_ml_tracking
+    from cfb_ml_tracking import (
+        track_prediction,
+        log_actual_result, 
+        get_ml_dashboard_data,
+        export_prediction_data
+    )
+    CFB_ML_ENABLED = True
+    print("✅ CFB ML tracking module loaded")
+except ImportError as e:
+    print(f"⚠️ CFB ML tracking not available: {e}")
+    # Create dummy functions to prevent errors
+    def track_prediction(prediction_type):
+        def decorator(func):
+            return func
+        return decorator
+    
+    def log_actual_result(*args, **kwargs):
+        return 0
+    
+    def get_ml_dashboard_data():
+        return None
+    
+    def export_prediction_data():
+        return None
+
 
 # Simple in-memory cache (for production, use Redis)
 performance_cache = {}
@@ -1298,7 +1346,8 @@ def inject_user():
     return dict(
         is_admin=session.get('admin_logged_in', False),
         get_team_logo_url=get_team_logo_url,
-        get_current_week_info=get_current_week_info  # NEW: Make available globally
+        get_current_week_info=get_current_week_info,
+        CFB_ML_ENABLED=CFB_ML_ENABLED  
     )
 
 
@@ -1816,6 +1865,69 @@ def calculate_victory_value(game, team_name):
     return round(total_value, 2)
 
 # Add helper function to show bowl eligibility status:
+
+def log_game_result_to_ml(home_team, away_team, home_score, away_score, week, is_overtime=False):
+    """Enhanced game result logging with over/under tracking"""
+    if not CFB_ML_ENABLED:
+        return
+    
+    try:
+        # Determine actual winner and margin
+        if home_score > away_score:
+            actual_winner = home_team
+            actual_margin = home_score - away_score
+        else:
+            actual_winner = away_team
+            actual_margin = away_score - home_score
+        
+        # Calculate actual total
+        actual_total = home_score + away_score
+        
+        # Find all matching predictions for this game
+        predictions = CFBPredictionLog.query.filter(
+            CFBPredictionLog.home_team == home_team,
+            CFBPredictionLog.away_team == away_team,
+            CFBPredictionLog.week == str(week),
+            CFBPredictionLog.game_completed == False
+        ).all()
+        
+        results_updated = 0
+        
+        for prediction in predictions:
+            # Update actual results
+            prediction.actual_winner = actual_winner
+            prediction.actual_margin = actual_margin
+            prediction.actual_total = actual_total
+            prediction.game_completed = True
+            prediction.result_date = datetime.utcnow()
+            
+            # Calculate accuracy metrics
+            
+            # Winner correct?
+            prediction.winner_correct = (prediction.predicted_winner == actual_winner)
+            
+            # Margin error
+            if prediction.predicted_margin is not None:
+                prediction.margin_error = abs(prediction.predicted_margin - actual_margin)
+            
+            # Total error (over/under)
+            if prediction.predicted_total is not None:
+                prediction.total_error = abs(prediction.predicted_total - actual_total)
+            
+            results_updated += 1
+        
+        # Commit all updates
+        db.session.commit()
+        
+        if results_updated > 0:
+            flash(f'🤖 ML Tracking: Updated {results_updated} prediction(s) with actual result', 'info')
+        
+        return results_updated
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"Enhanced ML tracking error: {e}")
+        return 0
 
 def get_team_bowl_status(team_name):
     """Get detailed bowl eligibility status for a team"""
@@ -2547,162 +2659,6 @@ def get_all_team_stats_bulk():
         return []
 
 
-@app.route('/debug_sos/<team_name>')
-@login_required
-def debug_sos(team_name):
-    """Debug SOS calculation for a specific team"""
-    team_record = TeamStats.query.filter_by(team_name=team_name).first()
-    if not team_record:
-        return f"<h1>Team {team_name} not found</h1>"
-    
-    team_data = team_record.to_dict()
-    games = team_data['games']
-    
-    if not games:
-        return f"<h1>{team_name} has no games</h1>"
-    
-    # Calculate SOS step by step
-    opponent_details = []
-    opponent_total_wins = 0
-    opponent_total_losses = 0
-    opponent_total_games = 0
-    
-    for game in games:
-        opponent = game['opponent']
-        
-        # Check if this is FCS
-        is_fcs = (opponent == 'FCS' or opponent.upper() == 'FCS')
-        
-        if is_fcs:
-            opponent_details.append({
-                'opponent': opponent,
-                'wins': 'N/A',
-                'losses': 'N/A',
-                'total_games': 'N/A',
-                'win_pct': 'N/A',
-                'included_in_sos': False,
-                'reason': 'FCS opponent excluded'
-            })
-        else:
-            # Get opponent's record
-            opp_record = TeamStats.query.filter_by(team_name=opponent).first()
-            if opp_record:
-                opp_data = opp_record.to_dict()
-                opp_wins = opp_data['wins']
-                opp_losses = opp_data['losses']
-                opp_games = opp_wins + opp_losses
-                opp_win_pct = opp_wins / opp_games if opp_games > 0 else 0
-                
-                opponent_total_wins += opp_wins
-                opponent_total_losses += opp_losses
-                opponent_total_games += opp_games
-                
-                opponent_details.append({
-                    'opponent': opponent,
-                    'wins': opp_wins,
-                    'losses': opp_losses,
-                    'total_games': opp_games,
-                    'win_pct': f"{opp_win_pct:.3f}",
-                    'included_in_sos': True,
-                    'reason': 'Included in SOS'
-                })
-            else:
-                opponent_details.append({
-                    'opponent': opponent,
-                    'wins': 'N/A',
-                    'losses': 'N/A',
-                    'total_games': 'N/A',
-                    'win_pct': 'N/A',
-                    'included_in_sos': False,
-                    'reason': 'Opponent not found in database'
-                })
-    
-    # Calculate final SOS
-    final_sos = opponent_total_wins / opponent_total_games if opponent_total_games > 0 else 0
-    
-    return f"""
-    <html><body style="font-family: Arial; margin: 40px;">
-        <h1>SOS Debug for {team_name}</h1>
-        
-        <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <h3>📊 Final SOS Calculation</h3>
-            <p><strong>Total Opponent Wins:</strong> {opponent_total_wins}</p>
-            <p><strong>Total Opponent Games:</strong> {opponent_total_games}</p>
-            <p><strong>Strength of Schedule:</strong> {final_sos:.3f} ({final_sos:.1%})</p>
-        </div>
-        
-        <h2>Opponent Breakdown</h2>
-        <table border="1" style="border-collapse: collapse; width: 100%;">
-            <tr style="background: #f0f0f0;">
-                <th style="padding: 8px;">Opponent</th>
-                <th style="padding: 8px;">Record</th>
-                <th style="padding: 8px;">Win %</th>
-                <th style="padding: 8px;">Included?</th>
-                <th style="padding: 8px;">Reason</th>
-            </tr>
-            {''.join(f'''
-            <tr style="background: {'#d4edda' if opp['included_in_sos'] else '#f8d7da'};">
-                <td style="padding: 8px;">{opp['opponent']}</td>
-                <td style="padding: 8px;">{opp['wins']}-{opp['losses']} ({opp['total_games']} games)</td>
-                <td style="padding: 8px;">{opp['win_pct']}</td>
-                <td style="padding: 8px;">{'✅ YES' if opp['included_in_sos'] else '❌ NO'}</td>
-                <td style="padding: 8px;">{opp['reason']}</td>
-            </tr>
-            ''' for opp in opponent_details)}
-        </table>
-        
-        <h3>How SOS Works:</h3>
-        <ul>
-            <li>SOS = Total Opponent Wins ÷ Total Opponent Games</li>
-            <li>FCS opponents are excluded from SOS calculation</li>
-            <li>Only opponents with games in the database count</li>
-            <li>Higher SOS = stronger schedule</li>
-        </ul>
-        
-        <p><a href="/rankings">Back to Rankings</a> | <a href="/admin">Admin Panel</a></p>
-    </body></html>
-    """
-
-@app.route('/debug_values')
-@login_required  
-def debug_values():
-    """Show first 5 team calculation values"""
-    stats = get_all_team_stats_bulk()[:5]
-    result = "<h3>Debug Raw Values:</h3><ul>"
-    for team in stats:
-        result += f"<li>{team['team']}: {team['adjusted_total']}</li>"
-    result += "</ul>"
-    return result
-
-
-@app.route('/debug_db')
-@login_required
-def debug_db():
-    """Debug database connectivity in production"""
-    try:
-        # Test basic database connection
-        game_count = Game.query.count()
-        team_count = TeamStats.query.count()
-        scheduled_count = ScheduledGame.query.count()
-        
-        return f"""
-        <h1>Database Debug</h1>
-        <p>Games: {game_count}</p>
-        <p>Teams: {team_count}</p>
-        <p>Scheduled: {scheduled_count}</p>
-        <p>Database connected successfully!</p>
-        """
-    except Exception as e:
-        return f"<h1>Database Error</h1><p>{str(e)}</p>"
-
-@app.route('/clear_cache_debug')
-@login_required
-def clear_cache_debug():
-    """Clear cache and show debug info"""
-    global performance_cache
-    old_count = len(performance_cache)
-    performance_cache.clear()
-    return f"Cleared {old_count} cache entries. Try your rankings page now."
 
 
 def calculate_fast_stats(team_name, team_data, opponent_quality_cache):
@@ -2771,147 +2727,7 @@ def calculate_fast_stats(team_name, team_data, opponent_quality_cache):
     }
 
 
-@app.route('/debug_conference_multiplier')
-@login_required
-def debug_conference_multiplier():
-    """Debug conference multiplier application"""
-    
-    # Use your actual teams that have games
-    test_teams = ['Kansas', 'Fresno State', 'Western Kentucky', 'Sam Houston']
-    
-    results = []
-    for team_name in test_teams:
-        # Check if team exists
-        team_record = TeamStats.query.filter_by(team_name=team_name).first()
-        if not team_record:
-            results.append({
-                'team': team_name,
-                'conference': 'NOT FOUND',
-                'is_g5': False,
-                'expected_multiplier': 'N/A',
-                'bulk_score': 'No data',
-                'individual_score': 'No data',
-                'has_games': False
-            })
-            continue
-            
-        # Get conference
-        team_conf = get_team_conference(team_name)
-        
-        # Check if G5
-        is_g5 = team_conf in G5_CONFERENCES or team_name in G5_INDEPENDENT_TEAMS
-        
-        # Get games count
-        team_data = team_record.to_dict()
-        total_games = team_data['wins'] + team_data['losses']
-        
-        # Calculate both ways
-        bulk_stats = None
-        all_teams_stats = get_all_team_stats_bulk()
-        for team_stats in all_teams_stats:
-            if team_stats['team'] == team_name:
-                bulk_stats = team_stats
-                break
-                
-        individual_stats = calculate_comprehensive_stats(team_name)
-        
-        # Get raw victory value (before multiplier)
-        try:
-            enhanced_result = calculate_enhanced_scientific_ranking(team_name)
-            raw_victory_value = enhanced_result['components']['victory_value']
-            adjusted_victory_value = enhanced_result['components']['adjusted_victory_value']
-            conference_multiplier = enhanced_result['components']['conference_multiplier']
-        except:
-            raw_victory_value = 'Error'
-            adjusted_victory_value = 'Error'
-            conference_multiplier = 'Error'
-        
-        results.append({
-            'team': team_name,
-            'conference': team_conf,
-            'is_g5': is_g5,
-            'expected_multiplier': 0.85 if is_g5 else 1.0,
-            'actual_multiplier': conference_multiplier,
-            'raw_victory_value': raw_victory_value,
-            'adjusted_victory_value': adjusted_victory_value,
-            'bulk_score': bulk_stats['adjusted_total'] if bulk_stats else 'Not found',
-            'individual_score': individual_stats['adjusted_total'],
-            'has_games': total_games > 0,
-            'total_games': total_games
-        })
-    
-    debug_html = """
-    <html><body style="font-family: Arial; margin: 40px;">
-    <h1>Conference Multiplier Debug</h1>
-    <table border="1" style="border-collapse: collapse;">
-        <tr>
-            <th>Team</th>
-            <th>Conference</th>
-            <th>Games</th>
-            <th>Is G5?</th>
-            <th>Expected Mult</th>
-            <th>Actual Mult</th>
-            <th>Raw Victory</th>
-            <th>Adjusted Victory</th>
-            <th>Bulk Score</th>
-            <th>Individual Score</th>
-        </tr>
-    """
-    
-    for result in results:
-        debug_html += f"""
-        <tr>
-            <td>{result['team']}</td>
-            <td>{result['conference']}</td>
-            <td>{result['total_games']}</td>
-            <td>{result['is_g5']}</td>
-            <td>{result['expected_multiplier']}</td>
-            <td>{result.get('actual_multiplier', 'N/A')}</td>
-            <td>{result.get('raw_victory_value', 'N/A')}</td>
-            <td>{result.get('adjusted_victory_value', 'N/A')}</td>
-            <td>{result['bulk_score']}</td>
-            <td>{result['individual_score']}</td>
-        </tr>
-        """
-    
-    debug_html += """
-    </table>
-    
-    <h2>Expected Results:</h2>
-    <p><strong>Kansas (Big XII - P4):</strong> Should get 1.0 multiplier</p>
-    <p><strong>Fresno State (Mountain West - G5):</strong> Should get 0.85 multiplier</p>
-    <p><strong>Western Kentucky (Conference USA - G5):</strong> Should get 0.85 multiplier</p>
-    <p><strong>Sam Houston (Conference USA - G5):</strong> Should get 0.85 multiplier</p>
-    
-    <h2>Conference Classifications:</h2>
-    <p><strong>P4 Conferences:</strong> ACC, Big Ten, Big XII, Pac 12, SEC</p>
-    <p><strong>G5 Conferences:</strong> """ + ", ".join(G5_CONFERENCES) + """</p>
-    <p><strong>G5 Independent Teams:</strong> """ + ", ".join(G5_INDEPENDENT_TEAMS) + """</p>
-    
-    <p><a href="/admin">Back to Admin</a></p>
-    </body></html>
-    """
-    
-    return debug_html
 
-
-@app.route('/debug_clear_cache')
-@login_required
-def debug_clear_cache():
-    """Clear the performance cache"""
-    global performance_cache
-    old_count = len(performance_cache)
-    performance_cache.clear()
-    
-    return f"""
-    <html><body style="font-family: Arial; margin: 40px;">
-    <h1>Cache Cleared!</h1>
-    <p>Cleared {old_count} cache entries.</p>
-    <p><a href="/debug_conference_multiplier">Test Conference Multiplier Again</a></p>
-    <p><a href="/rankings">Check Rankings Page</a></p>
-    <p><a href="/admin">Back to Admin</a></p>
-    </body></html>
-    """
 
 def create_default_stats():
     """Default stats for teams with no games"""
@@ -3270,6 +3086,513 @@ def detect_schedule_manipulation(team_name):
     
     return issues
 
+def auto_predict_single_game(scheduled_game, overwrite=False):
+    """
+    Enhanced auto-prediction with over/under and structured factor tracking
+    Returns: (success: bool, message: str, prediction_id: int or None)
+    """
+    try:
+        # Check if prediction already exists
+        existing = CFBPredictionLog.query.filter(
+            CFBPredictionLog.week == scheduled_game.week,
+            CFBPredictionLog.home_team == scheduled_game.home_team,
+            CFBPredictionLog.away_team == scheduled_game.away_team,
+            CFBPredictionLog.prediction_type == 'automated'
+        ).first()
+        
+        if existing and not overwrite:
+            return False, "Automated prediction already exists", existing.id
+        
+        # Determine location parameter for your prediction function
+        if scheduled_game.neutral:
+            location = 'neutral'
+        else:
+            location = 'home'  # Home team gets home field advantage
+        
+        # Generate prediction using your existing function
+        prediction_result = predict_matchup_ultra_enhanced(
+            scheduled_game.home_team,
+            scheduled_game.away_team, 
+            location
+        )
+        
+        # Get team stats for total points prediction
+        home_stats = TeamStats.query.filter_by(team_name=scheduled_game.home_team).first()
+        away_stats = TeamStats.query.filter_by(team_name=scheduled_game.away_team).first()
+        
+        # Calculate predicted total (you can enhance this formula)
+        predicted_total = None
+        if home_stats and away_stats:
+            home_games = max(1, home_stats.wins + home_stats.losses)
+            away_games = max(1, away_stats.wins + away_stats.losses)
+            home_avg = home_stats.points_for / home_games
+            away_avg = away_stats.points_for / away_games
+            predicted_total = round(home_avg + away_avg, 1)
+        
+        # Create or update prediction log entry
+        if existing and overwrite:
+            prediction_log = existing
+        else:
+            prediction_log = CFBPredictionLog()
+        
+        # Fill in the basic prediction data
+        prediction_log.season_year = 2025  # Or get from config
+        prediction_log.week = scheduled_game.week
+        prediction_log.home_team = scheduled_game.home_team
+        prediction_log.away_team = scheduled_game.away_team
+        prediction_log.prediction_type = 'automated'
+        
+        # Store prediction results
+        prediction_log.predicted_winner = prediction_result['winner']
+        prediction_log.predicted_margin = abs(prediction_result['final_margin'])
+        prediction_log.predicted_total = predicted_total
+        prediction_log.win_probability = prediction_result['win_probability']
+        prediction_log.confidence_level = prediction_result['confidence']
+        
+        # ENHANCED: Store structured factor data
+        adjustments = prediction_result.get('adjustments', {})
+        
+        prediction_log.base_strength_diff = prediction_result.get('base_margin', 0)
+        prediction_log.schedule_strength_factor = adjustments.get('Enhanced Schedule Strength', 0)
+        prediction_log.momentum_factor = adjustments.get('Recent Momentum Edge', 0)
+        prediction_log.location_factor = adjustments.get('Enhanced Home Field', 0)
+        prediction_log.consistency_factor = adjustments.get('Consistency Advantage', 0)
+        prediction_log.common_opponent_factor = adjustments.get('Enhanced Common Opponents', 0) or adjustments.get('Common Opponents', 0)
+        
+        # Store current algorithm settings
+        prediction_log.temporal_weights_json = json.dumps(get_current_temporal_weights())
+        prediction_log.algorithm_version = "v1.0"  # Update this when you change your algorithm
+        
+        # Store prediction factors as JSON (existing functionality)
+        factors = {
+            'base_margin': prediction_result['base_margin'],
+            'adjustments': prediction_result['adjustments'],
+            'confidence_score': prediction_result['confidence_score'],
+            'methodology': prediction_result['prediction_methodology']
+        }
+        prediction_log.prediction_factors_json = json.dumps(factors)
+        
+        # Save to database
+        if not existing:
+            db.session.add(prediction_log)
+        db.session.commit()
+        
+        return True, f"Successfully predicted {scheduled_game.away_team} @ {scheduled_game.home_team}", prediction_log.id
+        
+    except Exception as e:
+        db.session.rollback()
+        return False, f"Error generating prediction: {str(e)}", None
+
+# Add these two routes to your app.py
+
+def get_current_temporal_weights():
+    """
+    Return current temporal weight settings for ML tracking
+    CUSTOMIZE THIS to match your actual temporal weight system
+    """
+    # Replace these with your actual temporal weights from your algorithm
+    # These are example values - update them to match your current system
+    return {
+        "week_1": 0.65,
+        "week_2": 0.70,
+        "week_3": 0.75,
+        "week_4": 0.80,
+        "week_5": 0.85,
+        "week_6": 0.90,
+        "week_7": 0.95,
+        "week_8": 1.00,
+        "week_9": 1.05,
+        "week_10": 1.10,
+        "week_11": 1.15,
+        "week_12": 1.20,
+        "bowls": 1.25,
+        "championship": 1.30
+    }
+
+
+@app.route('/admin/ml/recreate_tables')
+@login_required
+def recreate_cfb_ml_tables():
+    """Drop and recreate CFB ML tables with correct structure"""
+    try:
+        # Import the models to ensure they're loaded
+        from models import CFBPredictionLog, CFBTemporalAnalysis, CFBAlgorithmPerformance
+        
+        # Use proper SQLAlchemy 2.0 syntax
+        with db.engine.connect() as connection:
+            # Drop existing tables
+            connection.execute(text("DROP TABLE IF EXISTS cfb_prediction_logs CASCADE;"))
+            connection.execute(text("DROP TABLE IF EXISTS cfb_temporal_analysis CASCADE;"))
+            connection.execute(text("DROP TABLE IF EXISTS cfb_algorithm_performance CASCADE;"))
+            connection.commit()
+        
+        # Recreate with current model structure
+        db.create_all()
+        
+        flash('✅ CFB ML tables recreated with correct structure!', 'success')
+        return f"""
+        <div style="font-family: Arial; margin: 40px;">
+            <h1>✅ CFB ML Tables Recreated Successfully!</h1>
+            
+            <div style="background: #d4edda; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3>Tables Recreated:</h3>
+                <ul>
+                    <li>cfb_prediction_logs - ✅ Ready for predictions</li>
+                    <li>cfb_temporal_analysis - ✅ Ready for temporal tracking</li>
+                    <li>cfb_algorithm_performance - ✅ Ready for performance analysis</li>
+                </ul>
+            </div>
+            
+            <p><a href="/admin/ml" style="background: #28a745; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">🤖 Test ML Dashboard</a></p>
+            <p><a href="/admin" style="background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">← Back to Admin</a></p>
+        </div>
+        """
+        
+    except Exception as e:
+        return f"""
+        <div style="font-family: Arial; margin: 40px;">
+            <h1>❌ Error Recreating Tables</h1>
+            <div style="background: #f8d7da; padding: 15px; border-radius: 8px;">
+                <p><strong>Error:</strong> {e}</p>
+            </div>
+            <p><a href="/admin">Back to Admin</a></p>
+        </div>
+        """
+
+# Add this temporary route to test critical functions
+@app.route('/admin/test_core_functions')
+@login_required
+def test_core_functions():
+    """Test that core functions still work"""
+    try:
+        results = []
+        
+        # Test team stats
+        alabama_stats = calculate_comprehensive_stats('Alabama')
+        results.append(f"✅ calculate_comprehensive_stats: {alabama_stats['total_wins']}-{alabama_stats['total_losses']}")
+        
+        # Test bulk loading
+        all_stats = get_all_team_stats_bulk()
+        results.append(f"✅ get_all_team_stats_bulk: {len(all_stats)} teams")
+        
+        # Test team logo
+        logo_url = get_team_logo_url('Alabama')
+        results.append(f"✅ get_team_logo_url: {logo_url}")
+        
+        # Test week info
+        week_info = get_current_week_info()
+        results.append(f"✅ get_current_week_info: Week {week_info['current_week']}")
+        
+        # Test games data
+        games = get_games_data()
+        results.append(f"✅ get_games_data: {len(games)} games")
+        
+        return f"""
+        <h2>Core Functions Test Results</h2>
+        <ul>{''.join(f'<li>{result}</li>' for result in results)}</ul>
+        <p><a href="/admin">Back to Admin</a></p>
+        """
+        
+    except Exception as e:
+        return f"<h2>❌ Error in core functions:</h2><p>{e}</p>"
+
+
+@app.route('/admin/ml/predict_week/<int:week>')
+@login_required
+def auto_predict_week(week):
+    """Auto-predict all scheduled games for a specific week"""
+    try:
+        # Get all unpredicted games for this week
+        unpredicted_games = ScheduledGame.query.filter(
+            ScheduledGame.week == str(week),
+            ScheduledGame.completed == False
+        ).all()
+        
+        if not unpredicted_games:
+            flash(f'No unpredicted games found for Week {week}', 'info')
+            return redirect(url_for('cfb_ml_dashboard'))
+        
+        # Track results
+        successful_predictions = 0
+        failed_predictions = 0
+        skipped_predictions = 0
+        results = []
+        
+        for game in unpredicted_games:
+            # Check if automated prediction already exists
+            existing = CFBPredictionLog.query.filter(
+                CFBPredictionLog.week == str(week),
+                CFBPredictionLog.home_team == game.home_team,
+                CFBPredictionLog.away_team == game.away_team,
+                CFBPredictionLog.prediction_type == 'automated'
+            ).first()
+            
+            if existing:
+                skipped_predictions += 1
+                results.append(f"⏭️ {game.away_team} @ {game.home_team} - Already predicted")
+                continue
+            
+            # Generate prediction
+            success, message, pred_id = auto_predict_single_game(game, overwrite=False)
+            
+            if success:
+                successful_predictions += 1
+                results.append(f"✅ {message}")
+            else:
+                failed_predictions += 1
+                results.append(f"❌ {game.away_team} @ {game.home_team} - {message}")
+        
+        # Show results
+        flash(f'Week {week} Auto-Prediction Results: {successful_predictions} successful, {failed_predictions} failed, {skipped_predictions} skipped', 'info')
+        
+        # For now, show results on a simple page
+        results_html = f"""
+        <h2>Week {week} Auto-Prediction Results</h2>
+        <p><strong>Summary:</strong> {successful_predictions} successful, {failed_predictions} failed, {skipped_predictions} skipped</p>
+        <h3>Details:</h3>
+        <ul>
+        """
+        
+        for result in results:
+            results_html += f"<li>{result}</li>"
+        
+        results_html += f"""
+        </ul>
+        <br>
+        <a href='/admin/ml'>Back to ML Dashboard</a> | 
+        <a href='/admin/ml/batch_predict'>Batch Predict</a>
+        """
+        
+        return results_html
+        
+    except Exception as e:
+        flash(f'Error auto-predicting Week {week}: {str(e)}', 'error')
+        return redirect(url_for('cfb_ml_dashboard'))
+
+
+@app.route('/admin/ml/batch_predict')
+@login_required  
+def batch_predict_interface():
+    """Interface to select weeks for batch prediction"""
+    try:
+        # Get all weeks that have scheduled games
+        weeks_with_games = db.session.query(ScheduledGame.week).filter(
+            ScheduledGame.completed == False
+        ).distinct().all()
+        
+        available_weeks = [week[0] for week in weeks_with_games]
+        available_weeks.sort(key=lambda x: int(x) if x.isdigit() else 999)  # Sort numerically, bowls at end
+        
+        # Simple HTML interface
+        interface_html = f"""
+        <h2>Batch Auto-Predict Games</h2>
+        <p>Select weeks to automatically predict all scheduled games:</p>
+        <ul>
+        """
+        
+        for week in available_weeks:
+            # Count unpredicted games for this week
+            unpredicted_count = ScheduledGame.query.filter(
+                ScheduledGame.week == week,
+                ScheduledGame.completed == False
+            ).count()
+            
+            # Count existing automated predictions
+            predicted_count = db.session.query(CFBPredictionLog).filter(
+                CFBPredictionLog.week == week,
+                CFBPredictionLog.prediction_type == 'automated'
+            ).count()
+            
+            interface_html += f"""
+            <li>
+                <strong>Week {week}:</strong> {unpredicted_count} games total, {predicted_count} already predicted
+                <a href='/admin/ml/predict_week/{week}' style='margin-left: 10px; padding: 5px 10px; background: #007bff; color: white; text-decoration: none; border-radius: 3px;'>
+                    Predict Week {week}
+                </a>
+            </li>
+            """
+        
+        interface_html += f"""
+        </ul>
+        <br>
+        <a href='/admin/ml'>Back to ML Dashboard</a>
+        """
+        
+        return interface_html
+        
+    except Exception as e:
+        flash(f'Error loading batch predict interface: {str(e)}', 'error')
+        return redirect(url_for('cfb_ml_dashboard'))
+
+
+
+# Add this route to your app.py to view predictions
+
+@app.route('/admin/ml/view_predictions/<week>')
+@login_required
+def view_week_predictions(week):
+    """View all predictions for a specific week"""
+    try:
+        # Get all predictions for this week
+        predictions = CFBPredictionLog.query.filter(
+            CFBPredictionLog.week == str(week)
+        ).order_by(CFBPredictionLog.prediction_date.desc()).all()
+        
+        if not predictions:
+            return f"<h3>No predictions found for Week {week}</h3><a href='/admin/ml/batch_predict'>Back to Batch Predict</a>"
+        
+        # Create HTML table to display predictions
+        html = f"""
+        <h2>Week {week} Predictions ({len(predictions)} total)</h2>
+        <table border='1' style='border-collapse: collapse; width: 100%;'>
+            <tr style='background: #f0f0f0;'>
+                <th style='padding: 8px;'>Matchup</th>
+                <th style='padding: 8px;'>Predicted Winner</th>
+                <th style='padding: 8px;'>Margin</th>
+                <th style='padding: 8px;'>Win %</th>
+                <th style='padding: 8px;'>Confidence</th>
+                <th style='padding: 8px;'>Type</th>
+                <th style='padding: 8px;'>Date</th>
+                <th style='padding: 8px;'>Result</th>
+            </tr>
+        """
+        
+        for pred in predictions:
+            # Determine if game is completed
+            result_status = "Pending"
+            if pred.game_completed:
+                if pred.winner_correct:
+                    result_status = f"✅ Correct ({pred.actual_winner})"
+                elif pred.winner_correct == False:
+                    result_status = f"❌ Wrong ({pred.actual_winner})"
+                else:
+                    result_status = f"Result: {pred.actual_winner}"
+            
+            # Color code by prediction type
+            row_color = "#e8f4fd" if pred.prediction_type == 'automated' else "#fff"
+            
+            html += f"""
+            <tr style='background: {row_color};'>
+                <td style='padding: 8px;'>{pred.away_team} @ {pred.home_team}</td>
+                <td style='padding: 8px;'><strong>{pred.predicted_winner}</strong></td>
+                <td style='padding: 8px;'>{pred.predicted_margin}</td>
+                <td style='padding: 8px;'>{pred.win_probability}%</td>
+                <td style='padding: 8px;'>{pred.confidence_level or 'N/A'}</td>
+                <td style='padding: 8px;'>{pred.prediction_type}</td>
+                <td style='padding: 8px;'>{pred.prediction_date.strftime('%m/%d %H:%M') if pred.prediction_date else 'N/A'}</td>
+                <td style='padding: 8px;'>{result_status}</td>
+            </tr>
+            """
+        
+        html += f"""
+        </table>
+        <br>
+        <a href='/admin/ml/batch_predict'>Back to Batch Predict</a> | 
+        <a href='/admin/ml'>ML Dashboard</a>
+        """
+        
+        return html
+        
+    except Exception as e:
+        return f"<h3>Error loading predictions:</h3><p>{str(e)}</p><a href='/admin/ml'>Back to ML Dashboard</a>"
+
+
+# Also add this quick link route
+@app.route('/admin/ml/predictions')
+@login_required
+def view_all_predictions():
+    """View all recent predictions"""
+    try:
+        # Get all predictions from last 30 days
+        from datetime import datetime, timedelta
+        recent_date = datetime.utcnow() - timedelta(days=30)
+        
+        predictions = CFBPredictionLog.query.filter(
+            CFBPredictionLog.prediction_date >= recent_date
+        ).order_by(CFBPredictionLog.week, CFBPredictionLog.prediction_date.desc()).all()
+        
+        # Group by week
+        weeks = {}
+        for pred in predictions:
+            if pred.week not in weeks:
+                weeks[pred.week] = []
+            weeks[pred.week].append(pred)
+        
+        html = "<h2>All Recent Predictions</h2>"
+        
+        for week, week_preds in weeks.items():
+            automated_count = len([p for p in week_preds if p.prediction_type == 'automated'])
+            manual_count = len([p for p in week_preds if p.prediction_type == 'manual'])
+            
+            html += f"""
+            <h3>Week {week} ({len(week_preds)} total: {automated_count} automated, {manual_count} manual)</h3>
+            <a href='/admin/ml/view_predictions/{week}'>View Week {week} Details</a><br><br>
+            """
+        
+        html += "<a href='/admin/ml'>Back to ML Dashboard</a>"
+        return html
+        
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+
+@app.route('/admin/ml/export_season_data')
+@login_required
+def export_season_data():
+    """Export all prediction data for ML analysis"""
+    try:
+        # Get all completed predictions
+        predictions = CFBPredictionLog.query.filter(
+            CFBPredictionLog.game_completed == True
+        ).all()
+        
+        # Convert to list of dictionaries
+        data = []
+        for pred in predictions:
+            row = {
+                'week': pred.week,
+                'home_team': pred.home_team,
+                'away_team': pred.away_team,
+                'predicted_winner': pred.predicted_winner,
+                'actual_winner': pred.actual_winner,
+                'predicted_margin': pred.predicted_margin,
+                'actual_margin': pred.actual_margin,
+                'margin_error': pred.margin_error,
+                'predicted_total': pred.predicted_total,
+                'actual_total': pred.actual_total,
+                'total_error': pred.total_error,
+                'winner_correct': pred.winner_correct,
+                'win_probability': pred.win_probability,
+                'confidence_level': pred.confidence_level,
+                'prediction_type': pred.prediction_type,
+                
+                # Structured factors
+                'base_strength_diff': pred.base_strength_diff,
+                'schedule_strength_factor': pred.schedule_strength_factor,
+                'momentum_factor': pred.momentum_factor,
+                'location_factor': pred.location_factor,
+                'consistency_factor': pred.consistency_factor,
+                'common_opponent_factor': pred.common_opponent_factor,
+                
+                # Algorithm settings
+                'temporal_weights': json.loads(pred.temporal_weights_json) if pred.temporal_weights_json else None,
+                'algorithm_version': pred.algorithm_version,
+                
+                'prediction_date': pred.prediction_date.isoformat() if pred.prediction_date else None,
+                'result_date': pred.result_date.isoformat() if pred.result_date else None
+            }
+            data.append(row)
+        
+        # Return as JSON for easy analysis
+        from flask import jsonify
+        return jsonify({
+            'season_data': data,
+            'total_predictions': len(data),
+            'export_date': datetime.utcnow().isoformat()
+        })
+        
+    except Exception as e:
+        return f"Export error: {str(e)}"
 
 
 def update_team_stats_simplified(team, opponent, team_score, opp_score, is_home, is_neutral_site=False, is_overtime=False):
@@ -3613,9 +3936,11 @@ def predict_matchup_enhanced(team1_name, team2_name, location='neutral'):
         }
     }
 
+@track_prediction('ultra_enhanced_matchup')  # <-- ADD THIS DECORATOR
 def predict_matchup_ultra_enhanced(team1_name, team2_name, location='neutral'):
     """
     ULTRA-ENHANCED matchup prediction using all 8 analytical modules
+    NOW WITH ML TRACKING for prediction accuracy optimization
     """
     try:
         # Get enhanced scientific rankings from Module 6
@@ -3703,7 +4028,7 @@ def predict_matchup_ultra_enhanced(team1_name, team2_name, location='neutral'):
                 'team1_enhanced': team1_enhanced,
                 'team2_enhanced': team2_enhanced
             },
-            'prediction_methodology': 'Ultra-Enhanced 8-Module Analysis'
+            'prediction_methodology': 'Ultra-Enhanced 8-Module Analysis with ML Tracking'
         }
         
     except Exception as e:
@@ -4653,18 +4978,6 @@ def get_current_week_from_snapshots():
         return '1'  # Safe fallback
 
 
-@app.route('/debug_bowl_games')
-@login_required
-def debug_bowl_games():
-    """Debug route to check bowl games in database"""
-    scheduled_games = ScheduledGame.query.filter(ScheduledGame.bowl_game_name.isnot(None)).all()
-    
-    result = "<h3>Bowl Games in Database:</h3><ul>"
-    for game in scheduled_games:
-        result += f"<li>{game.home_team} vs {game.away_team} - Bowl: {game.bowl_game_name} - Neutral: {game.neutral}</li>"
-    result += "</ul>"
-    
-    return result
 
 def complete_schedule_import_db(games, week):
     """Complete the schedule import to database"""
@@ -4710,41 +5023,6 @@ def complete_schedule_import_db(games, week):
         db.session.rollback()
         flash(f'Error completing import: {e}', 'error')
         return redirect(url_for('scoreboard', week=week))
-
-
-
-@app.route('/migrate_weekly_snapshots')
-@login_required
-def migrate_weekly_snapshots():
-    """Create weekly snapshots table"""
-    try:
-        db.create_all()
-        flash('✅ Weekly snapshots table created successfully!', 'success')
-    except Exception as e:
-        flash(f'❌ Migration error: {e}', 'error')
-    
-    return redirect(url_for('admin'))
-
-
-@app.route('/migrate_bowl_games')
-@login_required  
-def migrate_bowl_games():
-    """Add bowl_game_name column to scheduled_games table"""
-    try:
-        # Use the new SQLAlchemy syntax
-        with db.engine.connect() as connection:
-            connection.execute(text("ALTER TABLE scheduled_games ADD COLUMN IF NOT EXISTS bowl_game_name VARCHAR(255);"))
-            connection.commit()
-        
-        flash('✅ Bowl game field added to database successfully!', 'success')
-        return redirect(url_for('admin'))
-        
-    except Exception as e:
-        flash(f'❌ Migration error: {e}', 'error')
-        return redirect(url_for('admin'))
-
-
-
 
 
 @app.route('/compare')
@@ -4948,6 +5226,8 @@ def compare_teams():
         flash(f'Error comparing teams: {str(e)}', 'error')
         return redirect(url_for('team_compare'))
 
+
+
 # Also add this simple team preview route
 @app.route('/team_preview/<team_name>')
 def team_preview(team_name):
@@ -5005,46 +5285,6 @@ def team_preview(team_name):
     except Exception as e:
         print(f"ERROR in team_preview: {e}")
         return {'error': str(e)}, 500
-
-
-# Add this route to your app.py to run the migration
-@app.route('/migrate_scheduled_games')
-@login_required  
-def migrate_scheduled_games():
-    """Add new columns to scheduled_games table"""
-    try:
-        # For PostgreSQL - add columns one by one with error handling
-        migration_queries = [
-            "ALTER TABLE scheduled_games ADD COLUMN IF NOT EXISTS final_home_score INTEGER;",
-            "ALTER TABLE scheduled_games ADD COLUMN IF NOT EXISTS final_away_score INTEGER;", 
-            "ALTER TABLE scheduled_games ADD COLUMN IF NOT EXISTS overtime BOOLEAN DEFAULT FALSE;"
-        ]
-        
-        for query in migration_queries:
-            try:
-                db.engine.execute(query)
-                print(f"✅ Executed: {query}")
-            except Exception as e:
-                if "already exists" in str(e).lower():
-                    print(f"ℹ️ Column already exists: {query}")
-                else:
-                    raise e
-        
-        db.session.commit()
-        flash('✅ Database migration completed successfully!', 'success')
-        return redirect(url_for('admin'))
-        
-    except Exception as e:
-        db.session.rollback()
-        flash(f'❌ Migration error: {e}', 'error')
-        return redirect(url_for('admin'))
-
-# OR run these SQL commands directly in your PostgreSQL database:
-"""
-ALTER TABLE scheduled_games ADD COLUMN IF NOT EXISTS final_home_score INTEGER;
-ALTER TABLE scheduled_games ADD COLUMN IF NOT EXISTS final_away_score INTEGER;
-ALTER TABLE scheduled_games ADD COLUMN IF NOT EXISTS overtime BOOLEAN DEFAULT FALSE;
-"""
 
 
 @app.route('/ranking_methodology')
@@ -5163,6 +5403,133 @@ def clean_team_name(team_name):
         cleaned_name = re.sub(pattern, '', cleaned_name).strip()
     
     return cleaned_name
+
+
+def clean_scraped_team_name(raw_name):
+    """Clean and standardize scraped team names"""
+    if not raw_name:
+        return None
+    
+    # Clean the name first
+    cleaned = raw_name.strip()
+    
+    # PRIORITY 1: Handle specific problematic cases FIRST
+    specific_fixes = {
+        'Tennessee Volunteers': 'Tennessee',
+        'South Carolina Gamecocks': 'South Carolina', 
+        'SMU Mustangs': 'SMU',
+        'Texas Longhorns': 'Texas',
+        'Georgia Bulldogs': 'Georgia',
+        'Alabama Crimson Tide': 'Alabama',
+        'Ohio State Buckeyes': 'Ohio State',
+        'Penn State Nittany Lions': 'Penn State',
+        'Notre Dame Fighting Irish': 'Notre Dame',
+        'USC Trojans': 'USC',
+        'UCLA Bruins': 'UCLA',
+        'Stanford Cardinal': 'Stanford',
+        'Florida State Seminoles': 'Florida State',
+        'Miami Hurricanes': 'Miami',
+        'Clemson Tigers': 'Clemson',
+        'North Carolina Tar Heels': 'North Carolina',
+        'NC State Wolfpack': 'NC State',
+        'Virginia Tech Hokies': 'Virginia Tech',
+        'Texas A&M Aggies': 'Texas A&M',
+        'LSU Tigers': 'LSU',
+        'Ole Miss Rebels': 'Ole Miss',
+        'Mississippi State Bulldogs': 'Mississippi State',
+        'Arkansas Razorbacks': 'Arkansas',
+        'Missouri Tigers': 'Missouri',
+        'Kentucky Wildcats': 'Kentucky',
+        'Vanderbilt Commodores': 'Vanderbilt',
+        'Florida Gators': 'Florida',
+        'Auburn Tigers': 'Auburn',
+        'Michigan Wolverines': 'Michigan',
+        'Michigan State Spartans': 'Michigan State',
+        'Wisconsin Badgers': 'Wisconsin',
+        'Iowa Hawkeyes': 'Iowa',
+        'Minnesota Golden Gophers': 'Minnesota',
+        'Illinois Fighting Illini': 'Illinois',
+        'Northwestern Wildcats': 'Northwestern',
+        'Indiana Hoosiers': 'Indiana',
+        'Purdue Boilermakers': 'Purdue',
+        'Maryland Terrapins': 'Maryland',
+        'Rutgers Scarlet Knights': 'Rutgers',
+        'Nebraska Cornhuskers': 'Nebraska',
+        'Oregon Ducks': 'Oregon',
+        'Washington Huskies': 'Washington',
+        'Oklahoma Sooners': 'Oklahoma',
+        'Oklahoma State Cowboys': 'Oklahoma State',
+        'Texas Tech Red Raiders': 'Texas Tech',
+        'Baylor Bears': 'Baylor',
+        'TCU Horned Frogs': 'TCU',
+        'Kansas Jayhawks': 'Kansas',
+        'Kansas State Wildcats': 'Kansas State',
+        'Iowa State Cyclones': 'Iowa State',
+        'West Virginia Mountaineers': 'West Virginia',
+        'Cincinnati Bearcats': 'Cincinnati',
+        'Houston Cougars': 'Houston',
+        'UCF Knights': 'UCF',
+        'BYU Cougars': 'BYU',
+        'Colorado Buffaloes': 'Colorado',
+        'Utah Utes': 'Utah',
+        'Arizona Wildcats': 'Arizona',
+        'Arizona State Sun Devils': 'Arizona State'
+    }
+    
+    # Check specific fixes first
+    if cleaned in specific_fixes:
+        return specific_fixes[cleaned]
+    
+    # PRIORITY 2: Remove common mascot suffixes
+    mascot_suffixes = [
+        'Volunteers', 'Gamecocks', 'Mustangs', 'Crimson Tide', 'Bulldogs', 'Tigers', 
+        'Buckeyes', 'Nittany Lions', 'Longhorns', 'Aggies', 'Sooners', 'Cowboys', 
+        'Wolverines', 'Spartans', 'Fighting Irish', 'Trojans', 'Bruins', 'Cardinal', 
+        'Bears', 'Wildcats', 'Eagles', 'Panthers', 'Hurricanes', 'Seminoles', 
+        'Blue Devils', 'Tar Heels', 'Wolfpack', 'Hokies', 'Cavaliers', 'Yellow Jackets',
+        'Demon Deacons', 'Orange', 'Red Raiders', 'Horned Frogs', 'Jayhawks',
+        'Cyclones', 'Mountaineers', 'Boilermakers', 'Hoosiers', 'Hawkeyes',
+        'Golden Gophers', 'Badgers', 'Cornhuskers', 'Scarlet Knights',
+        'Terrapins', 'Ducks', 'Beavers', 'Huskies', 'Cougars', 'Sun Devils',
+        'Utes', 'Buffaloes', 'Golden Bears', 'Rainbow Warriors', 'Aztecs',
+        'Broncos', 'Rams', 'Wolf Pack', 'Rebels', 'Lobos', 'Razorbacks',
+        'Commodores', 'Gators', 'Fighting Illini', 'Bearcats', 'Knights'
+    ]
+    
+    # Remove mascot suffixes (case-insensitive)
+    for suffix in mascot_suffixes:
+        if cleaned.lower().endswith(f' {suffix.lower()}'):
+            cleaned = cleaned[:-len(f' {suffix}')].strip()
+            break
+    
+    # PRIORITY 3: Handle specific ESPN variations
+    espn_mappings = {
+        'Mississippi': 'Ole Miss',
+        'Louisiana State': 'LSU',
+        'Texas Christian': 'TCU',
+        'Southern California': 'USC',
+        'Central Florida': 'UCF',
+        'Southern Methodist': 'SMU',
+        'Brigham Young': 'BYU',
+        'Florida International': 'Florida Intl',
+        'Louisiana Monroe': 'UL Monroe',
+        'Miami (Ohio)': 'Miami (OH)',
+        'Appalachian State': 'Appalachian St',
+        'New Mexico State': 'New Mexico St',
+        'Sam Houston State': 'Sam Houston',
+        'North Carolina State': 'NC State'
+    }
+    
+    if cleaned in espn_mappings:
+        return espn_mappings[cleaned]
+    
+    # PRIORITY 4: Apply your existing TEAM_VARIATIONS logic
+    for standard_name, variants in TEAM_VARIATIONS.items():
+        if cleaned in variants:
+            return standard_name
+    
+    return cleaned
+
 
 @app.route('/create_snapshot', methods=['POST'])
 @login_required
@@ -5377,551 +5744,6 @@ def admin():
                          historical_rankings=[],
                          get_current_week_info=get_current_week_info)
 
-@app.route('/admin/apply_performance_indexes')
-@login_required
-def apply_performance_indexes():
-    """Apply the new performance indexes to AWS RDS database"""
-    try:
-        results = []
-        
-        # Method 1: Use SQLAlchemy to create indexes from models.py
-        try:
-            with app.app_context():
-                # This will create any missing indexes defined in __table_args__
-                db.create_all()
-                results.append("✅ Applied all indexes from models.py using SQLAlchemy")
-        except Exception as e:
-            results.append(f"⚠️ SQLAlchemy method had issues: {e}")
-        
-        # Method 2: Manually create critical indexes if needed
-        try:
-            # Get direct database connection
-            with db.engine.connect() as connection:
-                
-                # Check if we can create indexes manually (fallback)
-                critical_indexes = [
-                    "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_team_stats_name_manual ON team_stats(team_name);",
-                    "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_games_week_manual ON games(week);",
-                    "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_scheduled_week_manual ON scheduled_games(week);",
-                ]
-                
-                for index_sql in critical_indexes:
-                    try:
-                        # Remove CONCURRENTLY for compatibility (AWS RDS might not support it)
-                        safe_sql = index_sql.replace("CONCURRENTLY ", "")
-                        connection.execute(text(safe_sql))
-                        index_name = safe_sql.split("idx_")[1].split(" ")[0]
-                        results.append(f"✅ Created critical index: idx_{index_name}_manual")
-                    except Exception as e:
-                        if "already exists" in str(e).lower():
-                            index_name = index_sql.split("idx_")[1].split(" ")[0]
-                            results.append(f"ℹ️ Index already exists: idx_{index_name}_manual")
-                        else:
-                            results.append(f"⚠️ Could not create index: {e}")
-                
-                connection.commit()
-                
-        except Exception as e:
-            results.append(f"⚠️ Manual index creation had issues: {e}")
-        
-        return f"""
-        <div style="font-family: Arial; margin: 40px;">
-            <h1>🚀 Performance Indexes Applied to AWS RDS!</h1>
-            
-            <h2>Results:</h2>
-            <ul>
-                {''.join(f'<li>{result}</li>' for result in results)}
-            </ul>
-            
-            <div style="background: #d4edda; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                <h3>✅ What Just Happened:</h3>
-                <p>Your AWS RDS database now has performance indexes that will make queries much faster!</p>
-                <ul>
-                    <li><strong>Team lookups:</strong> Finding teams by name will be 10x faster</li>
-                    <li><strong>Game queries:</strong> Loading games by week will be much quicker</li>
-                    <li><strong>Schedule queries:</strong> Finding scheduled games will be optimized</li>
-                    <li><strong>Complex queries:</strong> Multi-table joins will perform better</li>
-                </ul>
-            </div>
-            
-            <h3>Next Steps:</h3>
-            <p><a href="/admin/performance_test" class="btn btn-primary">Test Performance Now</a></p>
-            <p><a href="/admin" class="btn btn-secondary">Back to Admin Panel</a></p>
-        </div>
-        """
-        
-    except Exception as e:
-        return f"""
-        <div style="font-family: Arial; margin: 40px;">
-            <h1>❌ Error Applying Indexes</h1>
-            <p><strong>Error:</strong> {e}</p>
-            <p>This might mean the indexes already exist or there's a connection issue.</p>
-            <p><a href="/admin" class="btn btn-secondary">Back to Admin Panel</a></p>
-        </div>
-        """
-
-@app.route('/admin/performance_test')
-@login_required
-def performance_test():
-    """Database-only performance test - won't touch ranking calculations"""
-    import time
-    
-    try:
-        results = {}
-        
-        # Test 1: Basic Database Counts (testing basic connectivity)
-        start = time.time()
-        total_games = Game.query.count()
-        total_teams = TeamStats.query.count()
-        total_scheduled = ScheduledGame.query.count()
-        results['basic_counts'] = round((time.time() - start) * 1000, 2)
-        
-        # Test 2: Team Name Index Performance (this should be VERY fast with your index)
-        start = time.time()
-        test_teams = ['Alabama', 'Georgia', 'Ohio State', 'Michigan', 'Texas', 'Florida', 'LSU', 'Auburn', 'Tennessee', 'Arkansas']
-        found_teams = []
-        for team in test_teams:
-            team_record = TeamStats.query.filter_by(team_name=team).first()
-            if team_record:
-                found_teams.append(team)
-        results['team_name_index_10x'] = round((time.time() - start) * 1000, 2)
-        
-        # Test 3: Week Index Performance (testing your week indexes)
-        start = time.time()
-        week_counts = {}
-        for week in ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']:
-            week_counts[week] = Game.query.filter_by(week=week).count()
-        results['week_index_10x'] = round((time.time() - start) * 1000, 2)
-        
-        # Test 4: Composite Index Performance (week + completed)
-        start = time.time()
-        for week in ['1', '2', '3', '4', '5']:
-            completed_count = ScheduledGame.query.filter_by(week=week, completed=True).count()
-            pending_count = ScheduledGame.query.filter_by(week=week, completed=False).count()
-        results['composite_index_10x'] = round((time.time() - start) * 1000, 2)
-        
-        # Test 5: Batch Lookup Performance (IN query with index)
-        start = time.time()
-        batch_teams = TeamStats.query.filter(TeamStats.team_name.in_(test_teams)).all()
-        batch_count = len(batch_teams)
-        results['batch_lookup'] = round((time.time() - start) * 1000, 2)
-        
-        # Test 6: Range Query Performance (teams with games)
-        start = time.time()
-        teams_with_games_count = TeamStats.query.filter(
-            (TeamStats.wins + TeamStats.losses) > 0
-        ).count()
-        results['range_query'] = round((time.time() - start) * 1000, 2)
-        
-        # Test 7: Order By Performance (recent games)
-        start = time.time()
-        recent_games = Game.query.order_by(Game.date_added.desc()).limit(20).all()
-        results['order_by_query'] = round((time.time() - start) * 1000, 2)
-        
-        # Test 8: Join-like Query Performance
-        start = time.time()
-        alabama_games = Game.query.filter(
-            db.or_(
-                Game.home_team == 'Alabama',
-                Game.away_team == 'Alabama'
-            )
-        ).count()
-        results['complex_filter'] = round((time.time() - start) * 1000, 2)
-        
-        # Test 9: Archive Table Performance
-        start = time.time()
-        archive_count = ArchivedSeason.query.count()
-        recent_archives = ArchivedSeason.query.order_by(ArchivedSeason.archived_date.desc()).limit(5).all()
-        results['archive_operations'] = round((time.time() - start) * 1000, 2)
-        
-        # Performance grading
-        def grade_performance(ms, excellent=30, good=100, poor=300):
-            if ms < excellent:
-                return '🟢 Excellent', '#d4edda'
-            elif ms < good:
-                return '🟡 Good', '#fff3cd'
-            elif ms < poor:
-                return '🟠 OK', '#ffeaa7'
-            else:
-                return '🔴 Slow', '#f8d7da'
-        
-        # Calculate overall score
-        total_time = sum(results.values())
-        avg_time = total_time / len(results)
-        
-        return f"""
-        <div style="font-family: Arial; margin: 40px; line-height: 1.6;">
-            <h1>🗄️ Database Index Performance Report</h1>
-            <p><em>Testing AWS RDS PostgreSQL with applied indexes</em></p>
-            
-            <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                <h3>📊 Database Summary</h3>
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
-                    <div><strong>Total Games:</strong> {total_games:,}</div>
-                    <div><strong>Total Teams:</strong> {total_teams:,}</div>
-                    <div><strong>Scheduled Games:</strong> {total_scheduled:,}</div>
-                    <div><strong>Teams Found:</strong> {len(found_teams)}/10</div>
-                    <div><strong>Teams with Games:</strong> {teams_with_games_count:,}</div>
-                    <div><strong>Archive Count:</strong> {archive_count}</div>
-                </div>
-            </div>
-            
-            <h2>⚡ Index Performance Results:</h2>
-            <table style="border-collapse: collapse; width: 100%; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <tr style="background: #f8f9fa; font-weight: bold;">
-                    <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Index Test</th>
-                    <th style="border: 1px solid #ddd; padding: 12px; text-align: right;">Time (ms)</th>
-                    <th style="border: 1px solid #ddd; padding: 12px; text-align: center;">Performance</th>
-                    <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Index Used</th>
-                </tr>
-                <tr style="background: {grade_performance(results['basic_counts'])[1]};">
-                    <td style="border: 1px solid #ddd; padding: 12px;">Basic Counts (3 tables)</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">{results['basic_counts']}</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: center;">{grade_performance(results['basic_counts'])[0]}</td>
-                    <td style="border: 1px solid #ddd; padding: 12px;">Primary keys</td>
-                </tr>
-                <tr style="background: {grade_performance(results['team_name_index_10x'])[1]};">
-                    <td style="border: 1px solid #ddd; padding: 12px;">Team Name Lookups (10x)</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">{results['team_name_index_10x']}</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: center;">{grade_performance(results['team_name_index_10x'])[0]}</td>
-                    <td style="border: 1px solid #ddd; padding: 12px;">idx_team_stats_name</td>
-                </tr>
-                <tr style="background: {grade_performance(results['week_index_10x'])[1]};">
-                    <td style="border: 1px solid #ddd; padding: 12px;">Week Queries (10x)</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">{results['week_index_10x']}</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: center;">{grade_performance(results['week_index_10x'])[0]}</td>
-                    <td style="border: 1px solid #ddd; padding: 12px;">idx_games_week</td>
-                </tr>
-                <tr style="background: {grade_performance(results['composite_index_10x'])[1]};">
-                    <td style="border: 1px solid #ddd; padding: 12px;">Composite Queries (10x)</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">{results['composite_index_10x']}</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: center;">{grade_performance(results['composite_index_10x'])[0]}</td>
-                    <td style="border: 1px solid #ddd; padding: 12px;">idx_scheduled_week_completed</td>
-                </tr>
-                <tr style="background: {grade_performance(results['batch_lookup'])[1]};">
-                    <td style="border: 1px solid #ddd; padding: 12px;">Batch Lookup (IN query)</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">{results['batch_lookup']}</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: center;">{grade_performance(results['batch_lookup'])[0]}</td>
-                    <td style="border: 1px solid #ddd; padding: 12px;">idx_team_stats_name</td>
-                </tr>
-                <tr style="background: {grade_performance(results['range_query'])[1]};">
-                    <td style="border: 1px solid #ddd; padding: 12px;">Range Query (wins+losses)</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">{results['range_query']}</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: center;">{grade_performance(results['range_query'])[0]}</td>
-                    <td style="border: 1px solid #ddd; padding: 12px;">idx_team_stats_record</td>
-                </tr>
-                <tr style="background: {grade_performance(results['order_by_query'])[1]};">
-                    <td style="border: 1px solid #ddd; padding: 12px;">ORDER BY Query (recent)</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">{results['order_by_query']}</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: center;">{grade_performance(results['order_by_query'])[0]}</td>
-                    <td style="border: 1px solid #ddd; padding: 12px;">idx_games_date_added</td>
-                </tr>
-                <tr style="background: {grade_performance(results['complex_filter'])[1]};">
-                    <td style="border: 1px solid #ddd; padding: 12px;">Complex Filter (OR query)</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">{results['complex_filter']}</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: center;">{grade_performance(results['complex_filter'])[0]}</td>
-                    <td style="border: 1px solid #ddd; padding: 12px;">idx_games_teams_lookup</td>
-                </tr>
-                <tr style="background: {grade_performance(results['archive_operations'])[1]};">
-                    <td style="border: 1px solid #ddd; padding: 12px;">Archive Operations</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">{results['archive_operations']}</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: center;">{grade_performance(results['archive_operations'])[0]}</td>
-                    <td style="border: 1px solid #ddd; padding: 12px;">idx_archived_date_desc</td>
-                </tr>
-            </table>
-            
-            <div style="background: {'#d4edda' if avg_time < 50 else '#fff3cd' if avg_time < 150 else '#f8d7da'}; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <h3>🎯 Performance Summary</h3>
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
-                    <div><strong>Total Test Time:</strong> {total_time:.1f}ms</div>
-                    <div><strong>Average Query Time:</strong> {avg_time:.1f}ms</div>
-                    <div><strong>Index Effectiveness:</strong> {'🟢 Excellent' if avg_time < 50 else '🟡 Good' if avg_time < 150 else '🔴 Needs Work'}</div>
-                    <div><strong>Database Status:</strong> {'🚀 Optimized' if avg_time < 100 else '⚠️ Review Needed'}</div>
-                </div>
-            </div>
-            
-            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                <h3>📋 Index Status Report</h3>
-                <ul style="margin: 0; padding-left: 20px;">
-                    <li>✅ <strong>Team name lookups:</strong> {'Optimized' if results['team_name_index_10x'] < 50 else 'Could be faster'}</li>
-                    <li>✅ <strong>Week-based queries:</strong> {'Optimized' if results['week_index_10x'] < 50 else 'Could be faster'}</li>
-                    <li>✅ <strong>Composite indexes:</strong> {'Working well' if results['composite_index_10x'] < 100 else 'Review needed'}</li>
-                    <li>✅ <strong>Batch operations:</strong> {'Efficient' if results['batch_lookup'] < 30 else 'Acceptable'}</li>
-                    <li>✅ <strong>Complex queries:</strong> {'Performing well' if results['complex_filter'] < 100 else 'May need tuning'}</li>
-                </ul>
-            </div>
-            
-            <div style="margin: 20px 0;">
-                <a href="/admin" style="background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 5px; display: inline-block;">← Back to Admin</a>
-                <a href="/admin/performance_test" style="background: #28a745; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 5px; display: inline-block;">🔄 Run Again</a>
-                <a href="/admin/cache_management" style="background: #6f42c1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 5px; display: inline-block;">⚡ Test Caching</a>
-            </div>
-            
-            <p style="font-size: 0.9em; color: #666; margin-top: 30px;">
-                <em>This test focuses purely on database index performance without touching your ranking calculations.</em>
-            </p>
-        </div>
-        """
-        
-    except Exception as e:
-        import traceback
-        error_details = traceback.format_exc()
-        return f"""
-        <div style="font-family: Arial; margin: 40px;">
-            <h1>❌ Database Test Error</h1>
-            <div style="background: #f8d7da; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                <p><strong>Error:</strong> {str(e)}</p>
-            </div>
-            <details style="margin: 20px 0;">
-                <summary style="cursor: pointer; font-weight: bold;">🔍 Technical Details</summary>
-                <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow: auto; margin-top: 10px;">
-{error_details}
-                </pre>
-            </details>
-            <p><a href="/admin" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Back to Admin Panel</a></p>
-        </div>
-        """
-
-@app.route('/admin/realistic_performance_test')
-@login_required
-def realistic_performance_test():
-    """Test how your app actually performs in real usage scenarios"""
-    import time
-    
-    try:
-        results = {}
-        
-        # Test 1: Loading Admin Page (how users actually use it)
-        start = time.time()
-        # Get all teams with games in one optimized query
-        teams_with_games = TeamStats.query.filter(
-            (TeamStats.wins + TeamStats.losses) > 0
-        ).all()
-        
-        # Process the data like your admin page does
-        comprehensive_stats = []
-        for team_record in teams_with_games[:10]:  # Limit to 10 for test
-            team_name = team_record.team_name
-            conference = get_team_conference(team_name)
-            
-            # This would call your calculation function
-            basic_stats = team_record.to_dict()
-            
-            # Simple stats calculation (avoiding complex functions for now)
-            total_games = basic_stats['wins'] + basic_stats['losses']
-            win_percentage = basic_stats['wins'] / max(1, total_games)
-            point_diff = basic_stats['points_for'] - basic_stats['points_against']
-            
-            comprehensive_stats.append({
-                'team': team_name,
-                'conference': conference,
-                'wins': basic_stats['wins'],
-                'losses': basic_stats['losses'],
-                'win_pct': win_percentage,
-                'point_diff': point_diff
-            })
-        
-        results['admin_page_simulation'] = round((time.time() - start) * 1000, 2)
-        
-        # Test 2: Weekly Results Page
-        start = time.time()
-        # Get games for multiple weeks (like weekly_results page)
-        week_data = {}
-        for week in ['1', '2', '3', '4', '5']:
-            week_games = Game.query.filter_by(week=week).all()
-            week_data[week] = [game.to_dict() for game in week_games]
-        results['weekly_results_simulation'] = round((time.time() - start) * 1000, 2)
-        
-        # Test 3: Adding a Game (typical user action)
-        start = time.time()
-        # Simulate the queries that happen when adding a game
-        
-        # Check if teams exist (team dropdowns)
-        existing_teams = TeamStats.query.filter(
-            TeamStats.team_name.in_(['Alabama', 'Georgia', 'Ohio State'])
-        ).all()
-        
-        # Get recent games for display
-        recent_games = Game.query.order_by(Game.date_added.desc()).limit(10).all()
-        
-        results['add_game_simulation'] = round((time.time() - start) * 1000, 2)
-        
-        # Test 4: Team Detail Page
-        start = time.time()
-        if teams_with_games:
-            sample_team = teams_with_games[0].team_name
-            
-            # Get team stats
-            team_stats = TeamStats.query.filter_by(team_name=sample_team).first()
-            
-            # Get all games for this team
-            team_games = Game.query.filter(
-                db.or_(
-                    Game.home_team == sample_team,
-                    Game.away_team == sample_team
-                )
-            ).all()
-            
-        results['team_detail_simulation'] = round((time.time() - start) * 1000, 2)
-        
-        # Test 5: Bulk Data Operations (like generating rankings)
-        start = time.time()
-        
-        # Get all games (for comprehensive calculations)
-        all_games = Game.query.all()
-        
-        # Get all team stats 
-        all_team_stats = TeamStats.query.all()
-        
-        # Count operations that would be done
-        total_operations = len(all_games) + len(all_team_stats)
-        
-        results['bulk_operations'] = round((time.time() - start) * 1000, 2)
-        
-        # Test 6: Database Health Check
-        start = time.time()
-        
-        game_count = Game.query.count()
-        team_count = TeamStats.query.count()
-        teams_with_wins = TeamStats.query.filter(TeamStats.wins > 0).count()
-        
-        results['health_check'] = round((time.time() - start) * 1000, 2)
-        
-        # Calculate metrics
-        total_teams_tested = len(teams_with_games)
-        total_games_tested = len(all_games) if 'all_games' in locals() else 0
-        
-        # Performance scoring for real-world scenarios
-        def grade_realistic_performance(ms, excellent=100, good=300, poor=1000):
-            if ms < excellent:
-                return '🟢 Excellent', '#d4edda'
-            elif ms < good:
-                return '🟡 Good', '#fff3cd'
-            elif ms < poor:
-                return '🟠 Acceptable', '#ffeaa7'
-            else:
-                return '🔴 Slow', '#f8d7da'
-        
-        avg_time = sum(results.values()) / len(results)
-        
-        return f"""
-        <div style="font-family: Arial; margin: 40px; line-height: 1.6;">
-            <h1>🎯 Real-World Performance Test</h1>
-            <p><em>Testing actual user scenarios with AWS RDS</em></p>
-            
-            <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                <h3>📊 Test Environment</h3>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
-                    <div><strong>Games in DB:</strong> {game_count}</div>
-                    <div><strong>Teams in DB:</strong> {team_count}</div>
-                    <div><strong>Active Teams:</strong> {teams_with_wins}</div>
-                </div>
-            </div>
-            
-            <h2>📱 User Experience Performance:</h2>
-            <table style="border-collapse: collapse; width: 100%; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <tr style="background: #f8f9fa; font-weight: bold;">
-                    <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">User Scenario</th>
-                    <th style="border: 1px solid #ddd; padding: 12px; text-align: right;">Load Time</th>
-                    <th style="border: 1px solid #ddd; padding: 12px; text-align: center;">User Experience</th>
-                    <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Description</th>
-                </tr>
-                <tr style="background: {grade_realistic_performance(results['admin_page_simulation'])[1]};">
-                    <td style="border: 1px solid #ddd; padding: 12px;">📊 Admin Dashboard</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">{results['admin_page_simulation']}ms</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: center;">{grade_realistic_performance(results['admin_page_simulation'])[0]}</td>
-                    <td style="border: 1px solid #ddd; padding: 12px;">Loading rankings table</td>
-                </tr>
-                <tr style="background: {grade_realistic_performance(results['weekly_results_simulation'])[1]};">
-                    <td style="border: 1px solid #ddd; padding: 12px;">📅 Weekly Results</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">{results['weekly_results_simulation']}ms</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: center;">{grade_realistic_performance(results['weekly_results_simulation'])[0]}</td>
-                    <td style="border: 1px solid #ddd; padding: 12px;">Viewing games by week</td>
-                </tr>
-                <tr style="background: {grade_realistic_performance(results['add_game_simulation'])[1]};">
-                    <td style="border: 1px solid #ddd; padding: 12px;">➕ Add Game Page</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">{results['add_game_simulation']}ms</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: center;">{grade_realistic_performance(results['add_game_simulation'])[0]}</td>
-                    <td style="border: 1px solid #ddd; padding: 12px;">Form loading + recent games</td>
-                </tr>
-                <tr style="background: {grade_realistic_performance(results['team_detail_simulation'])[1]};">
-                    <td style="border: 1px solid #ddd; padding: 12px;">🏈 Team Detail Page</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">{results['team_detail_simulation']}ms</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: center;">{grade_realistic_performance(results['team_detail_simulation'])[0]}</td>
-                    <td style="border: 1px solid #ddd; padding: 12px;">Team stats + game history</td>
-                </tr>
-                <tr style="background: {grade_realistic_performance(results['bulk_operations'])[1]};">
-                    <td style="border: 1px solid #ddd; padding: 12px;">📈 Rankings Generation</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">{results['bulk_operations']}ms</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: center;">{grade_realistic_performance(results['bulk_operations'])[0]}</td>
-                    <td style="border: 1px solid #ddd; padding: 12px;">Loading all data for calculations</td>
-                </tr>
-                <tr style="background: {grade_realistic_performance(results['health_check'])[1]};">
-                    <td style="border: 1px solid #ddd; padding: 12px;">🏥 System Health</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">{results['health_check']}ms</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: center;">{grade_realistic_performance(results['health_check'])[0]}</td>
-                    <td style="border: 1px solid #ddd; padding: 12px;">Database status checks</td>
-                </tr>
-            </table>
-            
-            <div style="background: {'#d4edda' if avg_time < 200 else '#fff3cd' if avg_time < 500 else '#f8d7da'}; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <h3>🎯 Overall Performance Assessment</h3>
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
-                    <div><strong>Average Response Time:</strong> {avg_time:.1f}ms</div>
-                    <div><strong>User Experience:</strong> {'🟢 Snappy' if avg_time < 200 else '🟡 Good' if avg_time < 500 else '🔴 Sluggish'}</div>
-                    <div><strong>AWS RDS Performance:</strong> {'🚀 Optimized' if avg_time < 300 else '⚠️ Acceptable'}</div>
-                    <div><strong>Production Ready:</strong> {'✅ Yes' if avg_time < 500 else '⚠️ Consider optimization'}</div>
-                </div>
-            </div>
-            
-            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                <h3>📊 Performance Insights</h3>
-                <ul style="margin: 0; padding-left: 20px;">
-                    <li><strong>Database indexes:</strong> ✅ Working effectively for bulk operations</li>
-                    <li><strong>Network latency:</strong> ~200ms (typical for AWS RDS)</li>
-                    <li><strong>Query optimization:</strong> {'✅ Excellent' if results['bulk_operations'] < 100 else '🟡 Good'}</li>
-                    <li><strong>Real-world usage:</strong> {'✅ Fast enough' if avg_time < 400 else '⚠️ May feel slow'}</li>
-                    <li><strong>Caching potential:</strong> Could reduce load times by 60-80%</li>
-                </ul>
-            </div>
-            
-            <div style="background: #e2e3e5; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                <h3>🔧 Performance Context</h3>
-                <p><strong>What you're seeing is normal for AWS RDS:</strong></p>
-                <ul style="margin: 0; padding-left: 20px;">
-                    <li>Individual queries: 200ms (network latency)</li>
-                    <li>Bulk operations: 20-50ms (database performance)</li>
-                    <li>Your indexes ARE working - evident in bulk query performance</li>
-                    <li>For comparison: Local database would be 5-10ms, hosted database is 100-300ms</li>
-                </ul>
-            </div>
-            
-            <div style="margin: 20px 0;">
-                <a href="/admin/performance_test" style="background: #17a2b8; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 5px;">🔍 Database Index Test</a>
-                <a href="/admin/cache_management" style="background: #6f42c1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 5px;">⚡ Test Caching</a>
-                <a href="/admin" style="background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 5px;">← Back to Admin</a>
-            </div>
-        </div>
-        """
-        
-    except Exception as e:
-        import traceback
-        error_details = traceback.format_exc()
-        return f"""
-        <div style="font-family: Arial; margin: 40px;">
-            <h1>❌ Realistic Performance Test Error</h1>
-            <div style="background: #f8d7da; padding: 15px; border-radius: 8px;">
-                <p><strong>Error:</strong> {str(e)}</p>
-            </div>
-            <details style="margin: 20px 0;">
-                <summary>Technical Details</summary>
-                <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow: auto;">
-{error_details}
-                </pre>
-            </details>
-            <p><a href="/admin">Back to Admin</a></p>
-        </div>
-        """
 
 
 @app.route('/admin/clear_cache', methods=['POST'])
@@ -5935,97 +5757,6 @@ def clear_cache_route():
         flash(f'Error clearing cache: {e}', 'error')
     
     return redirect(url_for('cache_management'))
-
-# Performance test with caching
-@app.route('/admin/performance_test_with_cache')
-@login_required
-def performance_test_with_cache():
-    """Test performance with caching enabled"""
-    import time
-    
-    try:
-        results = {}
-        
-        # Test 1: First calculation (cache miss)
-        start = time.time()
-        calculate_comprehensive_stats_cached('Alabama')
-        results['first_calc_cache_miss'] = round((time.time() - start) * 1000, 2)
-        
-        # Test 2: Second calculation (cache hit)
-        start = time.time()
-        calculate_comprehensive_stats_cached('Alabama')
-        results['second_calc_cache_hit'] = round((time.time() - start) * 1000, 2)
-        
-        # Test 3: Multiple teams first time (cache miss)
-        test_teams = ['Alabama', 'Georgia', 'Ohio State', 'Michigan', 'Texas']
-        start = time.time()
-        for team in test_teams:
-            calculate_comprehensive_stats_cached(team)
-        results['multiple_teams_cache_miss'] = round((time.time() - start) * 1000, 2)
-        
-        # Test 4: Same teams second time (cache hit)
-        start = time.time()
-        for team in test_teams:
-            calculate_comprehensive_stats_cached(team)
-        results['multiple_teams_cache_hit'] = round((time.time() - start) * 1000, 2)
-        
-        # Calculate improvement
-        cache_improvement = ((results['first_calc_cache_miss'] - results['second_calc_cache_hit']) / results['first_calc_cache_miss']) * 100
-        multi_improvement = ((results['multiple_teams_cache_miss'] - results['multiple_teams_cache_hit']) / results['multiple_teams_cache_miss']) * 100
-        
-        cache_stats = get_cache_stats()
-        
-        return f"""
-        <div style="font-family: Arial; margin: 40px;">
-            <h1>⚡ Caching Performance Test Results</h1>
-            
-            <table style="border-collapse: collapse; width: 100%; margin: 20px 0;">
-                <tr style="background: #f8f9fa;">
-                    <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Test</th>
-                    <th style="border: 1px solid #ddd; padding: 12px; text-align: right;">Time (ms)</th>
-                    <th style="border: 1px solid #ddd; padding: 12px;">Status</th>
-                </tr>
-                <tr>
-                    <td style="border: 1px solid #ddd; padding: 12px;">First Calculation (Cache Miss)</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: right;">{results['first_calc_cache_miss']}ms</td>
-                    <td style="border: 1px solid #ddd; padding: 12px;">🔄 Loading</td>
-                </tr>
-                <tr style="background: #d4edda;">
-                    <td style="border: 1px solid #ddd; padding: 12px;">Second Calculation (Cache Hit)</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: right;">{results['second_calc_cache_hit']}ms</td>
-                    <td style="border: 1px solid #ddd; padding: 12px;">⚡ Cached</td>
-                </tr>
-                <tr>
-                    <td style="border: 1px solid #ddd; padding: 12px;">5 Teams First Time</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: right;">{results['multiple_teams_cache_miss']}ms</td>
-                    <td style="border: 1px solid #ddd; padding: 12px;">🔄 Loading</td>
-                </tr>
-                <tr style="background: #d4edda;">
-                    <td style="border: 1px solid #ddd; padding: 12px;">5 Teams Second Time</td>
-                    <td style="border: 1px solid #ddd; padding: 12px; text-align: right;">{results['multiple_teams_cache_hit']}ms</td>
-                    <td style="border: 1px solid #ddd; padding: 12px;">⚡ Cached</td>
-                </tr>
-            </table>
-            
-            <div style="background: #d4edda; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                <h3>🎯 Cache Performance Improvements</h3>
-                <p><strong>Single calculation speedup:</strong> {cache_improvement:.1f}% faster</p>
-                <p><strong>Multiple calculations speedup:</strong> {multi_improvement:.1f}% faster</p>
-                <p><strong>Cache entries created:</strong> {cache_stats['total_entries']}</p>
-            </div>
-            
-            <div style="margin: 20px 0;">
-                <a href="/admin/cache_management" style="background: #6f42c1; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 5px;">Manage Cache</a>
-                <a href="/admin/performance_test" style="background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 5px;">Standard Performance Test</a>
-                <a href="/admin" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 5px;">Back to Admin</a>
-            </div>
-        </div>
-        """
-        
-    except Exception as e:
-        return f"<h1>Error</h1><p>{e}</p>"
-
-
 
 
 
@@ -6177,70 +5908,6 @@ def generate_fast_cfp_bracket(all_teams_stats):
             'at_large_display': [],
             'conference_champions': {}
         }   
-
-
-@app.route('/performance_test_pages')
-@login_required
-def performance_test_pages():
-    """Test the performance of your newly optimized pages"""
-    import time
-    
-    results = {}
-    
-    # Test bulk loading
-    start = time.time()
-    stats = get_all_team_stats_bulk()
-    results['bulk_loading'] = round((time.time() - start) * 1000, 1)
-    
-    # Test cache hit
-    start = time.time()
-    stats2 = get_all_team_stats_bulk()  # Should be same result, test caching
-    results['cache_performance'] = round((time.time() - start) * 1000, 1)
-    
-    return f"""
-    <div style="font-family: Arial; margin: 40px;">
-        <h1>🚀 Performance Test Results</h1>
-        
-        <div style="background: #d4edda; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h3>New Performance:</h3>
-            <p><strong>Bulk Loading ({len(stats)} teams):</strong> {results['bulk_loading']}ms</p>
-            <p><strong>Cache Performance:</strong> {results['cache_performance']}ms</p>
-        </div>
-        
-        <h3>Test Your Pages:</h3>
-        <p><a href="/admin" style="padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 5px;">Test Admin Page</a></p>
-        <p><a href="/bowl_projections" style="padding: 10px 20px; background: #28a745; color: white; text-decoration: none; border-radius: 5px; margin: 5px;">Test Bowl Projections</a></p>
-        <p><a href="/cfp_bracket" style="padding: 10px 20px; background: #ffc107; color: white; text-decoration: none; border-radius: 5px; margin: 5px;">Test CFP Bracket</a></p>
-        <p><a href="/" style="padding: 10px 20px; background: #17a2b8; color: white; text-decoration: none; border-radius: 5px; margin: 5px;">Test Main Rankings</a></p>
-        
-        <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <h4>Expected Results:</h4>
-            <ul>
-                <li>Admin page: 30+ seconds → 2-3 seconds</li>
-                <li>Bowl projections: 45+ seconds → 3-4 seconds</li>
-                <li>CFP bracket: 20+ seconds → 1-2 seconds</li>
-                <li>Main rankings: 15+ seconds → 1-2 seconds</li>
-            </ul>
-        </div>
-    </div>
-    """
-
-# First, add this simple test route to check if the basic route works:
-@app.route('/team_test/<team_name>')
-def team_test(team_name):
-    """Simple test to see if team detail routing works"""
-    team_record = TeamStats.query.filter_by(team_name=team_name).first()  # 
-    if not team_record:  # 
-        return f"<h1>Team {team_name} not found in team_stats</h1>"
-    
-    basic_stats = team_record.to_dict()  # 
-    return f"""
-    <h1>Team Test: {team_name}</h1>
-    <p>Games: {len(basic_stats['games'])}</p>
-    <p>Record: {basic_stats['wins']}-{basic_stats['losses']}</p>
-    <p>Has games data: {len(basic_stats['games']) > 0}</p>
-    <p><a href="/team/{team_name}">Try Full Detail Page</a></p>
-    """
 
 
 def calculate_p4_g5_records(team_name, games):
@@ -6600,21 +6267,6 @@ def rankings():
                          recent_games=recent_games)
 
 
-# Add this to your app.py to test
-@app.route('/test-simple')
-def test_simple():
-    import time
-    start_time = time.time()
-    print(f"=== SIMPLE TEST START: {start_time} ===")
-    
-    # Just return simple response - no database, no templates
-    response_time = time.time() - start_time
-    return f"""
-    <h1>Simple Test</h1>
-    <p>Response time: {response_time:.3f} seconds</p>
-    <p>Time: {time.time()}</p>
-    <p>If this loads fast on mobile, the issue is in your rankings code.</p>
-    """
 
 def prepare_team_chart_data(team_name):
     """Prepare data for team detail page visualizations"""
@@ -6994,6 +6646,434 @@ def get_current_week_info():
         }
 
 
+
+
+@app.route('/debug_espn_date')
+@login_required
+def debug_espn_date():
+    """Debug ESPN date extraction"""
+    try:
+        import requests
+        from bs4 import BeautifulSoup
+        from datetime import datetime
+        import re
+        
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+        url = "https://www.espn.com/college-football/fpi"
+        
+        response = requests.get(url, headers=headers, timeout=15)
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        debug_info = f"""
+        <h2>ESPN Date Extraction Debug</h2>
+        <p><strong>URL:</strong> {url}</p>
+        <p><strong>Response Status:</strong> {response.status_code}</p>
+        
+        <h3>Strategy 1: Meta Tags</h3>
+        """
+        
+        # Check meta tags
+        meta_tags = soup.find_all('meta')
+        found_meta_date = False
+        for meta in meta_tags:
+            if meta.get('property') in ['article:published_time', 'article:modified_time'] or \
+               meta.get('name') in ['publishdate', 'date', 'last-modified']:
+                content = meta.get('content', '')
+                debug_info += f"<p>Found meta: {meta.get('property') or meta.get('name')} = {content}</p>"
+                found_meta_date = True
+        
+        if not found_meta_date:
+            debug_info += "<p>No relevant meta tags found</p>"
+        
+        debug_info += "<h3>Strategy 2: Page Text Date Patterns</h3>"
+        
+        # Check page text for dates
+        page_text = soup.get_text()
+        date_patterns = [
+            r'([A-Za-z]+ \d{{1,2}}, \d{{4}})',  # "January 15, 2024"
+            r'(\d{{1,2}}/\d{{1,2}}/\d{{4}})',     # "1/15/2024"
+            r'Updated:?\s*([A-Za-z]+ \d{{1,2}}, \d{{4}})',  # "Updated: January 15, 2024"
+            r'Last updated:?\s*([A-Za-z]+ \d{{1,2}}, \d{{4}})',
+            r'as of ([A-Za-z]+ \d{{1,2}}, \d{{4}})',
+        ]
+        
+        found_text_dates = []
+        for pattern in date_patterns:
+            matches = re.findall(pattern, page_text[:3000], re.IGNORECASE)  # Check first 3000 chars
+            if matches:
+                found_text_dates.extend(matches)
+        
+        if found_text_dates:
+            debug_info += "<p>Found dates in page text:</p><ul>"
+            for date in found_text_dates[:10]:  # Show first 10 matches
+                debug_info += f"<li>{date}</li>"
+            debug_info += "</ul>"
+        else:
+            debug_info += "<p>No date patterns found in page text</p>"
+        
+        debug_info += "<h3>Strategy 3: Search for 'June 2' specifically</h3>"
+        
+        # Search specifically for June 2 since you said that's what shows
+        if "June 2" in page_text:
+            june_matches = re.findall(r'(June \d{1,2},? \d{4})', page_text, re.IGNORECASE)
+            if june_matches:
+                debug_info += f"<p>Found June dates: {june_matches}</p>"
+            else:
+                debug_info += "<p>Found 'June 2' in text but couldn't extract full date</p>"
+        else:
+            debug_info += "<p>'June 2' not found in page text</p>"
+        
+        debug_info += f"""
+        <h3>First 2000 characters of page:</h3>
+        <textarea style="width: 100%; height: 300px;">{page_text[:2000]}</textarea>
+        
+        <p><a href="/admin">Back to Admin</a></p>
+        """
+        
+        return debug_info
+        
+    except Exception as e:
+        return f"<h2>Debug Error:</h2><p>{str(e)}</p><p><a href='/admin'>Back to Admin</a></p>"
+
+@app.route('/poll_comparison')
+def poll_comparison():
+    """Poll comparison page with shared external poll timestamp"""
+    try:
+        # Get our current top 25
+        our_rankings = get_all_team_stats_bulk()[:25]
+        
+        # Fetch all external polls with shared timestamp
+        poll_data = fetch_all_polls()
+        
+        return render_template('poll_comparison.html', 
+                             our_rankings=our_rankings,
+                             ap_poll=poll_data['ap_poll'],
+                             coaches_poll=poll_data['coaches_poll'],
+                             espn_poll=poll_data['espn_poll'],
+                             sagarin_poll=poll_data['sagarin_poll'],
+                             cfp_poll=poll_data['cfp_poll'],
+                             # Use the shared timestamp for all external polls
+                             external_polls_updated=poll_data['external_polls_updated'])
+    except Exception as e:
+        return f"Error: {e}"
+# Add this function to your app.py file, preferably near your other utility functions
+
+def fetch_all_polls():
+    """
+    Fetch all polls with ESPN FPI timestamp used for all external polls
+    """
+    import requests
+    from bs4 import BeautifulSoup
+    from datetime import datetime
+    import re
+    
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+    
+    polls = {
+        'ap_poll': [],
+        'coaches_poll': [],
+        'cfp_poll': [],
+        'sagarin_poll': [],
+        'espn_poll': [],
+        'external_polls_updated': 'Unknown'  # Single timestamp for all external polls
+    }
+    
+    def apply_team_variations(team_name):
+        """Apply your existing TEAM_VARIATIONS to clean up team names"""
+        if not team_name:
+            return team_name
+            
+        # Check if this team name should be converted using your TEAM_VARIATIONS
+        for standard_name, variants in TEAM_VARIATIONS.items():
+            if team_name in variants:
+                return standard_name
+        
+        # Common poll variations
+        poll_mappings = {
+            'Mississippi': 'Ole Miss',
+            'Miami-Florida': 'Miami',
+            'Southern California': 'USC',
+            'Texas Christian': 'TCU',
+            'Brigham Young': 'BYU',
+            'Southern Methodist': 'SMU',
+            'Louisiana State': 'LSU',
+            'Central Florida': 'UCF',
+            'North Carolina State': 'NC State',
+            'Virginia Tech': 'Virginia Tech',
+            'Boston College': 'Boston College',
+            'Florida International': 'Florida Intl',
+            'Western Kentucky': 'Western Kentucky',
+            'Miami-Ohio': 'Miami (OH)',
+            'Appalachian State': 'Appalachian St'
+        }
+        
+        if team_name in poll_mappings:
+            return poll_mappings[team_name]
+            
+        return team_name
+    
+    # FIRST: Get timestamp from ESPN FPI page for all polls
+    # FIXED: Get timestamp from ESPN FPI page for all external polls
+    try:
+        print("✅ Getting timestamp from ESPN FPI for all external polls...")
+        url = "https://www.espn.com/college-football/fpi"
+        response = requests.get(url, headers=headers, timeout=15)
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        external_timestamp = None
+        
+        # Strategy 1: Look for meta tags with dates
+        meta_tags = soup.find_all('meta')
+        for meta in meta_tags:
+            if meta.get('property') in ['article:published_time', 'article:modified_time'] or \
+               meta.get('name') in ['publishdate', 'date', 'last-modified']:
+                content = meta.get('content', '')
+                if content:
+                    try:
+                        dt = datetime.fromisoformat(content.replace('Z', '+00:00'))
+                        external_timestamp = dt.strftime('%B %d, %Y')
+                        print(f"DEBUG: Found meta date: {external_timestamp}")
+                        break
+                    except:
+                        pass
+        
+        # Strategy 2: Use the working pattern that found June 2, 2025
+        if not external_timestamp:
+            page_text = soup.get_text()
+            print(f"DEBUG: Searching page text for month dates...")
+            
+            # Use the same pattern that worked in the debug for all months
+            months = ['January', 'February', 'March', 'April', 'May', 'June', 
+                     'July', 'August', 'September', 'October', 'November', 'December']
+            
+            all_found_dates = []
+            for month in months:
+                # Use the exact same pattern that found June 2, 2025
+                pattern = f'({month} \d{{1,2}}, \d{{4}})'
+                matches = re.findall(pattern, page_text, re.IGNORECASE)
+                if matches:
+                    all_found_dates.extend(matches)
+                    print(f"DEBUG: Found {month} dates: {matches}")
+            
+            # Use the first valid recent date found
+            if all_found_dates:
+                for date_str in all_found_dates:
+                    try:
+                        # Validate it's a reasonable recent date
+                        test_date = datetime.strptime(date_str, '%B %d, %Y')
+                        if 2024 <= test_date.year <= 2025:
+                            external_timestamp = date_str
+                            print(f"DEBUG: Using date: {external_timestamp}")
+                            break
+                    except:
+                        continue
+        
+        # Strategy 3: Look for "Updated" or "Last updated" with more flexible patterns
+        if not external_timestamp:
+            print("DEBUG: Looking for 'Updated' patterns...")
+            
+            # Look for text around "updated" keywords
+            updated_patterns = [
+                r'Updated:?\s*([A-Za-z]+ \d{1,2}, \d{4})',
+                r'Last updated:?\s*([A-Za-z]+ \d{1,2}, \d{4})',
+                r'as of ([A-Za-z]+ \d{1,2}, \d{4})',
+            ]
+            
+            for pattern in updated_patterns:
+                matches = re.findall(pattern, page_text, re.IGNORECASE)
+                if matches:
+                    for match in matches:
+                        try:
+                            test_date = datetime.strptime(match, '%B %d, %Y')
+                            if 2024 <= test_date.year <= 2025:
+                                external_timestamp = match
+                                print(f"DEBUG: Found updated date: {external_timestamp}")
+                                break
+                        except:
+                            continue
+                    if external_timestamp:
+                        break
+        
+        # Fallback: Use current date with note
+        if not external_timestamp:
+            external_timestamp = f"~{datetime.now().strftime('%B %d, %Y')}"
+            print(f"DEBUG: Using fallback date: {external_timestamp}")
+        
+        polls['external_polls_updated'] = external_timestamp
+        print(f"✅ Final external polls timestamp: {external_timestamp}")
+        
+    except Exception as e:
+        print(f"❌ Failed to get timestamp: {e}")
+        polls['external_polls_updated'] = f"~{datetime.now().strftime('%B %d, %Y')}"
+
+    # AP Poll - EXISTING CODE (no timestamp extraction needed)
+    try:
+        url = "https://www.espn.com/college-football/rankings/_/poll/1"
+        response = requests.get(url, headers=headers, timeout=10)
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        ap_teams = []
+        table = soup.find('table')
+        if table:
+            rows = table.find_all('tr')[1:]
+            for i, row in enumerate(rows[:25]):
+                cells = row.find_all(['td', 'th'])
+                if len(cells) >= 2:
+                    team_cell = cells[1]
+                    raw_team_name = team_cell.get_text(separator=' ', strip=True)
+                    
+                    import re
+                    clean_name = re.sub(r'\s*\(\s*\d+\s*\).*$', '', raw_team_name)
+                    clean_name = clean_name.strip()
+                    
+                    words = clean_name.split()
+                    if len(words) >= 2 and words[0].isupper() and len(words[0]) <= 5:
+                        clean_name = ' '.join(words[1:]).strip()
+                    
+                    if clean_name:
+                        ap_teams.append({'rank': i+1, 'team': clean_name})
+        
+        polls['ap_poll'] = ap_teams
+        print(f"✅ AP Poll: {len(ap_teams)} teams")
+        
+    except Exception as e:
+        print(f"❌ AP poll failed: {e}")
+        polls['ap_poll'] = []
+
+    # Coaches Poll - EXISTING CODE (no timestamp extraction needed)
+    try:
+        url = "https://www.espn.com/college-football/rankings/_/poll/2"
+        response = requests.get(url, headers=headers, timeout=10)
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        coaches_teams = []
+        table = soup.find('table')
+        if table:
+            rows = table.find_all('tr')[1:]
+            for i, row in enumerate(rows[:25]):
+                cells = row.find_all(['td', 'th'])
+                if len(cells) >= 2:
+                    team_cell = cells[1]
+                    raw_team_name = team_cell.get_text(separator=' ', strip=True)
+                    
+                    import re
+                    clean_name = re.sub(r'\s*\(\s*\d+\s*\).*$', '', raw_team_name)
+                    clean_name = clean_name.strip()
+                    
+                    words = clean_name.split()
+                    if len(words) >= 2 and words[0].isupper() and len(words[0]) <= 5:
+                        clean_name = ' '.join(words[1:]).strip()
+                    
+                    if clean_name:
+                        coaches_teams.append({'rank': i+1, 'team': clean_name})
+        
+        polls['coaches_poll'] = coaches_teams
+        print(f"✅ Coaches Poll: {len(coaches_teams)} teams")
+        
+    except Exception as e:
+        print(f"❌ Coaches poll failed: {e}")
+        polls['coaches_poll'] = []
+
+    # Sagarin - EXISTING WORKING CODE
+    try:
+        url = "https://sagarin.com/sports/cfsend.htm"
+        
+        import urllib3
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        
+        response = requests.get(url, headers=headers, timeout=15, verify=False)
+        content = response.text
+        
+        sagarin_teams = []
+        lines = content.split('\n')
+        
+        for line in lines:
+            line = line.strip()
+            if line and len(line) > 0 and line[0].isdigit():
+                if ' A  = ' in line:
+                    before_rating = line.split(' A  = ')[0].strip()
+                    parts = before_rating.split()
+                    if len(parts) >= 2:
+                        try:
+                            rank = int(parts[0])
+                            raw_team_name = ' '.join(parts[1:]).strip()
+                            
+                            if 1 <= rank <= 25 and raw_team_name:
+                                clean_team_name = apply_team_variations(raw_team_name)
+                                sagarin_teams.append({'rank': rank, 'team': clean_team_name})
+                                
+                                if len(sagarin_teams) >= 25:
+                                    break
+                        except:
+                            continue
+        
+        polls['sagarin_poll'] = sagarin_teams
+        print(f"✅ Sagarin: {len(sagarin_teams)} teams")
+        
+    except Exception as e:
+        print(f"❌ Sagarin failed: {e}")
+        polls['sagarin_poll'] = []
+
+    # ESPN FPI - EXISTING CODE (already handled above for timestamp)
+    try:
+        url = "https://www.espn.com/college-football/fpi"
+        response = requests.get(url, headers=headers, timeout=15)
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        espn_teams = []
+        all_valid_teams = set()
+        for teams_list in CONFERENCES.values():
+            all_valid_teams.update(teams_list)
+        
+        tables = soup.find_all('table')
+        for table in tables:
+            rows = table.find_all('tr')
+            for i, row in enumerate(rows[1:]):
+                if len(espn_teams) >= 25:
+                    break
+                    
+                cells = row.find_all(['td', 'th'])
+                team_found = False
+                for cell in cells:
+                    if team_found:
+                        break
+                        
+                    links = cell.find_all('a', href=True)
+                    for link in links:
+                        href = link.get('href', '')
+                        if '/college-football/team/' in href:
+                            raw_team_name = link.get_text(strip=True)
+                            
+                            if raw_team_name and len(raw_team_name) > 2:
+                                clean_team_name = clean_scraped_team_name(raw_team_name)
+                                
+                                if clean_team_name and clean_team_name in all_valid_teams:
+                                    if not any(team['team'] == clean_team_name for team in espn_teams):
+                                        rank = len(espn_teams) + 1
+                                        espn_teams.append({'rank': rank, 'team': clean_team_name})
+                                        team_found = True
+                                        break
+                
+                if len(espn_teams) >= 25:
+                    break
+            
+            if len(espn_teams) >= 25:
+                break
+        
+        espn_teams = espn_teams[:25]
+        polls['espn_poll'] = espn_teams
+        print(f"✅ ESPN FPI: {len(espn_teams)} teams")
+        
+    except Exception as e:
+        print(f"❌ ESPN FPI failed: {e}")
+        polls['espn_poll'] = []
+
+    # CFP Poll (placeholder)
+    polls['cfp_poll'] = []
+
+    return polls
+
+
 @app.route('/add_game', methods=['GET', 'POST'])
 @login_required
 def add_game():
@@ -7039,6 +7119,10 @@ def add_game():
             # Commit the game addition first
             db.session.commit()
             flash(f'✅ Game added to database successfully', 'success')
+            
+            # 🤖 CFB ML TRACKING: Log the actual game result
+            if CFB_ML_ENABLED:
+                log_game_result_to_ml(home_team, away_team, home_score, away_score, week, is_overtime)
             
             # STEP 2: Look for scheduled game
             try:
@@ -7147,137 +7231,68 @@ def add_game():
                          selected_week=selected_week)
 
 
-# Add this route to check database state
-@app.route('/verify_scheduled_games/<week>')
-@login_required  
-def verify_scheduled_games(week):
-    """Verify the actual database state of scheduled games"""
+def log_game_result_to_ml(home_team, away_team, home_score, away_score, week, is_overtime=False):
+    """Enhanced game result logging with over/under tracking"""
+    if not CFB_ML_ENABLED:
+        return
     
-    scheduled_games = ScheduledGame.query.filter_by(week=week).all()
+    try:
+        # Determine actual winner and margin
+        if home_score > away_score:
+            actual_winner = home_team
+            actual_margin = home_score - away_score
+        else:
+            actual_winner = away_team
+            actual_margin = away_score - home_score
+        
+        # Calculate actual total
+        actual_total = home_score + away_score
+        
+        # Find all matching predictions for this game
+        predictions = CFBPredictionLog.query.filter(
+            CFBPredictionLog.home_team == home_team,
+            CFBPredictionLog.away_team == away_team,
+            CFBPredictionLog.week == str(week),
+            CFBPredictionLog.game_completed == False
+        ).all()
+        
+        results_updated = 0
+        
+        for prediction in predictions:
+            # Update actual results
+            prediction.actual_winner = actual_winner
+            prediction.actual_margin = actual_margin
+            prediction.actual_total = actual_total
+            prediction.game_completed = True
+            prediction.result_date = datetime.utcnow()
+            
+            # Calculate accuracy metrics
+            
+            # Winner correct?
+            prediction.winner_correct = (prediction.predicted_winner == actual_winner)
+            
+            # Margin error
+            if prediction.predicted_margin is not None:
+                prediction.margin_error = abs(prediction.predicted_margin - actual_margin)
+            
+            # Total error (over/under)
+            if prediction.predicted_total is not None:
+                prediction.total_error = abs(prediction.predicted_total - actual_total)
+            
+            results_updated += 1
+        
+        # Commit all updates
+        db.session.commit()
+        
+        if results_updated > 0:
+            flash(f'🤖 ML Tracking: Updated {results_updated} prediction(s) with actual result', 'info')
+        
+        return results_updated
     
-    return f"""
-    <html><body style="font-family: Arial; margin: 40px;">
-        <h1>Database State for Week {week}</h1>
-        
-        <h2>All Scheduled Games ({len(scheduled_games)} total)</h2>
-        <table border="1" style="border-collapse: collapse; width: 100%;">
-            <tr style="background: #f0f0f0;">
-                <th style="padding: 8px;">ID</th>
-                <th style="padding: 8px;">Teams</th>
-                <th style="padding: 8px;">Completed</th>
-                <th style="padding: 8px;">Final Score</th>
-                <th style="padding: 8px;">Overtime</th>
-                <th style="padding: 8px;">Date Added</th>
-            </tr>
-            {''.join(f'''
-            <tr style="background: {'#d4edda' if game.completed else '#fff3cd'};">
-                <td style="padding: 8px;">{game.id}</td>
-                <td style="padding: 8px;">{game.home_team} vs {game.away_team}</td>
-                <td style="padding: 8px;">{'✅ TRUE' if game.completed else '❌ FALSE'}</td>
-                <td style="padding: 8px;">{game.final_home_score or 'NULL'}-{game.final_away_score or 'NULL'}</td>
-                <td style="padding: 8px;">{'✅' if game.overtime else '❌'}</td>
-                <td style="padding: 8px;">{game.game_date or 'No Date'}</td>
-            </tr>
-            ''' for game in scheduled_games)}
-        </table>
-        
-        <h2>Refresh & Test</h2>
-        <p><a href="/verify_scheduled_games/{week}" style="background: #007bff; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px;">🔄 Refresh This Page</a></p>
-        <p><a href="/add_game?selected_week={week}" style="background: #28a745; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px;">➕ Add Game for Week {week}</a></p>
-        <p><a href="/scoreboard/{week}" style="background: #17a2b8; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px;">📊 View Scoreboard</a></p>
-        
-        <h3>Instructions:</h3>
-        <ol>
-            <li>Look at the Kansas State vs Iowa State row - it should show "❌ FALSE" for completed</li>
-            <li>Add the Iowa State vs Kansas State game</li>
-            <li>Come back here and refresh - the row should turn green and show "✅ TRUE"</li>
-            <li>If it doesn't change, we know the database update isn't working</li>
-        </ol>
-    </body></html>
-    """
-
-# Add this test route anywhere in your app.py for debugging
-@app.route('/test_game_matching/<week>/<home_team>/<away_team>')
-@login_required
-def test_game_matching(week, home_team, away_team):
-    """Test if a game would match a scheduled game"""
-    from urllib.parse import unquote
-    
-    # Decode URL parameters
-    home_team = unquote(home_team)
-    away_team = unquote(away_team)
-    
-    # Get all scheduled games for this week
-    all_scheduled = ScheduledGame.query.filter_by(week=week).all()
-    uncompleted = ScheduledGame.query.filter_by(week=week, completed=False).all()
-    
-    # Try the exact query that add_game uses
-    matching_game = ScheduledGame.query.filter_by(
-        week=week,
-        completed=False
-    ).filter(
-        db.or_(
-            db.and_(ScheduledGame.home_team == home_team, ScheduledGame.away_team == away_team),
-            db.and_(ScheduledGame.home_team == away_team, ScheduledGame.away_team == home_team)
-        )
-    ).first()
-    
-    results = []
-    for game in all_scheduled:
-        exact_match = (game.home_team == home_team and game.away_team == away_team)
-        flipped_match = (game.home_team == away_team and game.away_team == home_team)
-        would_match = (exact_match or flipped_match) and not game.completed
-        
-        results.append({
-            'scheduled_home': game.home_team,
-            'scheduled_away': game.away_team,
-            'completed': game.completed,
-            'exact_match': exact_match,
-            'flipped_match': flipped_match,
-            'would_match': would_match,
-            'is_the_match': game == matching_game
-        })
-    
-    return f"""
-    <html><body style="font-family: Arial; margin: 40px;">
-        <h1>Game Matching Test</h1>
-        <p><strong>Testing:</strong> {home_team} vs {away_team} in Week {week}</p>
-        <p><strong>Found Match:</strong> {'✅ YES' if matching_game else '❌ NO'}</p>
-        
-        {f'<p><strong>Matched Game:</strong> {matching_game.home_team} vs {matching_game.away_team}</p>' if matching_game else ''}
-        
-        <h2>All Scheduled Games for Week {week}:</h2>
-        <table border="1" style="border-collapse: collapse; width: 100%;">
-            <tr style="background: #f0f0f0;">
-                <th style="padding: 8px;">Scheduled Game</th>
-                <th style="padding: 8px;">Completed?</th>
-                <th style="padding: 8px;">Exact Match?</th>
-                <th style="padding: 8px;">Flipped Match?</th>
-                <th style="padding: 8px;">Would Match?</th>
-                <th style="padding: 8px;">Is The Match?</th>
-            </tr>
-            {''.join(f'''
-            <tr style="background: {'#d4edda' if result['would_match'] else '#f8d7da' if result['completed'] else '#fff'};">
-                <td style="padding: 8px;">{result['scheduled_home']} vs {result['scheduled_away']}</td>
-                <td style="padding: 8px;">{'✅' if result['completed'] else '❌'}</td>
-                <td style="padding: 8px;">{'✅' if result['exact_match'] else '❌'}</td>
-                <td style="padding: 8px;">{'✅' if result['flipped_match'] else '❌'}</td>
-                <td style="padding: 8px;">{'✅ YES' if result['would_match'] else '❌ NO'}</td>
-                <td style="padding: 8px;">{'🎯 THIS ONE' if result['is_the_match'] else ''}</td>
-            </tr>
-            ''' for result in results)}
-        </table>
-        
-        <h3>Debug Info:</h3>
-        <ul>
-            <li>Total scheduled games for week: {len(all_scheduled)}</li>
-            <li>Uncompleted scheduled games: {len(uncompleted)}</li>
-            <li>Query found match: {'Yes' if matching_game else 'No'}</li>
-        </ul>
-        
-        <p><a href="/add_game">Back to Add Game</a></p>
-    </body></html>
-    """
+    except Exception as e:
+        db.session.rollback()
+        print(f"Enhanced ML tracking error: {e}")
+        return 0
 
 
 @app.route('/add_bulk_games', methods=['POST'])
@@ -7380,6 +7395,449 @@ def add_bulk_games():
         flash(f'Error adding games: {e}', 'error')
     
     return redirect(url_for('add_game'))
+
+
+@app.route('/admin/ml')
+@login_required
+def cfb_ml_dashboard():
+    """Enhanced CFB ML tracking dashboard with automated predictions"""
+    if not CFB_ML_ENABLED:
+        flash('CFB ML tracking is not available. Please check cfb_ml_tracking.py', 'error')
+        return redirect(url_for('admin'))
+    
+    try:
+        # Import the enhanced function
+        from cfb_ml_tracking import get_enhanced_ml_dashboard_data
+        
+        dashboard_data = get_enhanced_ml_dashboard_data()
+        if not dashboard_data:
+            flash('Error loading enhanced ML dashboard data', 'error')
+            return redirect(url_for('admin'))
+        
+        # Create enhanced HTML dashboard
+        html = """
+        <h1>🤖 CFB ML Tracking Dashboard</h1>
+        <div style='display: flex; gap: 20px; margin-bottom: 20px;'>
+            <a href='/admin/ml/batch_predict' style='padding: 10px 15px; background: #28a745; color: white; text-decoration: none; border-radius: 5px;'>
+                📊 Auto-Predict Games
+            </a>
+            <a href='/admin/ml/predictions' style='padding: 10px 15px; background: #007bff; color: white; text-decoration: none; border-radius: 5px;'>
+                👁️ View All Predictions
+            </a>
+            <a href='/admin/ml/manage_predictions' style='padding: 10px 15px; background: #dc3545; color: white; text-decoration: none; border-radius: 5px;'>
+                🗑️ Manage/Delete Predictions
+            </a>
+              <a href='/admin/ml/export_season_data' style='padding: 10px 15px; background: #6f42c1; color: white; text-decoration: none; border-radius: 5px;'>
+        📤 Export Season Data
+             </a>
+        </div>
+        """
+        
+        # Overall Stats
+        html += f"""
+        <h2>📈 Overall Performance</h2>
+        <div style='display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;'>
+            <div style='padding: 15px; background: #f8f9fa; border-radius: 8px; text-align: center;'>
+                <h3>Total Predictions</h3>
+                <div style='font-size: 24px; font-weight: bold; color: #495057;'>{dashboard_data['total_predictions']}</div>
+            </div>
+            <div style='padding: 15px; background: #e3f2fd; border-radius: 8px; text-align: center;'>
+                <h3>Automated</h3>
+                <div style='font-size: 24px; font-weight: bold; color: #1976d2;'>{dashboard_data['automated_predictions']}</div>
+            </div>
+            <div style='padding: 15px; background: #f3e5f5; border-radius: 8px; text-align: center;'>
+                <h3>Manual</h3>
+                <div style='font-size: 24px; font-weight: bold; color: #7b1fa2;'>{dashboard_data['manual_predictions']}</div>
+            </div>
+        </div>
+        """
+        
+        # Accuracy Comparison
+        accuracy_data = dashboard_data['accuracy_by_type']
+        html += """
+        <h2>🎯 Accuracy Comparison</h2>
+        <table border='1' style='border-collapse: collapse; width: 100%; margin-bottom: 20px;'>
+            <tr style='background: #f0f0f0;'>
+                <th style='padding: 10px;'>Prediction Type</th>
+                <th style='padding: 10px;'>Total</th>
+                <th style='padding: 10px;'>Completed</th>
+                <th style='padding: 10px;'>Correct</th>
+                <th style='padding: 10px;'>Accuracy</th>
+                <th style='padding: 10px;'>Avg Margin Error</th>
+            </tr>
+        """
+        
+        for pred_type, data in accuracy_data.items():
+            color = "#e3f2fd" if pred_type == "automated" else "#f3e5f5"
+            icon = "🤖" if pred_type == "automated" else "👤"
+            html += f"""
+            <tr style='background: {color};'>
+                <td style='padding: 10px;'>{icon} {pred_type.title()}</td>
+                <td style='padding: 10px;'>{data['total']}</td>
+                <td style='padding: 10px;'>{data['completed']}</td>
+                <td style='padding: 10px;'>{data['correct']}</td>
+                <td style='padding: 10px;'><strong>{data['accuracy']}%</strong></td>
+                <td style='padding: 10px;'>{data['avg_margin_error']}</td>
+            </tr>
+            """
+        
+        html += "</table>"
+        
+        # Weekly Breakdown
+        weekly_data = dashboard_data['weekly_breakdown']
+        if weekly_data:
+            html += """
+            <h2>📅 Weekly Breakdown</h2>
+            <table border='1' style='border-collapse: collapse; width: 100%; margin-bottom: 20px;'>
+                <tr style='background: #f0f0f0;'>
+                    <th style='padding: 8px;'>Week</th>
+                    <th style='padding: 8px;'>Total</th>
+                    <th style='padding: 8px;'>🤖 Automated</th>
+                    <th style='padding: 8px;'>👤 Manual</th>
+                    <th style='padding: 8px;'>Completed</th>
+                    <th style='padding: 8px;'>Pending</th>
+                    <th style='padding: 8px;'>Actions</th>
+                </tr>
+            """
+            
+            for week, data in weekly_data.items():
+                html += f"""
+                <tr>
+                    <td style='padding: 8px;'><strong>Week {week}</strong></td>
+                    <td style='padding: 8px;'>{data['total']}</td>
+                    <td style='padding: 8px;'>{data['automated']}</td>
+                    <td style='padding: 8px;'>{data['manual']}</td>
+                    <td style='padding: 8px;'>{data['completed']}</td>
+                    <td style='padding: 8px;'>{data['pending']}</td>
+                    <td style='padding: 8px;'>
+                        <a href='/admin/ml/view_predictions/{week}' style='color: #007bff;'>View</a>
+                        {f" | <a href='/admin/ml/predict_week/{week}' style='color: #28a745;'>Predict</a>" if data['pending'] > 0 else ""}
+                    </td>
+                </tr>
+                """
+            
+            html += "</table>"
+        
+        html += "<br><a href='/admin'>← Back to Admin</a>"
+        
+        return html
+        
+    except Exception as e:
+        flash(f'Error loading enhanced CFB ML dashboard: {e}', 'error')
+        return redirect(url_for('admin'))
+
+@app.route('/admin/ml/export/<format>')
+@login_required
+def cfb_ml_export(format):
+    """Export CFB ML prediction data"""
+    if not CFB_ML_ENABLED:
+        return {'error': 'CFB ML tracking not available'}, 400
+    
+    try:
+        weeks = request.args.getlist('weeks')
+        data = export_prediction_data(format=format, weeks=weeks if weeks else None)
+        
+        if format == 'json':
+            return data
+        elif format == 'csv':
+            from flask import Response
+            return Response(
+                data,
+                mimetype='text/csv',
+                headers={'Content-Disposition': f'attachment; filename=cfb_predictions_{datetime.now().year}.csv'}
+            )
+        else:
+            return {'error': 'Unsupported format'}, 400
+            
+    except Exception as e:
+        return {'error': str(e)}, 500
+
+@app.route('/admin/ml/temporal_weights')
+@login_required
+def cfb_ml_temporal_weights():
+    """View temporal weight analysis and suggestions"""
+    if not CFB_ML_ENABLED:
+        flash('CFB ML tracking is not available', 'error')
+        return redirect(url_for('admin'))
+    
+    try:
+        from cfb_ml_tracking import CFBTemporalAnalysis
+        
+        # Get temporal analysis data
+        temporal_data = CFBTemporalAnalysis.query.filter_by(
+            season_year=datetime.now().year
+        ).order_by(CFBTemporalAnalysis.week).all()
+        
+        # Compare current weights with suggested weights
+        weight_comparison = []
+        for week_data in temporal_data:
+            if week_data.predictions_verified and week_data.predictions_verified > 0:
+                current_weight = get_temporal_weight_by_week(week_data.week)
+                suggested_weight = week_data.suggested_weight
+                
+                weight_comparison.append({
+                    'week': week_data.week,
+                    'current_weight': current_weight,
+                    'suggested_weight': suggested_weight,
+                    'difference': suggested_weight - current_weight,
+                    'accuracy': week_data.average_accuracy,
+                    'predictions': week_data.predictions_verified,
+                    'confidence': week_data.average_confidence
+                })
+        
+        return render_template('cfb_temporal_weights.html', 
+                             weight_comparison=weight_comparison,
+                             temporal_data=temporal_data)
+        
+    except Exception as e:
+        flash(f'Error loading temporal weights analysis: {e}', 'error')
+        return redirect(url_for('cfb_ml_dashboard'))
+
+@app.route('/admin/ml/prediction_factors')
+@login_required
+def cfb_ml_prediction_factors():
+    """Analyze prediction factor performance"""
+    if not CFB_ML_ENABLED:
+        flash('CFB ML tracking is not available', 'error')
+        return redirect(url_for('admin'))
+    
+    try:
+        from cfb_ml_tracking import CFBAlgorithmPerformance
+        
+        # Get algorithm performance data
+        performance = CFBAlgorithmPerformance.query.filter_by(
+            season_year=datetime.now().year
+        ).first()
+        
+        if not performance:
+            flash('No CFB ML performance data available yet', 'info')
+            return redirect(url_for('cfb_ml_dashboard'))
+        
+        # Parse factor importance and optimization suggestions
+        factor_importance = {}
+        optimization_suggestions = []
+        
+        if performance.factor_importance:
+            factor_importance = json.loads(performance.factor_importance)
+        
+        if performance.optimization_suggestions:
+            optimization_suggestions = json.loads(performance.optimization_suggestions)
+        
+        return render_template('cfb_prediction_factors.html',
+                             performance=performance,
+                             factor_importance=factor_importance,
+                             optimization_suggestions=optimization_suggestions)
+        
+    except Exception as e:
+        flash(f'Error loading prediction factors analysis: {e}', 'error')
+        return redirect(url_for('cfb_ml_dashboard'))
+
+@app.route('/admin/ml/reset_tracking', methods=['POST'])
+@login_required
+def cfb_ml_reset_tracking():
+    """Reset CFB ML tracking data (for testing)"""
+    if not CFB_ML_ENABLED:
+        flash('CFB ML tracking is not available', 'error')
+        return redirect(url_for('admin'))
+    
+    try:
+        confirm_text = request.form.get('reset_confirm', '').strip()
+        if confirm_text != 'RESET ML':
+            flash('Reset confirmation failed. Please type "RESET ML" exactly.', 'error')
+            return redirect(url_for('cfb_ml_dashboard'))
+        
+        # Clear all CFB ML tracking data
+        from cfb_ml_tracking import CFBPredictionLog, CFBTemporalAnalysis, CFBAlgorithmPerformance
+        
+        CFBPredictionLog.query.delete()
+        CFBTemporalAnalysis.query.delete()
+        CFBAlgorithmPerformance.query.delete()
+        
+        db.session.commit()
+        
+        # Reinitialize
+        cfb_ml_tracking.setup_cfb_ml_tracking()
+        
+        flash('🗑️ CFB ML tracking data has been reset. Ready for fresh predictions!', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error resetting CFB ML tracking: {e}', 'error')
+    
+    return redirect(url_for('cfb_ml_dashboard'))
+
+
+# Add these routes to your app.py for deleting predictions
+
+@app.route('/admin/ml/delete_week/<week>')
+@login_required
+def delete_week_predictions(week):
+    """Delete all predictions for a specific week"""
+    try:
+        # Count predictions before deletion
+        prediction_count = CFBPredictionLog.query.filter(
+            CFBPredictionLog.week == str(week)
+        ).count()
+        
+        if prediction_count == 0:
+            flash(f'No predictions found for Week {week}', 'info')
+            return redirect(url_for('cfb_ml_dashboard'))
+        
+        # Delete all predictions for this week
+        CFBPredictionLog.query.filter(
+            CFBPredictionLog.week == str(week)
+        ).delete()
+        
+        db.session.commit()
+        
+        flash(f'✅ Deleted {prediction_count} predictions for Week {week}', 'success')
+        return redirect(url_for('cfb_ml_dashboard'))
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting Week {week} predictions: {str(e)}', 'error')
+        return redirect(url_for('cfb_ml_dashboard'))
+
+
+@app.route('/admin/ml/delete_automated')
+@login_required
+def delete_all_automated():
+    """Delete ALL automated predictions (keep manual ones)"""
+    try:
+        # Count automated predictions
+        automated_count = CFBPredictionLog.query.filter(
+            CFBPredictionLog.prediction_type == 'automated'
+        ).count()
+        
+        if automated_count == 0:
+            flash('No automated predictions found to delete', 'info')
+            return redirect(url_for('cfb_ml_dashboard'))
+        
+        # Delete all automated predictions
+        CFBPredictionLog.query.filter(
+            CFBPredictionLog.prediction_type == 'automated'
+        ).delete()
+        
+        db.session.commit()
+        
+        flash(f'✅ Deleted {automated_count} automated predictions (manual predictions kept)', 'success')
+        return redirect(url_for('cfb_ml_dashboard'))
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting automated predictions: {str(e)}', 'error')
+        return redirect(url_for('cfb_ml_dashboard'))
+
+
+@app.route('/admin/ml/delete_all')
+@login_required
+def delete_all_predictions():
+    """Delete ALL predictions (manual and automated) - BE CAREFUL!"""
+    try:
+        # Count all predictions
+        total_count = CFBPredictionLog.query.count()
+        
+        if total_count == 0:
+            flash('No predictions found to delete', 'info')
+            return redirect(url_for('cfb_ml_dashboard'))
+        
+        # Delete ALL predictions
+        CFBPredictionLog.query.delete()
+        
+        db.session.commit()
+        
+        flash(f'⚠️ Deleted ALL {total_count} predictions (manual and automated)', 'warning')
+        return redirect(url_for('cfb_ml_dashboard'))
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting all predictions: {str(e)}', 'error')
+        return redirect(url_for('cfb_ml_dashboard'))
+
+
+@app.route('/admin/ml/manage_predictions')
+@login_required
+def manage_predictions():
+    """Interface to manage/delete predictions"""
+    try:
+        # Get prediction counts by week and type
+        all_predictions = CFBPredictionLog.query.all()
+        
+        # Group by week
+        weeks = {}
+        for pred in all_predictions:
+            if pred.week not in weeks:
+                weeks[pred.week] = {'manual': 0, 'automated': 0, 'total': 0}
+            weeks[pred.week][pred.prediction_type] += 1
+            weeks[pred.week]['total'] += 1
+        
+        # Sort weeks
+        sorted_weeks = sorted(weeks.keys(), key=lambda x: int(x) if x.isdigit() else 999)
+        
+        # Count totals
+        total_manual = len([p for p in all_predictions if p.prediction_type == 'manual'])
+        total_automated = len([p for p in all_predictions if p.prediction_type == 'automated'])
+        
+        html = f"""
+        <h2>🗑️ Manage Predictions</h2>
+        
+        <div style='background: #fff3cd; padding: 15px; border-radius: 5px; margin-bottom: 20px;'>
+            <strong>⚠️ Warning:</strong> Deletion is permanent! Make sure you want to remove these predictions.
+        </div>
+        
+        <h3>Delete All Predictions</h3>
+        <div style='margin-bottom: 20px;'>
+            <a href='/admin/ml/delete_automated' onclick='return confirm("Delete all {total_automated} automated predictions? Manual predictions will be kept.")' 
+               style='padding: 8px 15px; background: #ffc107; color: black; text-decoration: none; border-radius: 3px; margin-right: 10px;'>
+                Delete All Automated ({total_automated})
+            </a>
+            <a href='/admin/ml/delete_all' onclick='return confirm("DELETE ALL {len(all_predictions)} PREDICTIONS? This cannot be undone!")' 
+               style='padding: 8px 15px; background: #dc3545; color: white; text-decoration: none; border-radius: 3px;'>
+                Delete Everything ({len(all_predictions)})
+            </a>
+        </div>
+        
+        <h3>Delete by Week</h3>
+        <table border='1' style='border-collapse: collapse; width: 100%;'>
+            <tr style='background: #f0f0f0;'>
+                <th style='padding: 8px;'>Week</th>
+                <th style='padding: 8px;'>Manual</th>
+                <th style='padding: 8px;'>Automated</th>
+                <th style='padding: 8px;'>Total</th>
+                <th style='padding: 8px;'>Actions</th>
+            </tr>
+        """
+        
+        for week in sorted_weeks:
+            data = weeks[week]
+            html += f"""
+            <tr>
+                <td style='padding: 8px;'><strong>Week {week}</strong></td>
+                <td style='padding: 8px;'>{data['manual']}</td>
+                <td style='padding: 8px;'>{data['automated']}</td>
+                <td style='padding: 8px;'>{data['total']}</td>
+                <td style='padding: 8px;'>
+                    <a href='/admin/ml/view_predictions/{week}' style='color: #007bff; margin-right: 10px;'>View</a>
+                    <a href='/admin/ml/delete_week/{week}' onclick='return confirm("Delete all {data['total']} predictions for Week {week}?")' 
+                       style='color: #dc3545;'>Delete Week</a>
+                </td>
+            </tr>
+            """
+        
+        html += f"""
+        </table>
+        
+        <br>
+        <a href='/admin/ml'>← Back to ML Dashboard</a>
+        """
+        
+        return html
+        
+    except Exception as e:
+        flash(f'Error loading manage predictions: {str(e)}', 'error')
+        return redirect(url_for('cfb_ml_dashboard'))
+
+
 
 @app.route('/remove_game/<int:game_id>', methods=['POST'])
 @login_required
@@ -7962,26 +8420,7 @@ def analyze_fcs_games():
 
 
 # Replace your bowl_projections route with this clean version
-# This removes all potential issues and uses simple error handling
 
-# And add this test route:
-@app.route('/team_simple/<team_name>')
-def team_simple(team_name):
-    """Super simple template test"""
-    team_record = TeamStats.query.filter_by(team_name=team_name).first()  # 
-    if not team_record:  # 
-        return "Team not found"  # 
-    basic_stats = team_record.to_dict()  # 
-    opponent_details = []
-    for game in basic_stats['games']:
-        opponent_details.append({
-            'opponent': game['opponent'],
-            'result': game['result'],
-        })
-    
-    return render_template('test_template.html', 
-                         team_name=team_name, 
-                         opponent_details=opponent_details)
 
 @app.route('/bowl_projections')
 def bowl_projections():
@@ -8424,6 +8863,7 @@ def safe_reset_data():
     
     return redirect(url_for('admin'))
 
+
 @app.route('/import_csv', methods=['GET', 'POST'])
 @login_required
 def import_csv():
@@ -8583,6 +9023,20 @@ if __name__ == '__main__':
     print("  → Useful for bowl games, conference championships, etc.")
     print("\nData will be automatically saved to games_data.json and team_stats.json")
     print("Starting Flask development server...")
+
+
+    if CFB_ML_ENABLED:
+        try:
+            with app.app_context():
+                cfb_ml_tracking.setup_cfb_ml_tracking()
+                print("✅ CFB ML tracking initialized successfully")
+        except Exception as e:
+            print(f"❌ Error initializing CFB ML tracking: {e}")
+            CFB_ML_ENABLED = False
+    
+    print("College Football Ranking App")
+    # ... rest of your existing startup code ...
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5001)), debug=False)
     
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5001)), debug=False)
 

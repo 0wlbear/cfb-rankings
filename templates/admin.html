@@ -80,41 +80,100 @@
                 </div>
             
 
-
-
-            <!-- Action Buttons -->
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0">📊 Data Management</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="d-grid gap-2">
-                                <a href="/add_game" class="btn btn-primary">➕ Add Game</a>
-                                <a href="{{ url_for('manage_games') }}" class="btn btn-outline-primary">🗑️ Manage Games</a>
-                                <a href="/weekly_results" class="btn btn-outline-info">📅 Scoreboard</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header bg-success text-white">
-                            <h5 class="mb-0">📦 Season Management</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="d-grid gap-2">
-                                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#snapshotModal">📸 Create Snapshot</button>
-                                <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#archiveModal">📦 Archive Season</button>
-                                <a href="{{ url_for('archived_seasons') }}" class="btn btn-outline-info">🗂️ View Past Seasons</a>
-                            </div>
-                        </div>
-                    </div>
+<!-- Action Buttons -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">📊 Data Management</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="/add_game" class="btn btn-primary">➕ Add Game</a>
+                    <a href="{{ url_for('manage_games') }}" class="btn btn-outline-primary">🗑️ Manage Games</a>
+                    <a href="/weekly_results" class="btn btn-outline-info">📅 Scoreboard</a>
                 </div>
             </div>
-            
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">📦 Season Management</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#snapshotModal">📸 Create Snapshot</button>
+                    <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#archiveModal">📦 Archive Season</button>
+                    <a href="{{ url_for('archived_seasons') }}" class="btn btn-outline-info">🗂️ View Past Seasons</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+                <!-- ADD THIS NEW SECTION RIGHT HERE (after the existing Action Buttons section): -->
+
+                <!-- CFB ML Tracking Section -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="card border-info">
+                            <div class="card-header bg-info text-white">
+                                <h5 class="mb-0">🤖 CFB Machine Learning Tracking</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="mb-3">Track prediction accuracy and optimize temporal weights using machine learning analysis.</p>
+                                
+                                <!-- ML Status Check -->
+                                {% if CFB_ML_ENABLED is defined and CFB_ML_ENABLED %}
+                                    <div class="alert alert-success py-2 mb-3">
+                                        <small>✅ <strong>ML Tracking Active:</strong> Predictions are being automatically tracked and analyzed.</small>
+                                    </div>
+                                    
+                                    <!-- ML Dashboard Buttons -->
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <a href="{{ url_for('cfb_ml_dashboard') }}" class="btn btn-info w-100 mb-2">
+                                                📊 ML Dashboard
+                                            </a>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <a href="{{ url_for('cfb_ml_temporal_weights') }}" class="btn btn-outline-info w-100 mb-2">
+                                                ⏱️ Temporal Analysis
+                                            </a>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <a href="{{ url_for('cfb_ml_prediction_factors') }}" class="btn btn-outline-info w-100 mb-2">
+                                                🔬 Factor Analysis
+                                            </a>
+                                        </div>
+                                    
+                                    </div>
+                                    
+                                    <!-- Quick ML Stats (if available) -->
+                                    <div class="row mt-3">
+                                        <div class="col-md-12">
+                                            <div class="bg-light p-2 rounded">
+                                                <small class="text-muted">
+                                                    <strong>Next:</strong> Use the <a href="{{ url_for('team_compare') }}">Team Comparison</a> tool to make predictions - they'll be tracked automatically! 
+                                                    Then add game results via <a href="{{ url_for('add_game') }}">Add Game</a> to measure accuracy.
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <div class="alert alert-warning py-2 mb-3">
+                                        <small>⚠️ <strong>ML Tracking Unavailable:</strong> Please ensure cfb_ml_tracking.py is properly installed.</small>
+                                    </div>
+                                    <p class="text-muted mb-0">CFB ML tracking provides prediction accuracy analysis and temporal weight optimization.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
             <!-- Quick Stats Overview -->
             <div class="row mb-4">
                 <div class="col-md-3">

@@ -1,0 +1,282 @@
+<!-- =============================================== -->
+<!-- 1. cfb_ml_dashboard.html - Main CFB ML Dashboard -->
+<!-- =============================================== -->
+
+{% extends "base.html" %}
+
+{% block title %}CFB ML Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>🤖 CFB Machine Learning Dashboard</h2>
+                <div>
+                    <a href="{{ url_for('cfb_ml_temporal_weights') }}" class="btn btn-info btn-sm">
+                        📊 Temporal Analysis
+                    </a>
+                    <a href="{{ url_for('cfb_ml_prediction_factors') }}" class="btn btn-secondary btn-sm">
+                        🔬 Factor Analysis
+                    </a>
+                    <a href="{{ url_for('admin') }}" class="btn btn-outline-primary btn-sm">
+                        ← Back to Admin
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Overview -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-primary">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Total Predictions</h5>
+                    <h2 class="text-primary">{{ performance.total_predictions if performance else 0 }}</h2>
+                    <small class="text-muted">Season {{ performance.season_year if performance else 'N/A' }}</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Winner Accuracy</h5>
+                    <h2 class="text-success">
+                        {{ "%.1f"|format(performance.winner_accuracy if performance else 0) }}%
+                    </h2>
+                    <small class="text-muted">Correct winner predictions</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Avg Accuracy</h5>
+                    <h2 class="text-warning">
+                        {{ "%.1f"|format(performance.average_accuracy if performance else 0) }}%
+                    </h2>
+                    <small class="text-muted">Overall prediction score</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Avg Margin Error</h5>
+                    <h2 class="text-info">
+                        {{ "%.1f"|format(performance.average_margin_error if performance else 0) }}
+                    </h2>
+                    <small class="text-muted">Points off target</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Weekly Accuracy Trend -->
+    {% if weekly_accuracy %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>📈 Weekly Accuracy Trends</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="weeklyAccuracyChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Recent Predictions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5>🎯 Recent Predictions</h5>
+                    <div>
+                        <a href="{{ url_for('cfb_ml_export', format='json') }}" class="btn btn-outline-primary btn-sm">
+                            📥 Export JSON
+                        </a>
+                        <a href="{{ url_for('cfb_ml_export', format='csv') }}" class="btn btn-outline-success btn-sm">
+                            📊 Export CSV
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if recent_predictions %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Week</th>
+                                    <th>Matchup</th>
+                                    <th>Prediction</th>
+                                    <th>Actual</th>
+                                    <th>Accuracy</th>
+                                    <th>Confidence</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for pred in recent_predictions %}
+                                <tr class="{{ 'table-success' if pred.winner_correct else 'table-danger' if pred.actual_winner else '' }}">
+                                    <td>{{ pred.week }}</td>
+                                    <td>
+                                        <strong>{{ pred.team1_name }}</strong> vs <strong>{{ pred.team2_name }}</strong>
+                                        {% if pred.location != 'neutral' %}
+                                            <small class="text-muted">({{ pred.location }})</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong>{{ pred.predicted_winner }}</strong>
+                                        {% if pred.predicted_margin > 0 %}
+                                            by {{ "%.1f"|format(pred.predicted_margin) }}
+                                        {% endif %}
+                                        <br>
+                                        <small class="text-muted">{{ "%.0f"|format(pred.win_probability) }}% prob</small>
+                                    </td>
+                                    <td>
+                                        {% if pred.actual_winner %}
+                                            <strong>{{ pred.actual_winner }}</strong>
+                                            {% if pred.actual_margin %}
+                                                by {{ pred.actual_margin }}
+                                            {% endif %}
+                                            {% if pred.is_overtime %}
+                                                <small class="badge badge-warning">OT</small>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if pred.accuracy_score %}
+                                            <span class="badge badge-{{ 'success' if pred.accuracy_score >= 75 else 'warning' if pred.accuracy_score >= 50 else 'danger' }}">
+                                                {{ "%.0f"|format(pred.accuracy_score) }}%
+                                            </span>
+                                            {% if pred.margin_error %}
+                                                <br><small class="text-muted">±{{ "%.1f"|format(pred.margin_error) }}</small>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-{{ 'success' if pred.confidence_score >= 0.7 else 'warning' if pred.confidence_score >= 0.5 else 'secondary' }}">
+                                            {{ "%.0f"|format(pred.confidence_score * 100) }}%
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small>{{ pred.prediction_date.strftime('%m/%d %H:%M') if pred.prediction_date else 'N/A' }}</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-4">
+                        <h5>No predictions tracked yet</h5>
+                        <p>Predictions will appear here automatically when you use the team comparison tool.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>🚀 Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <a href="{{ url_for('team_compare') }}" class="btn btn-primary btn-block mb-2">
+                        🆚 Make New Prediction
+                    </a>
+                    <a href="{{ url_for('cfb_ml_temporal_weights') }}" class="btn btn-info btn-block mb-2">
+                        ⏱️ Review Temporal Weights
+                    </a>
+                    <a href="{{ url_for('cfb_ml_prediction_factors') }}" class="btn btn-secondary btn-block">
+                        🔍 Analyze Factors
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5>⚠️ Reset ML Tracking</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Clear all prediction data for testing purposes.</p>
+                    <form method="POST" action="{{ url_for('cfb_ml_reset_tracking') }}" style="display: inline;">
+                        <div class="form-group">
+                            <input type="text" name="reset_confirm" class="form-control" 
+                                   placeholder='Type "RESET ML" to confirm'>
+                        </div>
+                        <button type="submit" class="btn btn-danger btn-sm">Reset ML Data</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js for weekly accuracy trend -->
+{% if weekly_accuracy %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script>
+const ctx = document.getElementById('weeklyAccuracyChart').getContext('2d');
+const weeklyData = {{ weekly_accuracy | tojsonfilter }};
+
+const chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: weeklyData.map(w => 'Week ' + w.week),
+        datasets: [{
+            label: 'Prediction Accuracy (%)',
+            data: weeklyData.map(w => w.accuracy),
+            borderColor: 'rgb(54, 162, 235)',
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            tension: 0.3
+        }, {
+            label: 'Confidence Level (%)',
+            data: weeklyData.map(w => w.confidence * 100),
+            borderColor: 'rgb(255, 99, 132)',
+            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            tension: 0.3
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100,
+                ticks: {
+                    callback: function(value) {
+                        return value + '%';
+                    }
+                }
+            }
+        },
+        plugins: {
+            tooltip: {
+                callbacks: {
+                    afterLabel: function(context) {
+                        const weekData = weeklyData[context.dataIndex];
+                        return `Predictions: ${weekData.predictions}`;
+                    }
+                }
+            }
+        }
+    }
+});
+</script>
+{% endif %}
+{% endblock %}
+

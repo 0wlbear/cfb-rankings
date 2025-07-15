@@ -9,108 +9,126 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <style>
-        /* Modern Dropdown Styling */
-.modern-dropdown {
-    background: rgba(15, 23, 42, 0.95) !important;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    border-radius: 0.75rem !important;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3) !important;
-    padding: 0.5rem 0;
-    margin-top: 0.5rem;
-    min-width: 200px;
-}
-
-.modern-dropdown-item {
-    color: rgba(255, 255, 255, 0.9) !important;
-    font-weight: 500;
-    font-size: 0.95rem;
-    padding: 0.75rem 1.25rem !important;
-    border-radius: 0.5rem !important;
-    margin: 0 0.5rem;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-.modern-dropdown-item::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-    transition: left 0.5s ease;
-}
-
-.modern-dropdown-item:hover::before {
-    left: 100%;
-}
-
-.modern-dropdown-item:hover,
-.modern-dropdown-item:focus {
-    background: rgba(255, 255, 255, 0.1) !important;
-    color: #ffffff !important;
-    transform: translateX(4px);
-}
-
-.modern-dropdown-item.admin-item:hover {
-    background: rgba(249, 115, 22, 0.2) !important;
-}
-
-.dropdown-divider {
-    border-color: rgba(255, 255, 255, 0.2) !important;
-    margin: 0.5rem 1rem !important;
-}
-
-/* Dropdown toggle styling */
-.dropdown-toggle::after {
-    border-top: 0.3em solid;
-    border-right: 0.3em solid transparent;
-    border-left: 0.3em solid transparent;
-    margin-left: 0.5em;
-    transition: transform 0.3s ease;
-}
-
-.dropdown-toggle[aria-expanded="true"]::after {
-    transform: rotate(180deg);
-}
-
-/* Mobile dropdown improvements */
-@media (max-width: 768px) {
-    .modern-dropdown {
-        position: static !important;
-        background: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-        backdrop-filter: none;
-        margin-top: 0;
-        padding: 0;
-    }
-    
-    .modern-dropdown-item {
-        margin: 0;
-        border-radius: 0.5rem;
-        background: rgba(255, 255, 255, 0.05);
-        margin-bottom: 0.25rem;
-    }
-    
-    .dropdown-divider {
-        margin: 0.5rem 0 !important;
-    }
-}
-
-    .cfb-footer {
-    text-align: center;
-    font-size: 0.9rem;
-    color: #6c757d;
-    padding: 1rem 0;
-    position: relative;
-    bottom: 0;
-    width: 100%;
-}
-
+        /* PERFECT NAVBAR CENTERING AND SPACING */
+        .navbar-brand { 
+            font-weight: bold; 
+            color: #ffffff !important;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+        
+        .navbar-brand:hover,
+        .navbar-brand:focus {
+            color: #f8f9fa !important;
+            transform: translateY(-1px);
+        }
+        
+        .modern-nav-link {
+            color: rgba(255, 255, 255, 0.9) !important;
+            font-weight: 500;
+            font-size: 0.95rem;
+            letter-spacing: 0.025em;
+            padding: 0.75rem 1rem !important;
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            white-space: nowrap;
+            text-align: center;
+            min-width: max-content;
+        }
+        
+        .modern-nav-link::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .modern-nav-link:hover::before {
+            left: 100%;
+        }
+        
+        .modern-nav-link:hover,
+        .modern-nav-link:focus {
+            color: #ffffff !important;
+            background: rgba(255, 255, 255, 0.1) !important;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .admin-link:hover {
+            background: rgba(249, 115, 22, 0.2) !important;
+        }
+        
+        .logout-link:hover {
+            background: rgba(239, 68, 68, 0.2) !important;
+        }
+        
+        .login-link:hover {
+            background: rgba(34, 197, 94, 0.2) !important;
+        }
+        
+        .btn-modern-outline {
+            color: #ffffff !important;
+            border: 1.5px solid rgba(255, 255, 255, 0.3) !important;
+            background: transparent !important;
+            padding: 0.5rem 1.25rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+            letter-spacing: 0.025em;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        
+        .btn-modern-outline::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.3), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .btn-modern-outline:hover::before {
+            left: 100%;
+        }
+        
+        .btn-modern-outline:hover {
+            background: rgba(239, 68, 68, 0.1) !important;
+            border-color: rgba(239, 68, 68, 0.6) !important;
+            color: #ffffff !important;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+        }
+        
+        /* SIMPLE CENTERING LIKE NFL VERSION */
+        @media (min-width: 992px) {
+            .navbar .container-fluid {
+                position: relative;
+            }
+            
+            .navbar-nav.mx-auto {
+                position: absolute;
+                left: 50%;
+                transform: translateX(-50%);
+                flex-direction: row !important;
+            }
+            
+            .navbar-nav.ms-auto {
+                margin-left: auto !important;
+            }
+        }
         
         .rating-high { color: #28a745; font-weight: bold; }
         .rating-medium { color: #ffc107; font-weight: bold; }
@@ -225,9 +243,11 @@
             }
             
             .navbar-nav.mx-auto {
-                flex-direction: column;
+                flex-direction: column !important;
                 align-items: center;
                 gap: 0.5rem;
+                position: static !important;
+                transform: none !important;
             }
             
             .navbar-nav.mx-auto .modern-nav-link {
@@ -237,12 +257,13 @@
             }
             
             .navbar-nav.ms-auto {
-                flex-direction: column;
+                flex-direction: column !important;
                 align-items: center;
                 gap: 0.5rem;
                 margin-top: 1rem;
                 padding-top: 1rem;
                 border-top: 1px solid rgba(255, 255, 255, 0.1);
+                margin-left: 0 !important;
             }
             
             .btn-modern-outline {
@@ -272,6 +293,65 @@
             border-color: #ffffff !important;
             color: #ffffff !important;
         }
+
+    /* Remove all hover effects and transitions */
+.btn, .btn:hover, .btn:focus, .btn:active {
+    transition: none !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* Remove hover effects from form controls */
+.form-control:hover, .form-control:focus,
+.form-select:hover, .form-select:focus {
+    transition: none !important;
+    transform: none !important;
+}
+
+/* Remove hover effects from list group items */
+.list-group-item:hover {
+    background-color: inherit !important;
+    transition: none !important;
+    transform: none !important;
+}
+
+/* Remove any bounce animations */
+* {
+    animation: none !important;
+    transition: none !important;
+}
+
+/* Ultra-specific selectors to override Bootstrap */
+.container .btn, 
+.container .btn:hover, 
+.container .btn:focus, 
+.container .btn:active,
+.container .btn:not(:disabled):not(.disabled):active,
+.container .btn:not(:disabled):not(.disabled).active {
+    transition: none !important;
+    transform: none !important;
+    box-shadow: none !important;
+    animation: none !important;
+}
+
+/* Target all Bootstrap button variants */
+.btn-primary:hover,
+.btn-outline-danger:hover,
+.btn-primary:focus,
+.btn-outline-danger:focus {
+    transition: none !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* Nuclear option - disable all transitions */
+*, *::before, *::after {
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+}
+
     </style>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏈</text></svg>">
 </head>
@@ -302,27 +382,51 @@
         
         <!-- Collapsible navigation -->
         <div class="collapse navbar-collapse" id="navbarNav">
-            <!-- Main navigation - centered -->
-            <div class="navbar-nav mx-auto d-flex justify-content-center flex-wrap">
+            <!-- Main navigation - centered with consolidated dropdowns -->
+            <div class="navbar-nav mx-auto d-flex justify-content-center">
                 <a class="nav-link modern-nav-link" href="{{ url_for('rankings') }}">Rankings</a>
                 <a class="nav-link modern-nav-link" href="{{ url_for('scoreboard') }}">Scoreboard</a>
-                <a class="nav-link" href="/weekly_movement">Weekly Movement</a>
-                <a class="nav-link modern-nav-link" href="{{ url_for('cfp_bracket') }}">CFP Bracket</a>
-                <a class="nav-link modern-nav-link" href="{{ url_for('bowl_projections') }}">Bowl Projections</a>
                 
-                
-                <!-- Admin Tools Dropdown (only shows when admin) -->
-                {% if is_admin %}
+                <!-- Playoffs & Bowls Dropdown -->
                 <div class="nav-item dropdown">
-                    <a class="nav-link modern-nav-link dropdown-toggle admin-link" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        Admin
+                    <a class="nav-link modern-nav-link dropdown-toggle" href="#" id="playoffsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Playoffs & Bowls
                     </a>
-                    <ul class="dropdown-menu dropdown-menu-dark modern-dropdown" aria-labelledby="adminDropdown">
-                        <li><a class="dropdown-item modern-dropdown-item admin-item" href="{{ url_for('team_compare') }}">Compare Teams</a></li>
-                        <li><a class="dropdown-item modern-dropdown-item admin-item" href="{{ url_for('admin') }}">Admin Panel</a></li>
+                    <ul class="dropdown-menu dropdown-menu-dark modern-dropdown" aria-labelledby="playoffsDropdown">
+                        <li><a class="dropdown-item modern-dropdown-item" href="{{ url_for('cfp_bracket') }}">CFP Bracket</a></li>
+                        <li><a class="dropdown-item modern-dropdown-item" href="{{ url_for('bowl_projections') }}">Bowl Projections</a></li>
                     </ul>
                 </div>
-                {% endif %}
+                
+                <!-- More Dropdown -->
+                <div class="nav-item dropdown">
+                    <a class="nav-link modern-nav-link dropdown-toggle" href="#" id="moreDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        More
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-dark modern-dropdown" aria-labelledby="moreDropdown">
+                        <li><a class="dropdown-item modern-dropdown-item" href="{{ url_for('poll_comparison') }}">Poll Comparison</a></li>
+                        <li><a class="dropdown-item modern-dropdown-item" href="/weekly_movement">Weekly Movement</a></li>
+                        <li><a class="dropdown-item modern-dropdown-item" href="{{ url_for('archived_seasons') }}">Past Seasons</a></li>
+                        {% if is_admin %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item modern-dropdown-item admin-item" href="{{ url_for('team_compare') }}">Compare Teams</a></li>
+                        <li><a class="dropdown-item modern-dropdown-item admin-item" href="{{ url_for('admin') }}">Admin Panel</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+                
+                <!-- Mobile-only individual links (hidden on desktop) -->
+                <div class="mobile-nav-links">
+                    <a class="nav-link modern-nav-link" href="{{ url_for('poll_comparison') }}">Poll Comparison</a>
+                    <a class="nav-link modern-nav-link" href="/weekly_movement">Weekly Movement</a>
+                    <a class="nav-link modern-nav-link" href="{{ url_for('cfp_bracket') }}">CFP Bracket</a>
+                    <a class="nav-link modern-nav-link" href="{{ url_for('bowl_projections') }}">Bowl Projections</a>
+                    <a class="nav-link modern-nav-link" href="{{ url_for('archived_seasons') }}">Past Seasons</a>
+                    {% if is_admin %}
+                    <a class="nav-link modern-nav-link admin-link" href="{{ url_for('team_compare') }}">Compare Teams</a>
+                    <a class="nav-link modern-nav-link admin-link" href="{{ url_for('admin') }}">Admin Panel</a>
+                    {% endif %}
+                </div>
             </div>
             
             <!-- Right side navigation -->
@@ -389,6 +493,17 @@
     background: rgba(249, 115, 22, 0.2) !important;
 }
 
+/* Make sure all dropdown links inherit the modern style */
+.dropdown-toggle {
+    position: relative;
+}
+
+.dropdown-toggle:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Divider styling */
+/* Divider styling */
 .dropdown-divider {
     border-color: rgba(255, 255, 255, 0.2) !important;
     margin: 0.5rem 1rem !important;
@@ -408,26 +523,24 @@
 }
 
 /* Mobile dropdown improvements */
-@media (max-width: 768px) {
-    .modern-dropdown {
-        position: static !important;
-        background: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-        backdrop-filter: none;
-        margin-top: 0;
-        padding: 0;
+@media (max-width: 991.98px) {
+    /* Hide dropdown menus on mobile since we show individual links */
+    .dropdown-menu {
+        display: none !important;
     }
     
-    .modern-dropdown-item {
+    .mobile-nav-links .modern-nav-link {
         margin: 0;
         border-radius: 0.5rem;
         background: rgba(255, 255, 255, 0.05);
         margin-bottom: 0.25rem;
     }
-    
-    .dropdown-divider {
-        margin: 0.5rem 0 !important;
+}
+
+/* Hide mobile links on desktop */
+@media (min-width: 992px) {
+    .mobile-nav-links {
+        display: none !important;
     }
 }
 

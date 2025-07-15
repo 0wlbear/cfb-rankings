@@ -218,3 +218,183 @@ class WeeklySnapshot(db.Model):
     @rankings.setter 
     def rankings(self, value):
         self.rankings_json = json.dumps(value)
+
+
+class CFBPredictionLog(db.Model):
+    """Track every CFB prediction made vs actual results"""
+    __tablename__ = 'cfb_prediction_logs'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # Game identification
+    season_year = db.Column(db.Integer, nullable=False, default=2025)
+    week = db.Column(db.String(10), nullable=False)
+    home_team = db.Column(db.String(100), nullable=False)
+    away_team = db.Column(db.String(100), nullable=False)
+    
+    # Pre-game predictions
+    predicted_winner = db.Column(db.String(100), nullable=False)
+    predicted_margin = db.Column(db.Float, nullable=False)  # Positive = home team favored
+    predicted_total = db.Column(db.Float, nullable=True)    # Over/under points
+    win_probability = db.Column(db.Float, nullable=False)   # 0-100
+    confidence_level = db.Column(db.String(20), nullable=True)  # High/Medium/Low
+
+    prediction_type = db.Column(db.String(50), default='manual', nullable=False)  # 'manual' or 'automated'
+
+        # Algorithm settings when prediction was made (MISSING - ADD THIS)
+    temporal_weights_json = db.Column(db.Text, nullable=True)  # Store current temporal weights
+    algorithm_version = db.Column(db.String(50), default='v1.0')  # Track algorithm changes
+    
+    # Structured factor breakdown (MISSING - ADD THESE)
+    base_strength_diff = db.Column(db.Float, nullable=True)    # Raw rating difference  
+    schedule_strength_factor = db.Column(db.Float, nullable=True)
+    momentum_factor = db.Column(db.Float, nullable=True)
+    location_factor = db.Column(db.Float, nullable=True)
+    consistency_factor = db.Column(db.Float, nullable=True)
+    common_opponent_factor = db.Column(db.Float, nullable=True)
+    
+    # Prediction factors (JSON storage for flexibility)
+    prediction_factors_json = db.Column(db.Text, nullable=True)
+    
+    # Actual results (filled after game)
+    actual_winner = db.Column(db.String(100), nullable=True)
+    actual_margin = db.Column(db.Float, nullable=True)
+    actual_total = db.Column(db.Float, nullable=True)
+    game_completed = db.Column(db.Boolean, default=False)
+    
+    # Accuracy metrics (calculated after game)
+    margin_error = db.Column(db.Float, nullable=True)       # |predicted - actual|
+    total_error = db.Column(db.Float, nullable=True)
+    winner_correct = db.Column(db.Boolean, nullable=True)
+    
+    # Timestamps
+    prediction_date = db.Column(db.DateTime, default=datetime.utcnow)
+    result_date = db.Column(db.DateTime, nullable=True)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'season_year': self.season_year,
+            'week': self.week,
+            'home_team': self.home_team,
+            'away_team': self.away_team,
+            'predicted_winner': self.predicted_winner,
+            'predicted_margin': self.predicted_margin,
+            'predicted_total': self.predicted_total,
+            'win_probability': self.win_probability,
+            'confidence_level': self.confidence_level,
+            'actual_winner': self.actual_winner,
+            'actual_margin': self.actual_margin,
+            'actual_total': self.actual_total,
+            'margin_error': self.margin_error,
+            'total_error': self.total_error,
+            'winner_correct': self.winner_correct,
+            'game_completed': self.game_completed,
+            'prediction_factors': json.loads(self.prediction_factors_json) if self.prediction_factors_json else {},
+            'prediction_date': self.prediction_date.isoformat() if self.prediction_date else None,
+            'result_date': self.result_date.isoformat() if self.result_date else None
+        }
+
+class CFBTemporalAnalysis(db.Model):
+    """Track how CFB prediction accuracy varies by week/timing"""
+    __tablename__ = 'cfb_temporal_analysis'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    season_year = db.Column(db.Integer, nullable=False, default=2025)
+    week = db.Column(db.String(10), nullable=False)
+    
+    # Prediction accuracy for this week
+    total_predictions = db.Column(db.Integer, default=0)
+    correct_winners = db.Column(db.Integer, default=0)
+    avg_margin_error = db.Column(db.Float, default=0.0)
+    avg_total_error = db.Column(db.Float, default=0.0)
+    
+    # Temporal weight performance
+    current_temporal_weight = db.Column(db.Float, nullable=False)
+    suggested_weight = db.Column(db.Float, nullable=True)
+    weight_confidence = db.Column(db.Float, nullable=True)  # How confident in suggestion
+    
+    # Analysis date
+    analysis_date = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Unique constraint to prevent duplicate week analysis
+    __table_args__ = (
+        db.UniqueConstraint('season_year', 'week', name='unique_cfb_season_week_analysis'),
+    )
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'season_year': self.season_year,
+            'week': self.week,
+            'total_predictions': self.total_predictions,
+            'correct_winners': self.correct_winners,
+            'winner_accuracy': round(self.correct_winners / max(1, self.total_predictions) * 100, 1),
+            'avg_margin_error': round(self.avg_margin_error, 2),
+            'avg_total_error': round(self.avg_total_error, 2),
+            'current_temporal_weight': self.current_temporal_weight,
+            'suggested_weight': self.suggested_weight,
+            'weight_confidence': self.weight_confidence,
+            'analysis_date': self.analysis_date.isoformat() if self.analysis_date else None
+        }
+
+class CFBAlgorithmPerformance(db.Model):
+    """Track which CFB algorithm factors are most/least predictive"""
+    __tablename__ = 'cfb_algorithm_performance'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    season_year = db.Column(db.Integer, nullable=False, default=2025)
+    
+    # Factor being analyzed
+    factor_name = db.Column(db.String(100), nullable=False)  # e.g., 'opponent_quality_gap', 'recent_form'
+    factor_category = db.Column(db.String(50), nullable=False)  # e.g., 'core', 'adjustment', 'context'
+    
+    # Performance metrics
+    prediction_count = db.Column(db.Integer, default=0)
+    correlation_with_accuracy = db.Column(db.Float, nullable=True)  # How well this factor predicts outcomes
+    avg_impact_on_prediction = db.Column(db.Float, nullable=True)   # Average influence on final prediction
+    
+    # Current vs suggested values
+    current_weight = db.Column(db.Float, nullable=True)
+    suggested_weight = db.Column(db.Float, nullable=True)
+    confidence_score = db.Column(db.Float, nullable=True)
+    
+    # Analysis metadata
+    analysis_date = db.Column(db.DateTime, default=datetime.utcnow)
+    sample_size = db.Column(db.Integer, default=0)  # Number of games this analysis is based on
+    
+    # Unique constraint
+    __table_args__ = (
+        db.UniqueConstraint('season_year', 'factor_name', name='unique_cfb_season_factor'),
+    )
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'season_year': self.season_year,
+            'factor_name': self.factor_name,
+            'factor_category': self.factor_category,
+            'prediction_count': self.prediction_count,
+            'correlation_with_accuracy': round(self.correlation_with_accuracy, 3) if self.correlation_with_accuracy else None,
+            'avg_impact_on_prediction': round(self.avg_impact_on_prediction, 3) if self.avg_impact_on_prediction else None,
+            'current_weight': self.current_weight,
+            'suggested_weight': self.suggested_weight,
+            'confidence_score': round(self.confidence_score, 3) if self.confidence_score else None,
+            'analysis_date': self.analysis_date.isoformat() if self.analysis_date else None,
+            'sample_size': self.sample_size
+        }
+
+
+class ExternalPoll(db.Model):
+    __tablename__ = 'external_polls'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    poll_name = db.Column(db.String(50), nullable=False)  # 'AP', 'Coaches', etc.
+    week = db.Column(db.String(10), nullable=False)
+    poll_date = db.Column(db.Date, nullable=False)
+    rankings_json = db.Column(db.Text)  # Store the rankings as JSON
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def get_rankings(self):
+        """Helper method to get rankings as Python list"""
+        return json.loads(self.rankings_json) if self.rankings_json else []

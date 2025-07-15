@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block title %}Poll Comparison - College Football Rankings{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="mb-4">Poll Comparison</h1>
+    
+    <!-- Simplified: Single External Polls Updated Line -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Poll Status</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-6">
+                            <strong>CFB Rank:</strong>
+                            <span class="text-success fw-bold ms-2">
+                                <i class="fas fa-circle me-1" style="font-size: 8px;"></i>Live
+                            </span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>External Polls Updated:</strong>
+                            <span class="text-muted ms-2">{{ external_polls_updated }}</span>
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-12 text-center">
+                            <small class="text-info">
+                                <i class="fas fa-info-circle me-1"></i>
+                                External polls: AP, Coaches, ESPN FPI, Sagarin, CFP
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table table-striped table-sm">
+            <thead class="table-dark">
+                <tr>
+                    <th>Rank</th>
+                    <th>CFB Rank</th>
+                    <th>AP</th>
+                    <th>Coaches</th>
+                    <th>ESPN FPI</th>
+                    <th>Sagarin</th>
+                    <th>CFP</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for i in range(25) %}
+                <tr>
+                    <td class="fw-bold">{{ i + 1 }}</td>
+                    <td>
+                        {% if i < our_rankings|length %}
+                            <img src="{{ get_team_logo_url(our_rankings[i].team, '20') }}" class="team-logo-small me-2" alt="{{ our_rankings[i].team }} logo">
+                            {{ our_rankings[i].team }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if i < ap_poll|length %}
+                            <img src="{{ get_team_logo_url(ap_poll[i].team, '20') }}" class="team-logo-small me-2" alt="{{ ap_poll[i].team }} logo">
+                            {{ ap_poll[i].team }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if i < coaches_poll|length %}
+                            <img src="{{ get_team_logo_url(coaches_poll[i].team, '20') }}" class="team-logo-small me-2" alt="{{ coaches_poll[i].team }} logo">
+                            {{ coaches_poll[i].team }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if i < espn_poll|length %}
+                            <img src="{{ get_team_logo_url(espn_poll[i].team, '20') }}" class="team-logo-small me-2" alt="{{ espn_poll[i].team }} logo">
+                            {{ espn_poll[i].team }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if i < sagarin_poll|length %}
+                            <img src="{{ get_team_logo_url(sagarin_poll[i].team, '20') }}" class="team-logo-small me-2" alt="{{ sagarin_poll[i].team }} logo">
+                            {{ sagarin_poll[i].team }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if i < cfp_poll|length %}
+                            <img src="{{ get_team_logo_url(cfp_poll[i].team, '20') }}" class="team-logo-small me-2" alt="{{ cfp_poll[i].team }} logo">
+                            {{ cfp_poll[i].team }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="mt-4 d-flex justify-content-between">
+        <a href="{{ url_for('rankings') }}" class="btn btn-primary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Rankings
+        </a>
+        <button onclick="location.reload()" class="btn btn-outline-secondary">
+            <i class="fas fa-sync-alt me-2"></i>Refresh Polls
+        </button>
+    </div>
+</div>
+
+<style>
+    .team-logo-small {
+        width: 20px;
+        height: 20px;
+        object-fit: contain;
+    }
+    
+    .table-responsive {
+        border-radius: 0.5rem;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .table th {
+        background: linear-gradient(135deg, #14532d 0%, #166534 50%, #16a34a 100%) !important;
+        color: #ffffff !important;
+        font-weight: 600;
+        border: none;
+        padding: 1rem 0.75rem;
+    }
+    
+    .table td {
+        vertical-align: middle;
+        padding: 0.75rem;
+        border-color: rgba(0, 0, 0, 0.05);
+    }
+    
+    .table-striped > tbody > tr:nth-of-type(odd) > td {
+        background-color: rgba(0, 0, 0, 0.02);
+    }
+    
+    .table tbody tr:hover {
+        background-color: rgba(22, 163, 74, 0.05);
+    }
+    
+    .card {
+        border: 1px solid rgba(0, 0, 0, 0.125);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    
+    .card-header {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+    }
+    
+    /* Responsive improvements */
+    @media (max-width: 768px) {
+        .table td, .table th {
+            padding: 0.5rem 0.25rem;
+            font-size: 0.875rem;
+        }
+        
+        .team-logo-small {
+            width: 16px;
+            height: 16px;
+        }
+        
+        h1 {
+            font-size: 1.75rem;
+        }
+        
+        .col-md-6 {
+            margin-bottom: 0.5rem;
+        }
+    }
+</style>
+{% endblock %}
