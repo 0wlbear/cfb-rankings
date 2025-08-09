@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container my-4">
+  <h1 class="mb-4">Ask the CFB Rankings AI</h1>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, msg in messages %}
+        <div class="alert alert-{{ category }}" role="alert">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+ <form method="post" action="{{ url_for('ai_ask') }}" id="ai-ask-form">
+    <div class="mb-3">
+        <label for="query" class="form-label">Your question</label>
+        <input type="text" class="form-control" id="query" name="query" 
+               value="{{ query }}" placeholder="e.g., Why is Alabama ranked #3?" required>
+    </div>
+    <button type="submit" class="btn btn-primary" id="ai-submit-btn">
+        <i class="fas fa-brain"></i> Ask AI
+    </button>
+</form>
+
+<script>
+document.getElementById('ai-ask-form').addEventListener('submit', function(e) {
+    const submitBtn = document.getElementById('ai-submit-btn');
+    const query = document.getElementById('query').value.trim();
+    
+    if (query) {
+        window.AILoading.show(
+            'AI Analyzing Your Question...', 
+            'Processing college football data'
+        );
+        window.AILoading.setButtonLoading(submitBtn, true);
+    }
+});
+</script>
+  {% if response %}
+    <div class="mt-5">
+      <h3>AI Response</h3>
+      <div class="card">
+        <div class="card-body">
+          <p>{{ response }}</p>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if recent_queries %}
+    <div class="mt-5">
+      <h4>Recent Questions</h4>
+      <ul class="list-group">
+        {% for item in recent_queries %}
+          <li class="list-group-item">
+            <small class="text-muted">{{ item.timestamp }}</small>: {{ item.query }}
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

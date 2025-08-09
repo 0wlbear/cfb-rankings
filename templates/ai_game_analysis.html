@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}AI Game Analysis - {{ away_team }} @ {{ home_team }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Breadcrumb navigation -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('rankings') }}">Rankings</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('scoreboard', week=week) }}">Week {{ week }}</a></li>
+            <li class="breadcrumb-item active">Game Analysis</li>
+        </ol>
+    </nav>
+
+    <!-- Main content card -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">🤖 AI Game Analysis</h2>
+        </div>
+        <div class="card-body">
+            <!-- Game Summary -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="bg-light p-4 rounded text-center">
+                        <h3>{{ away_team }} @ {{ home_team }}</h3>
+                        <h1 class="display-4">{{ away_score }} - {{ home_score }}</h1>
+                        <h4><span class="badge bg-success">{{ winner }} Wins</span></h4>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Game Stats -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="text-center p-3 bg-light rounded">
+                        <h4 class="mb-1">Week {{ week }}</h4>
+                        <small class="text-muted">Week</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center p-3 bg-light rounded">
+                        <h4 class="mb-1">{{ margin }}</h4>
+                        <small class="text-muted">Margin</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center p-3 bg-light rounded">
+                        <h4 class="mb-1">{{ victory_value }}</h4>
+                        <small class="text-muted">Victory Value</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Analysis -->
+            <div class="bg-info bg-opacity-10 p-4 rounded mb-4">
+                <h4>🧠 AI Analysis</h4>
+                <p class="lead">{{ explanation }}</p>
+            </div>
+
+            <!-- Overtime indicator if applicable -->
+            {% if overtime %}
+            <div class="alert alert-warning">
+                <strong>Note:</strong> This game went to overtime.
+            </div>
+            {% endif %}
+
+            <!-- Generated timestamp -->
+            <div class="text-muted small">
+                <em>Analysis generated: {{ datetime_generated }}</em>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="{{ url_for('scoreboard', week=week) }}" class="btn btn-primary">← Back to Week {{ week }} Scoreboard</a>
+            <a href="{{ url_for('rankings') }}" class="btn btn-secondary">View Rankings</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

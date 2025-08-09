@@ -352,6 +352,116 @@
     animation-delay: 0s !important;
 }
 
+/** Loading AI */
+.ai-loading-overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999 !important;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.ai-loading-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.ai-loading-content {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    max-width: 300px;
+    animation: pulse 2s infinite ease-in-out;
+}
+
+.ai-brain-icon {
+    font-size: 3em;
+    color: #007bff;
+    margin-bottom: 15px;
+    animation: bounce 1.5s infinite;
+}
+
+.ai-loading-text {
+    font-size: 1.2em;
+    color: #333;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.ai-loading-subtext {
+    color: #666;
+    font-size: 0.9em;
+}
+
+.ai-progress-bar {
+    width: 100%;
+    height: 4px;
+    background: #f0f0f0;
+    border-radius: 2px;
+    margin-top: 15px;
+    overflow: hidden;
+}
+
+.ai-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #007bff, #0056b3);
+    width: 0%;
+    animation: progress 3s infinite ease-in-out;
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-10px); }
+    60% { transform: translateY(-5px); }
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+@keyframes progress {
+    0% { width: 0%; }
+    70% { width: 70%; }
+    100% { width: 100%; }
+}
+
+.btn-ai-loading {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.btn-ai-loading::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border: 2px solid transparent;
+    border-top: 2px solid #fff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
     </style>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏈</text></svg>">
 </head>
@@ -386,6 +496,9 @@
             <div class="navbar-nav mx-auto d-flex justify-content-center">
                 <a class="nav-link modern-nav-link" href="{{ url_for('rankings') }}">Rankings</a>
                 <a class="nav-link modern-nav-link" href="{{ url_for('scoreboard') }}">Scoreboard</a>
+                <a class="nav-link modern-nav-link" href="{{ url_for('ai_ask') }}">
+                      <i class="fas fa-robot"></i> Ask AI
+                    </a>
                 
                 <!-- Playoffs & Bowls Dropdown -->
                 <div class="nav-item dropdown">
@@ -404,6 +517,7 @@
                         More
                     </a>
                     <ul class="dropdown-menu dropdown-menu-dark modern-dropdown" aria-labelledby="moreDropdown">
+                        <li><a class="dropdown-item modern-dropdown-item" href="{{ url_for('team_leaders') }}">Team Leaders</a></li>
                         <li><a class="dropdown-item modern-dropdown-item" href="{{ url_for('poll_comparison') }}">Poll Comparison</a></li>
                         <li><a class="dropdown-item modern-dropdown-item" href="/weekly_movement">Weekly Movement</a></li>
                         <li><a class="dropdown-item modern-dropdown-item" href="{{ url_for('archived_seasons') }}">Past Seasons</a></li>
@@ -417,11 +531,15 @@
                 
                 <!-- Mobile-only individual links (hidden on desktop) -->
                 <div class="mobile-nav-links">
+                    <a class="nav-link modern-nav-link" href="{{ url_for('team_leaders') }}">Team Leaders</a>
                     <a class="nav-link modern-nav-link" href="{{ url_for('poll_comparison') }}">Poll Comparison</a>
                     <a class="nav-link modern-nav-link" href="/weekly_movement">Weekly Movement</a>
                     <a class="nav-link modern-nav-link" href="{{ url_for('cfp_bracket') }}">CFP Bracket</a>
                     <a class="nav-link modern-nav-link" href="{{ url_for('bowl_projections') }}">Bowl Projections</a>
                     <a class="nav-link modern-nav-link" href="{{ url_for('archived_seasons') }}">Past Seasons</a>
+                    <a class="nav-link modern-nav-link" href="{{ url_for('ai_ask') }}">
+              <i class="fas fa-robot"></i> Ask AI
+            </a>
                     {% if is_admin %}
                     <a class="nav-link modern-nav-link admin-link" href="{{ url_for('team_compare') }}">Compare Teams</a>
                     <a class="nav-link modern-nav-link admin-link" href="{{ url_for('admin') }}">Admin Panel</a>
@@ -717,6 +835,64 @@
         
 
     </script>
+<script>
+// Global AI Loading Functions
+window.AILoading = {
+    overlay: null,
+    
+    init() {
+        if (!this.overlay) {
+            this.overlay = document.createElement('div');
+            this.overlay.className = 'ai-loading-overlay';
+            this.overlay.innerHTML = `
+                <div class="ai-loading-content">
+                    <div class="ai-brain-icon">🤖</div>
+                    <div class="ai-loading-text">AI Analyzing...</div>
+                    <div class="ai-loading-subtext">Processing your request</div>
+                    <div class="ai-progress-bar">
+                        <div class="ai-progress-fill"></div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(this.overlay);
+        }
+    },
+    
+    show(text = 'AI Analyzing...', subtext = 'Processing your request') {
+        this.init();
+        this.overlay.querySelector('.ai-loading-text').textContent = text;
+        this.overlay.querySelector('.ai-loading-subtext').textContent = subtext;
+        this.overlay.classList.add('show');
+    },
+    
+    hide() {
+        if (this.overlay) {
+            this.overlay.classList.remove('show');
+        }
+    },
+    
+    setButtonLoading(button, isLoading = true) {
+        if (isLoading) {
+            button.classList.add('btn-ai-loading');
+            button.disabled = true;
+            button.setAttribute('data-original-text', button.textContent);
+            button.textContent = '';
+        } else {
+            button.classList.remove('btn-ai-loading');
+            button.disabled = false;
+            const originalText = button.getAttribute('data-original-text');
+            if (originalText) {
+                button.textContent = originalText;
+                button.removeAttribute('data-original-text');
+            }
+        }
+    }
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    window.AILoading.init();
+});
+</script>
 <footer class="cfb-footer">
     © 2025 CFBRank.com™
 </footer>

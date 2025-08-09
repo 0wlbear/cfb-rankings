@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}AI Analysis - {{ team_name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Breadcrumb navigation -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('rankings') }}">Rankings</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('public_team_detail', team_name=team_name) }}">{{ team_name }}</a></li>
+            <li class="breadcrumb-item active">AI Analysis</li>
+        </ol>
+    </nav>
+
+    <!-- Main content card -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">🤖 AI Ranking Explanation</h2>
+            <h4 class="mb-0 mt-2">{{ team_name }} - #{{ current_rank if current_rank != 'NR' else 'Unranked' }}</h4>
+        </div>
+        <div class="card-body">
+            <!-- Current Status -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="text-center p-3 bg-light rounded">
+                        <h4 class="mb-1">{{ record }}</h4>
+                        <small class="text-muted">Record</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center p-3 bg-light rounded">
+                        <h4 class="mb-1">{{ conference }}</h4>
+                        <small class="text-muted">Conference</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center p-3 bg-light rounded">
+                        <h4 class="mb-1">{{ adjusted_total }}</h4>
+                        <small class="text-muted">Power Rating</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center p-3 bg-light rounded">
+                        <h4 class="mb-1">#{{ current_rank if current_rank != 'NR' else 'NR' }}</h4>
+                        <small class="text-muted">Current Rank</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Analysis -->
+            <div class="bg-light p-4 rounded mb-4">
+                <h4>🧠 AI Analysis</h4>
+                <p class="lead">{{ explanation }}</p>
+            </div>
+
+            <!-- Notable Games -->
+            {% if notable_games %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">🏆 Notable Games</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        {% for game in notable_games %}
+                        <li class="list-group-item" style="background: {{ game.color }};">
+                            {{ game.result }} vs {{ game.opponent }} ({{ game.score }})
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Generated timestamp -->
+            <div class="text-muted small">
+                <em>Analysis generated: {{ datetime_generated }}</em>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="{{ url_for('public_team_detail', team_name=team_name) }}" class="btn btn-primary">View {{ team_name }} Details</a>
+            <a href="{{ url_for('rankings') }}" class="btn btn-secondary">Back to Rankings</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

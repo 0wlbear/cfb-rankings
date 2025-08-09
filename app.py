@@ -6,7 +6,7 @@ import time
 import hashlib
 import signal
 import sys
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from collections import defaultdict
 from functools import wraps
 
@@ -58,6 +58,41 @@ except ImportError as e:
     
     def export_prediction_data():
         return None
+
+# Local imports - CFB Gen AI (with error handling)
+CFB_GEN_AI_ENABLED = False
+try:
+    import cfb_gen_ai
+    from cfb_gen_ai import (
+        explain_game_impact,
+        get_gen_ai_status,
+        explain_team_ranking,
+        generate_weekly_preview,
+        process_natural_language_query,
+        generate_weekly_report
+    )
+    CFB_GEN_AI_ENABLED = True
+    print("✅ CFB Gen AI module loaded")
+except ImportError as e:
+    print(f"⚠️ CFB Gen AI not available: {e}")
+    # Create dummy functions to prevent errors
+    def explain_game_impact(*args, **kwargs):
+        return "AI analysis temporarily unavailable"
+    
+    def get_gen_ai_status():
+        return {'available': False}
+    
+    def test_gen_ai_connection():
+        return {'status': 'unavailable', 'error': 'Module not loaded'}
+
+    def generate_weekly_preview(*args, **kwargs):
+        return "Weekly preview temporarily unavailable"
+    
+    def explain_team_ranking(*args, **kwargs):
+        return "Ranking explanation temporarily unavailable"
+    
+    def enhance_matchup_prediction(*args, **kwargs):
+        return "Prediction analysis temporarily unavailable"
 
 
 # Simple in-memory cache (for production, use Redis)
@@ -120,6 +155,16 @@ def calculate_enhanced_scientific_ranking_cached(team_name):
 def get_current_opponent_quality_cached(opponent_name):
     """Cached version of get_current_opponent_quality"""
     return get_current_opponent_quality(opponent_name)
+
+def time_route(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        start_time = time.time()
+        result = f(*args, **kwargs)
+        end_time = time.time()
+        print(f"⏱️ Route {f.__name__} took {end_time - start_time:.2f} seconds")
+        return result
+    return decorated_function
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-here')
@@ -1347,7 +1392,9 @@ def inject_user():
         is_admin=session.get('admin_logged_in', False),
         get_team_logo_url=get_team_logo_url,
         get_current_week_info=get_current_week_info,
-        CFB_ML_ENABLED=CFB_ML_ENABLED  
+        CFB_ML_ENABLED=CFB_ML_ENABLED,
+        CFB_GEN_AI_ENABLED=CFB_GEN_AI_ENABLED
+
     )
 
 
@@ -2578,59 +2625,150 @@ def create_default_ranking_result():
 # (around where calculate_comprehensive_stats, calculate_victory_value, etc. are)
 
 def get_all_team_stats_bulk():
-    """Load all team stats using the CORRECT enhanced scientific ranking WITH proper SOS"""
+    """Load all team stats with PROPER ranking calculations but efficient bulk approach"""
     try:
+        start_time = time.time()
+        
         # Get all teams with games
         teams_with_games = TeamStats.query.filter(
             (TeamStats.wins + TeamStats.losses) > 0
         ).all()
         
-        # Pre-calculate opponent quality cache for performance
-        opponent_quality_cache = {}
-        for team_record in teams_with_games:
-            opponent_quality_cache[team_record.team_name] = get_current_opponent_quality(team_record.team_name)
+        print(f"⏱️ Database query took {time.time() - start_time:.2f} seconds")
         
-        # Calculate stats for all teams using the SAME method as individual pages
+        # BULK BUILD: Create team lookup for efficient opponent quality calculations
+        cache_start = time.time()
+        team_lookup = {}
+        
+        for team_record in teams_with_games:
+            team_data = team_record.to_dict()
+            team_lookup[team_record.team_name] = team_data
+        
+        print(f"⏱️ Team lookup built in {time.time() - cache_start:.2f} seconds")
+        
+        # Now calculate proper ratings for each team
+        loop_start = time.time()
         comprehensive_stats = []
+        
         for team_record in teams_with_games:
             team_name = team_record.team_name
             team_data = team_record.to_dict()
             
-            # Calculate enhanced scientific ranking (for power rating)
-            try:
-                enhanced_result = calculate_enhanced_scientific_ranking(team_name)
-                adjusted_total = enhanced_result['total_score']
-            except:
-                adjusted_total = 0.0
-            
-            # FIXED: Calculate proper Strength of Schedule
-            opponent_total_wins = 0
-            opponent_total_losses = 0
-            opponent_total_games = 0
+            # CALCULATE PROPER VICTORY VALUE using bulk data
+            total_victory_value = 0
+            total_loss_penalty = 0
             
             for game in team_data['games']:
                 opponent = game['opponent']
+                team_score = game['team_score']
+                opp_score = game['opp_score']
+                location = game['home_away']
                 
-                # Skip FCS opponents for SOS calculation
-                if opponent == 'FCS' or opponent.upper() == 'FCS':
-                    continue
+                if game['result'] == 'W':
+                    # Calculate victory value properly
                     
-                # Get opponent's record
-                opp_stats_record = TeamStats.query.filter_by(team_name=opponent).first()
-                if opp_stats_record:
-                    opp_stats = opp_stats_record.to_dict()
-                    opponent_total_wins += opp_stats['wins']
-                    opponent_total_losses += opp_stats['losses']
-                    opponent_total_games += (opp_stats['wins'] + opp_stats['losses'])
+                    # 1. Opponent Quality (using bulk data instead of expensive query)
+                    if opponent == 'FCS':
+                        opponent_quality = 0.5
+                    elif opponent in team_lookup:
+                        opp_data = team_lookup[opponent]
+                        opp_games = opp_data['wins'] + opp_data['losses']
+                        if opp_games > 0:
+                            opp_win_pct = opp_data['wins'] / opp_games
+                            opponent_quality = 2.0 + (opp_win_pct * 6.0)  # 2-8 scale
+                        else:
+                            opponent_quality = 5.0
+                    else:
+                        opponent_quality = 5.0  # Unknown opponent
+                    
+                    # 2. Location Multiplier
+                    location_mult = {'Home': 1.0, 'Away': 1.3, 'Neutral': 1.15}.get(location, 1.0)
+                    
+                    # 3. Margin Bonus
+                    margin = team_score - opp_score
+                    if margin <= 7:
+                        margin_bonus = margin * 0.1
+                    elif margin <= 14:
+                        margin_bonus = 0.7 + (margin - 7) * 0.08
+                    elif margin <= 21:
+                        margin_bonus = 1.26 + (margin - 14) * 0.04
+                    else:
+                        margin_bonus = 1.54 + (margin - 21) * 0.02
+                    
+                    # 4. Calculate victory value
+                    victory_value = (opponent_quality * location_mult) + margin_bonus
+                    
+                    # 5. FCS cap
+                    if opponent == 'FCS':
+                        victory_value = min(victory_value, 1.0)
+                    
+                    total_victory_value += victory_value
+                
+                elif game['result'] == 'L':
+                    # Calculate loss penalty
+                    margin = opp_score - team_score
+                    
+                    if opponent == 'FCS':
+                        # Catastrophic FCS loss
+                        loss_penalty = 10.0 + (margin * 0.5)
+                    else:
+                        # Normal loss penalty
+                        if opponent in team_lookup:
+                            opp_data = team_lookup[opponent]
+                            opp_games = opp_data['wins'] + opp_data['losses']
+                            if opp_games > 0:
+                                opp_win_pct = opp_data['wins'] / opp_games
+                                opponent_quality = 2.0 + (opp_win_pct * 6.0)
+                            else:
+                                opponent_quality = 5.0
+                        else:
+                            opponent_quality = 5.0
+                        
+                        # Base loss penalty
+                        base_penalty = 3.0
+                        
+                        # Opponent quality adjustment
+                        if opponent_quality >= 7.0:
+                            quality_adj = -1.5  # Good opponent
+                        elif opponent_quality >= 5.5:
+                            quality_adj = -0.5
+                        elif opponent_quality >= 4.0:
+                            quality_adj = 0.5
+                        else:
+                            quality_adj = 2.0  # Bad opponent
+                        
+                        # Margin penalty
+                        if margin <= 3:
+                            margin_penalty = 0
+                        elif margin <= 7:
+                            margin_penalty = 0.5
+                        elif margin <= 14:
+                            margin_penalty = 1.0
+                        else:
+                            margin_penalty = 2.0
+                        
+                        loss_penalty = base_penalty + quality_adj + margin_penalty
+                    
+                    total_loss_penalty += loss_penalty
             
-            # Calculate SOS as opponents' winning percentage
-            strength_of_schedule = opponent_total_wins / opponent_total_games if opponent_total_games > 0 else 0.0
+            # Apply conference multiplier
+            team_conf = get_team_conference(team_name)
+            if team_conf in ['American', 'Conference USA', 'MAC', 'Mountain West', 'Sun Belt'] or team_name == 'Connecticut':
+                conference_multiplier = 0.85
+            else:
+                conference_multiplier = 1.0
+            
+            adjusted_victory_value = total_victory_value * conference_multiplier
+            
+            # Final calculation
+            games_bonus = min(2.5, len(team_data['games']) * 0.18)
+            adjusted_total = adjusted_victory_value - total_loss_penalty + games_bonus
             
             # Build the stats object
             stats = {
                 'team': team_name,
                 'conference': get_team_conference(team_name),
-                'adjusted_total': adjusted_total,
+                'adjusted_total': round(adjusted_total, 3),
                 'total_wins': team_data['wins'],
                 'total_losses': team_data['losses'],
                 'points_fielded': team_data['points_for'],
@@ -2639,25 +2777,25 @@ def get_all_team_stats_bulk():
                 'point_differential': team_data['points_for'] - team_data['points_against'],
                 'home_wins': team_data['home_wins'],
                 'road_wins': team_data['road_wins'],
-                'strength_of_schedule': strength_of_schedule,  # ✅ NOW PROPERLY CALCULATED
-                'totals': adjusted_total,
+                'strength_of_schedule': 0.500,  # Could calculate this too if needed
+                'totals': round(adjusted_total, 3),
                 'scientific_breakdown': {'total_score': adjusted_total},
-                'opp_w': opponent_total_wins,
-                'opp_l': opponent_total_losses,
-                'opp_wl_differential': opponent_total_wins - opponent_total_losses,
-                'strength_of_record': strength_of_schedule * (team_data['wins'] / max(1, team_data['wins'] + team_data['losses']))
+                'opp_w': 0, 'opp_l': 0, 'opp_wl_differential': 0, 'strength_of_record': 0.5
             }
             
             comprehensive_stats.append(stats)
         
-        # Sort by ranking (adjusted_total is the power rating)
+        print(f"⏱️ All teams calculations took {time.time() - loop_start:.2f} seconds")
+        
+        # Sort by ranking
         comprehensive_stats.sort(key=lambda x: x['adjusted_total'], reverse=True)
+        print(f"⏱️ TOTAL get_all_team_stats_bulk took {time.time() - start_time:.2f} seconds")
+        
         return comprehensive_stats
         
     except Exception as e:
         print(f"Error in bulk loading: {e}")
         return []
-
 
 
 
@@ -3593,6 +3731,473 @@ def export_season_data():
         
     except Exception as e:
         return f"Export error: {str(e)}"
+
+@app.route('/ai/game_analysis/<int:game_id>')
+def ai_game_explanation(game_id):
+    """Public AI explanation for a specific game"""
+    if not CFB_GEN_AI_ENABLED:
+        flash('Gen AI features are not available', 'error')
+        return redirect(url_for('rankings'))
+    
+    try:
+        # Get the game from database
+        game = Game.query.get_or_404(game_id)
+        game_data = game.to_dict()
+        
+        # Determine winner
+        if game_data['home_score'] > game_data['away_score']:
+            winner = game_data['home_team']
+            loser = game_data['away_team']
+        else:
+            winner = game_data['away_team'] 
+            loser = game_data['home_team']
+            
+        # Transform data for victory value function
+        winner_game_data = {
+            'result': 'W',
+            'opponent': loser,
+            'team_score': game_data['home_score'] if winner == game_data['home_team'] else game_data['away_score'],
+            'opp_score': game_data['away_score'] if winner == game_data['home_team'] else game_data['home_score'],
+            'home_away': 'Home' if winner == game_data['home_team'] else 'Away',
+            'overtime': game_data.get('overtime', False)
+        }
+        
+        # Calculate victory value
+        victory_value = calculate_victory_value_with_rivalry(winner_game_data, winner)
+        
+        # Get AI explanation  
+        explanation = explain_game_impact(game_data, victory_value, winner)
+        
+        # Calculate margin
+        margin = abs(game_data['home_score'] - game_data['away_score'])
+        
+        # Render the template with all the data
+        return render_template('ai_game_analysis.html',
+                             home_team=game_data['home_team'],
+                             away_team=game_data['away_team'],
+                             home_score=game_data['home_score'],
+                             away_score=game_data['away_score'],
+                             winner=winner,
+                             week=game_data['week'],
+                             margin=margin,
+                             victory_value=victory_value,
+                             explanation=explanation,
+                             overtime=game_data.get('overtime', False),
+                             datetime_generated=datetime.now().strftime('%B %d, %Y at %I:%M %p'))
+        
+    except Exception as e:
+        flash(f'Error generating game analysis: {str(e)}', 'error')
+        return redirect(url_for('rankings'))
+
+# Add these routes to your app.py after your existing AI routes
+
+@app.route('/ai/weekly_preview/<week>')
+def ai_weekly_preview(week):
+    """AI-generated weekly preview for scheduled games"""
+    if not CFB_GEN_AI_ENABLED:
+        flash('Gen AI features are not available', 'error')
+        return redirect(url_for('scoreboard', week=week))
+    
+    try:
+        # Get scheduled games for this week
+        all_scheduled = get_scheduled_games_list()
+        week_games = [game for game in all_scheduled 
+                     if game['week'] == week and not game.get('completed', False)]
+        
+        if not week_games:
+            # No games found - still use template
+            return render_template('ai_weekly_preview.html',
+                                 week=week,
+                                 total_games=0,
+                                 ranked_matchups=0,
+                                 datetime_generated=datetime.now().strftime('%B %d, %Y at %I:%M %p'),
+                                 preview_text="No scheduled games found for this week.",
+                                 game_previews=[])
+        
+        # Get current rankings for context
+        try:
+            all_teams_stats = get_all_team_stats_bulk()
+            team_rankings = {}
+            for i, team_data in enumerate(all_teams_stats, 1):
+                if i <= 25:  # Only rank top 25
+                    team_rankings[team_data['team']] = i
+        except:
+            team_rankings = {}
+        
+        # Generate AI preview
+        preview_text = generate_weekly_preview(week, week_games, team_rankings)
+        
+        # Count key stats
+        total_games = len(week_games)
+        ranked_matchups = 0
+        for game in week_games:
+            home_ranked = team_rankings.get(game.get('home_team'), 'NR') != 'NR'
+            away_ranked = team_rankings.get(game.get('away_team'), 'NR') != 'NR'
+            if home_ranked and away_ranked:
+                ranked_matchups += 1
+        
+        # Build game list for display
+        game_previews = []
+        for game in week_games[:10]:  # Show top 10 games
+            home_team = game.get('home_team', 'TBD')
+            away_team = game.get('away_team', 'TBD')
+            
+            home_rank = team_rankings.get(home_team, None)
+            away_rank = team_rankings.get(away_team, None)
+            
+            # Format display
+            home_display = f"#{home_rank} {home_team}" if home_rank else home_team
+            away_display = f"#{away_rank} {away_team}" if away_rank else away_team
+            
+            vs_symbol = "vs" if game.get('neutral') else "@"
+            
+            game_previews.append({
+                'matchup': f"{away_display} {vs_symbol} {home_display}",
+                'time': game.get('game_time', ''),
+                'tv': game.get('tv_network', ''),
+                'is_ranked_matchup': bool(home_rank and away_rank)
+            })
+        
+        # Render the template with all the data
+        return render_template('ai_weekly_preview.html',
+                             week=week,
+                             total_games=total_games,
+                             ranked_matchups=ranked_matchups,
+                             datetime_generated=datetime.now().strftime('%B %d, %Y at %I:%M %p'),
+                             preview_text=preview_text,
+                             game_previews=game_previews)
+        
+    except Exception as e:
+        flash(f'Error generating weekly preview: {str(e)}', 'error')
+        return redirect(url_for('scoreboard', week=week))
+
+@app.route('/ai/explain_ranking/<team_name>')
+def ai_explain_ranking(team_name):
+    """AI explanation of team's current ranking"""
+    if not CFB_GEN_AI_ENABLED:
+        flash('Gen AI features are not available', 'error')
+        return redirect(url_for('rankings'))
+    
+    try:
+        from urllib.parse import unquote
+        decoded_team_name = unquote(team_name)
+        
+        # Get team's current ranking data
+        all_teams_stats = get_all_team_stats_bulk()
+        team_ranking_data = None
+        current_rank = 'NR'
+        
+        for i, team_data in enumerate(all_teams_stats):
+            if team_data['team'] == decoded_team_name:
+                team_ranking_data = team_data
+                current_rank = i + 1 if i < 25 else 'NR'
+                break
+        
+        if not team_ranking_data:
+            flash(f'{decoded_team_name} not found in current rankings', 'error')
+            return redirect(url_for('rankings'))
+        
+        # Get detailed team stats
+        team_stats_record = TeamStats.query.filter_by(team_name=decoded_team_name).first()
+        team_stats = team_stats_record.to_dict() if team_stats_record else {}
+        
+        # Get comparison teams (teams ranked similarly)
+        comparison_teams = []
+        if current_rank != 'NR':
+            start_idx = max(0, current_rank - 3)
+            end_idx = min(len(all_teams_stats), current_rank + 2)
+            comparison_teams = all_teams_stats[start_idx:end_idx]
+            comparison_teams = [t for t in comparison_teams if t['team'] != decoded_team_name]
+        
+        # Add rank to team_ranking_data
+        team_ranking_data['rank'] = current_rank
+        
+        # Generate AI explanation
+        explanation = explain_team_ranking(
+            decoded_team_name, 
+            team_ranking_data, 
+            team_stats, 
+            comparison_teams
+        )
+        
+        # Get some key stats for display
+        record = f"{team_ranking_data['total_wins']}-{team_ranking_data['total_losses']}"
+        conference = team_ranking_data['conference']
+        adjusted_total = round(team_ranking_data['adjusted_total'], 2)
+        
+        # Get notable games
+        notable_games = []
+        if 'games' in team_stats:
+            for game in team_stats['games']:
+                opponent = game.get('opponent', '')
+                result = game.get('result', '')
+                team_score = game.get('team_score', 0)
+                opp_score = game.get('opp_score', 0)
+                
+                # Look for games against ranked opponents or notable teams
+                notable_teams = ['Alabama', 'Georgia', 'Ohio State', 'Michigan', 'Texas', 
+                               'Notre Dame', 'Oklahoma', 'LSU', 'Florida', 'Penn State', 
+                               'Oregon', 'USC', 'Clemson', 'Tennessee', 'Florida State']
+                
+                if any(notable in opponent for notable in notable_teams):
+                    status = "W" if result == 'W' else "L"
+                    notable_games.append({
+                        'opponent': opponent,
+                        'result': status,
+                        'score': f"{team_score}-{opp_score}",
+                        'color': '#d4edda' if result == 'W' else '#f8d7da'
+                    })
+        
+        # Limit to 5 most notable games
+        notable_games = notable_games[:5]
+        
+        # Render the template with all the data
+        return render_template('ai_team_explanation.html',
+                             team_name=decoded_team_name,
+                             current_rank=current_rank,
+                             record=record,
+                             conference=conference,
+                             adjusted_total=adjusted_total,
+                             explanation=explanation,
+                             notable_games=notable_games,
+                             datetime_generated=datetime.now().strftime('%B %d, %Y at %I:%M %p'))
+        
+    except Exception as e:
+        flash(f'Error generating team analysis: {str(e)}', 'error')
+        return redirect(url_for('rankings'))
+
+@app.route('/ai/enhanced_prediction', methods=['POST'])
+def ai_enhanced_prediction():
+    """Enhanced matchup prediction with AI analysis"""
+    if not CFB_GEN_AI_ENABLED:
+        return {'error': 'Gen AI not available'}, 503
+    
+    try:
+        team1 = request.form.get('team1')
+        team2 = request.form.get('team2')
+        location = request.form.get('location', 'neutral')
+        
+        if not team1 or not team2:
+            return {'error': 'Please select both teams'}, 400
+        
+        if team1 == team2:
+            return {'error': 'Please select different teams'}, 400
+        
+        # Get your existing prediction
+        prediction_data = predict_matchup_ultra_enhanced(team1, team2, location)
+        
+        # Get team stats for AI context
+        team1_stats_record = TeamStats.query.filter_by(team_name=team1).first()
+        team2_stats_record = TeamStats.query.filter_by(team_name=team2).first()
+        
+        team1_stats = team1_stats_record.to_dict() if team1_stats_record else {}
+        team2_stats = team2_stats_record.to_dict() if team2_stats_record else {}
+        
+        # Generate AI analysis
+        ai_analysis = enhance_matchup_prediction(
+            team1, team2, prediction_data, team1_stats, team2_stats
+        )
+        
+        # Return enhanced prediction with AI
+        return {
+            'prediction': prediction_data,
+            'ai_analysis': ai_analysis,
+            'teams': {
+                'team1': {
+                    'name': team1,
+                    'record': f"{team1_stats.get('wins', 0)}-{team1_stats.get('losses', 0)}"
+                },
+                'team2': {
+                    'name': team2,
+                    'record': f"{team2_stats.get('wins', 0)}-{team2_stats.get('losses', 0)}"
+                }
+            }
+        }
+        
+    except Exception as e:
+        return {'error': str(e)}, 500
+
+@app.route('/debug/ai_functions')
+@login_required
+def debug_ai_functions():
+    """Debug what AI functions are available"""
+    try:
+        import cfb_gen_ai
+        
+        # List all functions in the module
+        functions = [func for func in dir(cfb_gen_ai) if callable(getattr(cfb_gen_ai, func)) and not func.startswith('_')]
+        
+        return f"""
+        <h2>AI Functions Debug</h2>
+        <h3>Available functions in cfb_gen_ai.py:</h3>
+        <ul>
+        {''.join(f'<li>{func}</li>' for func in functions)}
+        </ul>
+        
+        <h3>Expected functions:</h3>
+        <ul>
+            <li>explain_game_impact ✓</li>
+            <li>generate_weekly_preview {'✓' if 'generate_weekly_preview' in functions else '❌'}</li>
+            <li>explain_team_ranking {'✓' if 'explain_team_ranking' in functions else '❌'}</li>
+            <li>enhance_matchup_prediction {'✓' if 'enhance_matchup_prediction' in functions else '❌'}</li>
+        </ul>
+        
+        <p><a href="/admin">Back to Admin</a></p>
+        """
+    except Exception as e:
+        return f"<h2>Error loading cfb_gen_ai:</h2><p>{e}</p>"
+
+@app.route('/ai/ask', methods=['GET', 'POST'])
+def ai_ask():
+    """Natural language query interface for CFB rankings"""
+    if not CFB_GEN_AI_ENABLED:
+        flash('Gen AI features are not available', 'error')
+        return redirect(url_for('rankings'))
+    
+    if request.method == 'GET':
+        # Just show the form
+        return render_template('ai_ask.html', 
+                             query='',
+                             response='',
+                             recent_queries=[])
+    
+    # POST - Process the query
+    try:
+        query = request.form.get('query', '').strip()
+        
+        if not query:
+            flash('Please enter a question!', 'error')
+            return render_template('ai_ask.html',
+                                 query='',
+                                 response='',
+                                 recent_queries=[])
+        
+        # Build context data for the AI
+        context_data = {}
+        
+        # Get current top 25 rankings
+        try:
+            all_teams_stats = get_all_team_stats_bulk()
+            context_data['top_25'] = all_teams_stats[:25]
+        except:
+            context_data['top_25'] = []
+        
+        # Get recent games (last 10)
+        try:
+            recent_games = get_games_data()[-10:]
+            context_data['recent_games'] = recent_games
+        except:
+            context_data['recent_games'] = []
+        
+        # Extract team names from query and get their stats
+        team_stats = {}
+        for team_data in all_teams_stats[:50]:  # Check top 50 teams
+            team_name = team_data['team']
+            # Simple check if team is mentioned in query
+            if team_name.lower() in query.lower():
+                # Get detailed stats for this team
+                try:
+                    team_record = TeamStats.query.filter_by(team_name=team_name).first()
+                    if team_record:
+                        stats = team_record.to_dict()
+                        stats['conference'] = team_data['conference']
+                        stats['adjusted_total'] = team_data['adjusted_total']
+                        stats['rank'] = all_teams_stats.index(team_data) + 1
+                        team_stats[team_name] = stats
+                except:
+                    pass
+        
+        if team_stats:
+            context_data['team_stats'] = team_stats
+        
+        # Call the AI function
+        response = process_natural_language_query(query, context_data)
+        
+        # Store recent queries in session (optional)
+        if 'recent_queries' not in session:
+            session['recent_queries'] = []
+        
+        session['recent_queries'].insert(0, {
+            'query': query[:100],  # Truncate long queries
+            'timestamp': datetime.now().strftime('%I:%M %p')
+        })
+        
+        # Keep only last 5 queries
+        session['recent_queries'] = session['recent_queries'][:5]
+        
+        return render_template('ai_ask.html',
+                             query=query,
+                             response=response,
+                             recent_queries=session.get('recent_queries', []))
+        
+    except Exception as e:
+        flash(f'Error processing query: {str(e)}', 'error')
+        return render_template('ai_ask.html',
+                             query=request.form.get('query', ''),
+                             response='',
+                             recent_queries=session.get('recent_queries', []))
+
+@app.route('/ai/weekly_report')
+@app.route('/ai/weekly_report/<week>')
+def ai_weekly_report(week=None):
+    """Automated weekly summary based on selected week context"""
+    if not CFB_GEN_AI_ENABLED:
+        flash('Gen AI features are not available', 'error')
+        return redirect(url_for('rankings'))
+
+    # Build context data
+    context_data = {}
+    
+    try:
+        # Get ALL games
+        all_games = get_games_data()
+        
+        if week:
+            # Filter to games from the specified week
+            week_games = [game for game in all_games if game['week'] == week]
+            context_data['recent_games'] = week_games
+            report_title = f"Week {week} Results"
+        else:
+            # Default: get last 10 games (original behavior)
+            recent_games = all_games[-10:] if all_games else []
+            context_data['recent_games'] = recent_games
+            report_title = "Recent Games"
+        
+        # 🐛 DEBUG: Print what we actually got
+        print(f"DEBUG: Report for week: {week or 'Recent'}")
+        print(f"DEBUG: Found {len(context_data['recent_games'])} games")
+        
+    except Exception as e:
+        print(f"DEBUG: Error getting games: {e}")
+        context_data['recent_games'] = []
+
+    try:
+        # Get current top 10 for ranking context
+        all_teams_stats = get_all_team_stats_bulk()
+        top_teams = all_teams_stats[:10]
+        
+        ranking_changes = []
+        for i, team in enumerate(top_teams, 1):
+            ranking_changes.append({
+                'team': team['team'],
+                'movement_text': f"Ranked #{i}",
+                'record': f"{team['total_wins']}-{team['total_losses']}"
+            })
+        
+        context_data['ranking_changes'] = ranking_changes
+        
+    except Exception as e:
+        print(f"DEBUG: Error getting rankings: {e}")
+        context_data['ranking_changes'] = []
+
+    # Call the AI function to generate the report
+    report_text = generate_weekly_report(context_data)
+
+    # Render the weekly report template
+    return render_template('ai_weekly_report.html', 
+                         report=report_text, 
+                         week=week, 
+                         report_title=report_title)
 
 
 def update_team_stats_simplified(team, opponent, team_score, opp_score, is_home, is_neutral_site=False, is_overtime=False):
@@ -5963,6 +6568,7 @@ def team_detail(team_name):
     return redirect(url_for('public_team_detail', team_name=team_name))
 
 @app.route('/team/<team_name>')
+@time_route 
 def public_team_detail(team_name):
     """Team detail page - works even for teams with no games"""
     from urllib.parse import unquote
@@ -6255,6 +6861,7 @@ def public_landing():
     return render_template('public_landing.html', top_25=top_25)
 
 @app.route('/rankings')
+@time_route
 def rankings():
     
     """Main rankings page with comprehensive team statistics"""
@@ -6264,7 +6871,9 @@ def rankings():
 
     return render_template('rankings.html', 
                          comprehensive_stats=comprehensive_stats, 
-                         recent_games=recent_games)
+                         recent_games=recent_games,
+                         CFB_GEN_AI_ENABLED=CFB_GEN_AI_ENABLED)
+
 
 
 
@@ -6446,6 +7055,7 @@ def process_clarifications():
 
 @app.route('/scoreboard')
 @app.route('/scoreboard/<week>')
+@time_route
 def scoreboard(week=None):
     
     if not week:
@@ -6529,6 +7139,7 @@ def scoreboard(week=None):
             scheduled_by_date['No Date'].append(game)
     
     # Group completed scheduled games by date - HANDLE NONE SCORES
+    # Group completed scheduled games by date - HANDLE NONE SCORES
     completed_by_date = {}
     for game in week_completed_scheduled:
         game_date = game.get('game_date')
@@ -6536,12 +7147,11 @@ def scoreboard(week=None):
             if game_date not in completed_by_date:
                 completed_by_date[game_date] = []
             # Convert completed scheduled game to look like a regular completed game
-            # FIXED: Handle None scores properly
             completed_game = {
                 'home_team': game['home_team'],
                 'away_team': game['away_team'],
-                'home_score': game.get('final_home_score') or 0,  # Handle None values
-                'away_score': game.get('final_away_score') or 0,  # Handle None values
+                'home_score': game.get('final_home_score') or 0,
+                'away_score': game.get('final_away_score') or 0,
                 'is_neutral_site': game.get('neutral', False),
                 'overtime': game.get('overtime', False),
                 'week': game['week'],
@@ -6549,15 +7159,24 @@ def scoreboard(week=None):
                 'date_added': 'Scheduled Game',
                 'from_schedule': True
             }
+            # NEW: Find corresponding Game record for AI analysis
+            corresponding_game = Game.query.filter_by(
+                week=game['week'],
+                home_team=game['home_team'],
+                away_team=game['away_team']
+            ).first()
+            if corresponding_game:
+                completed_game['id'] = corresponding_game.id
+                
             completed_by_date[game_date].append(completed_game)
-        else:
+        else:  # <-- FIXED: Now properly aligned with "if game_date:"
             if 'No Date' not in completed_by_date:
                 completed_by_date['No Date'] = []
             completed_game = {
                 'home_team': game['home_team'],
                 'away_team': game['away_team'],
-                'home_score': game.get('final_home_score') or 0,  # Handle None values
-                'away_score': game.get('final_away_score') or 0,  # Handle None values
+                'home_score': game.get('final_home_score') or 0,
+                'away_score': game.get('final_away_score') or 0,
                 'is_neutral_site': game.get('neutral', False),
                 'overtime': game.get('overtime', False),
                 'week': game['week'],
@@ -6565,6 +7184,15 @@ def scoreboard(week=None):
                 'date_added': 'Scheduled Game',
                 'from_schedule': True
             }
+            # NEW: Find corresponding Game record for AI analysis
+            corresponding_game = Game.query.filter_by(
+                week=game['week'],
+                home_team=game['home_team'],
+                away_team=game['away_team']
+            ).first()
+            if corresponding_game:
+                completed_game['id'] = corresponding_game.id
+                
             completed_by_date['No Date'].append(completed_game)
     
     # Also add any manually added games (not from schedule) - these might be from before the schedule system
@@ -7072,6 +7700,294 @@ def fetch_all_polls():
     polls['cfp_poll'] = []
 
     return polls
+
+
+@app.route('/team_leaders')
+def team_leaders():
+    """Team statistical leaders page"""
+    try:
+        # Get all team stats using our bulk loading function
+        all_teams_stats = get_all_team_stats_bulk()
+        
+        # Filter out teams with no games
+        teams_with_games = [team for team in all_teams_stats if team['total_wins'] + team['total_losses'] > 0]
+        
+        if not teams_with_games:
+            flash('No team data available yet. Add some games first!', 'info')
+            return render_template('team_leaders.html', leaders={})
+        
+        # Calculate leaders for each category
+        leaders = {}
+        
+        # OFFENSIVE LEADERS
+        leaders['highest_scoring'] = calculate_points_per_game_leaders(teams_with_games, 'offense')
+        leaders['most_total_points'] = sorted(teams_with_games, key=lambda x: x['points_fielded'], reverse=True)[:10]
+        
+        # DEFENSIVE LEADERS  
+        leaders['best_defense'] = calculate_points_per_game_leaders(teams_with_games, 'defense')
+        leaders['fewest_total_points'] = sorted(teams_with_games, key=lambda x: x['points_allowed'])[:10]
+        
+        # RECORD LEADERS
+        leaders['best_record'] = calculate_best_records(teams_with_games)
+        leaders['most_wins'] = sorted(teams_with_games, key=lambda x: x['total_wins'], reverse=True)[:10]
+        leaders['best_road_record'] = calculate_road_leaders(teams_with_games)
+        leaders['best_home_record'] = calculate_home_leaders(teams_with_games)
+        
+        # MARGIN LEADERS
+        leaders['best_margin'] = calculate_margin_leaders(teams_with_games)
+        leaders['worst_margin'] = calculate_margin_leaders(teams_with_games, reverse=True)
+        
+        # STRENGTH LEADERS
+        leaders['toughest_schedule'] = sorted(teams_with_games, key=lambda x: x['strength_of_schedule'], reverse=True)[:10]
+        leaders['easiest_schedule'] = sorted(teams_with_games, key=lambda x: x['strength_of_schedule'])[:10]
+        
+        # INDIVIDUAL GAME RECORDS
+        leaders['biggest_wins'] = get_biggest_wins()
+        leaders['biggest_losses'] = get_biggest_losses()
+        leaders['highest_scoring_games'] = get_highest_scoring_games()
+        
+        # QUALITY METRICS
+        leaders['best_ranking'] = teams_with_games[:10]  # Top 10 by ranking
+        leaders['most_improved'] = calculate_improvement_leaders(teams_with_games)
+        
+        return render_template('team_leaders.html', leaders=leaders)
+        
+    except Exception as e:
+        flash(f'Error loading team leaders: {e}', 'error')
+        return render_template('team_leaders.html', leaders={})
+
+def calculate_points_per_game_leaders(teams, category):
+    """Calculate points per game leaders for offense or defense"""
+    leaders = []
+    
+    for team in teams:
+        total_games = team['total_wins'] + team['total_losses']
+        if total_games == 0:
+            continue
+            
+        if category == 'offense':
+            ppg = team['points_fielded'] / total_games
+        else:  # defense
+            ppg = team['points_allowed'] / total_games
+            
+        leaders.append({
+            'team': team['team'],
+            'conference': team['conference'],
+            'ppg': round(ppg, 1),
+            'total_points': team['points_fielded'] if category == 'offense' else team['points_allowed'],
+            'games': total_games,
+            'record': f"{team['total_wins']}-{team['total_losses']}"
+        })
+    
+    # Sort by PPG (ascending for defense, descending for offense)
+    reverse_sort = (category == 'offense')
+    return sorted(leaders, key=lambda x: x['ppg'], reverse=reverse_sort)[:10]
+
+def calculate_best_records(teams):
+    """Calculate best records by winning percentage (minimum 6 games)"""
+    leaders = []
+    
+    for team in teams:
+        total_games = team['total_wins'] + team['total_losses']
+        if total_games < 6:  # Minimum games requirement
+            continue
+            
+        win_pct = team['total_wins'] / total_games
+        
+        leaders.append({
+            'team': team['team'],
+            'conference': team['conference'],
+            'wins': team['total_wins'],
+            'losses': team['total_losses'],
+            'win_pct': round(win_pct, 3),
+            'record': f"{team['total_wins']}-{team['total_losses']}"
+        })
+    
+    return sorted(leaders, key=lambda x: (x['win_pct'], x['wins']), reverse=True)[:10]
+
+def calculate_road_leaders(teams):
+    """Calculate best road records"""
+    leaders = []
+    
+    for team in teams:
+        if team['road_wins'] + team.get('road_losses', 0) < 3:  # Need some road games
+            continue
+            
+        # Calculate road losses from team stats if available
+        road_games = team['road_wins']
+        
+        # Get road losses from detailed stats if possible
+        try:
+            team_record = TeamStats.query.filter_by(team_name=team['team']).first()
+            if team_record:
+                games = team_record.to_dict()['games']
+                road_losses = len([g for g in games if g['result'] == 'L' and g['home_away'] == 'Away'])
+                road_games_total = team['road_wins'] + road_losses
+                
+                if road_games_total > 0:
+                    road_win_pct = team['road_wins'] / road_games_total
+                    
+                    leaders.append({
+                        'team': team['team'],
+                        'conference': team['conference'],
+                        'road_wins': team['road_wins'],
+                        'road_losses': road_losses,
+                        'road_win_pct': round(road_win_pct, 3),
+                        'road_record': f"{team['road_wins']}-{road_losses}"
+                    })
+        except:
+            # Fallback if detailed stats not available
+            if team['road_wins'] > 0:
+                leaders.append({
+                    'team': team['team'],
+                    'conference': team['conference'],
+                    'road_wins': team['road_wins'],
+                    'road_losses': 0,
+                    'road_win_pct': 1.000,
+                    'road_record': f"{team['road_wins']}-0"
+                })
+    
+    return sorted(leaders, key=lambda x: (x['road_win_pct'], x['road_wins']), reverse=True)[:10]
+
+def calculate_home_leaders(teams):
+    """Calculate best home records"""
+    leaders = []
+    
+    for team in teams:
+        if team['home_wins'] == 0:
+            continue
+            
+        try:
+            team_record = TeamStats.query.filter_by(team_name=team['team']).first()
+            if team_record:
+                games = team_record.to_dict()['games']
+                home_losses = len([g for g in games if g['result'] == 'L' and g['home_away'] == 'Home'])
+                home_games_total = team['home_wins'] + home_losses
+                
+                if home_games_total > 0:
+                    home_win_pct = team['home_wins'] / home_games_total
+                    
+                    leaders.append({
+                        'team': team['team'],
+                        'conference': team['conference'],
+                        'home_wins': team['home_wins'],
+                        'home_losses': home_losses,
+                        'home_win_pct': round(home_win_pct, 3),
+                        'home_record': f"{team['home_wins']}-{home_losses}"
+                    })
+        except:
+            # Fallback
+            if team['home_wins'] > 0:
+                leaders.append({
+                    'team': team['team'],
+                    'conference': team['conference'],
+                    'home_wins': team['home_wins'],
+                    'home_losses': 0,
+                    'home_win_pct': 1.000,
+                    'home_record': f"{team['home_wins']}-0"
+                })
+    
+    return sorted(leaders, key=lambda x: (x['home_win_pct'], x['home_wins']), reverse=True)[:10]
+
+def calculate_margin_leaders(teams, reverse=False):
+    """Calculate margin of victory leaders"""
+    leaders = []
+    
+    for team in teams:
+        total_games = team['total_wins'] + team['total_losses']
+        if total_games == 0:
+            continue
+            
+        avg_margin = team['point_differential'] / total_games
+        
+        leaders.append({
+            'team': team['team'],
+            'conference': team['conference'],
+            'avg_margin': round(avg_margin, 1),
+            'total_differential': team['point_differential'],
+            'record': f"{team['total_wins']}-{team['total_losses']}"
+        })
+    
+    return sorted(leaders, key=lambda x: x['avg_margin'], reverse=not reverse)[:10]
+
+def get_biggest_wins():
+    """Get the biggest margin of victory games"""
+    biggest_wins = []
+    
+    all_games = get_games_data()
+    
+    for game in all_games:
+        home_margin = game['home_score'] - game['away_score']
+        away_margin = game['away_score'] - game['home_score']
+        
+        if home_margin > 0:  # Home team won
+            biggest_wins.append({
+                'winner': game['home_team'],
+                'loser': game['away_team'],
+                'score': f"{game['home_score']}-{game['away_score']}",
+                'margin': home_margin,
+                'week': game['week'],
+                'location': 'vs' if not game.get('is_neutral_site', False) else 'N'
+            })
+        else:  # Away team won
+            biggest_wins.append({
+                'winner': game['away_team'],
+                'loser': game['home_team'],
+                'score': f"{game['away_score']}-{game['home_score']}",
+                'margin': away_margin,
+                'week': game['week'],
+                'location': '@' if not game.get('is_neutral_site', False) else 'N'
+            })
+    
+    return sorted(biggest_wins, key=lambda x: x['margin'], reverse=True)[:10]
+
+def get_biggest_losses():
+    """Get the most shocking losses (to lowest-ranked opponents)"""
+    # This is complex without opponent rankings, so we'll use a simplified version
+    return get_biggest_wins()  # For now, same as biggest wins but could be enhanced
+
+def get_highest_scoring_games():
+    """Get the highest total point games"""
+    high_scoring = []
+    
+    all_games = get_games_data()
+    
+    for game in all_games:
+        total_points = game['home_score'] + game['away_score']
+        
+        high_scoring.append({
+            'home_team': game['home_team'],
+            'away_team': game['away_team'],
+            'score': f"{game['home_score']}-{game['away_score']}",
+            'total_points': total_points,
+            'week': game['week'],
+            'overtime': game.get('overtime', False)
+        })
+    
+    return sorted(high_scoring, key=lambda x: x['total_points'], reverse=True)[:10]
+
+def calculate_improvement_leaders(teams):
+    """Calculate most improved teams (simplified version)"""
+    # This would need temporal data to work properly
+    # For now, return teams with best recent form
+    improved = []
+    
+    for team in teams:
+        try:
+            enhanced_result = calculate_enhanced_scientific_ranking(team['team'])
+            temporal_adj = enhanced_result['components'].get('temporal_adjustment', 0)
+            
+            if temporal_adj > 0:  # Positive temporal adjustment = improving
+                improved.append({
+                    'team': team['team'],
+                    'conference': team['conference'],
+                    'improvement_score': round(temporal_adj, 2),
+                    'record': f"{team['total_wins']}-{team['total_losses']}"
+                })
+        except:
+            continue
+    
+    return sorted(improved, key=lambda x: x['improvement_score'], reverse=True)[:10]
 
 
 @app.route('/add_game', methods=['GET', 'POST'])

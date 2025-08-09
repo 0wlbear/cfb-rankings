@@ -1,0 +1,591 @@
+{% extends "base.html" %}
+
+{% block title %}Team Leaders - College Football Rankings{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex align-items-center mb-4">
+                <h1 class="display-5 fw-bold text-primary mb-0">📊 Team Leaders</h1>
+                <div class="ms-auto">
+                    <span class="badge bg-secondary fs-6">Statistical Champions</span>
+                </div>
+            </div>
+            
+            {% if not leaders %}
+            <div class="alert alert-info">
+                <h4>📈 No Statistics Available</h4>
+                <p>Team leaders will appear here once games are added to the system.</p>
+                {% if is_admin %}
+                <a href="{{ url_for('add_game') }}" class="btn btn-primary">Add Games</a>
+                {% endif %}
+            </div>
+            {% else %}
+            
+            <!-- OFFENSIVE LEADERS -->
+            <div class="row mb-5">
+                <div class="col-12">
+                    <h2 class="h3 fw-bold text-success mb-3">🏈 Offensive Leaders</h2>
+                </div>
+                
+                <!-- Highest Scoring Offense -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="card-title mb-0">🔥 Highest Scoring Offense</h5>
+                            <small>Points Per Game</small>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th width="15%">Rank</th>
+                                            <th width="35%">Team</th>
+                                            <th width="20%">PPG</th>
+                                            <th width="30%">Record</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for leader in leaders.highest_scoring[:5] %}
+                                        <tr>
+                                            <td class="fw-bold text-primary">{{ loop.index }}</td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    {% if get_team_logo_url(leader.team) %}
+                                                    <img src="{{ get_team_logo_url(leader.team, '20') }}" alt="{{ leader.team }}" class="me-2" style="width: 20px; height: 20px;">
+                                                    {% endif %}
+                                                    <div>
+                                                        <strong>{{ leader.team }}</strong>
+                                                        <br><small class="text-muted">{{ leader.conference }}</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="fw-bold text-success">{{ leader.ppg }}</td>
+                                            <td>{{ leader.record }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Most Total Points -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="card-title mb-0">🎯 Most Total Points</h5>
+                            <small>Season Total</small>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th width="15%">Rank</th>
+                                            <th width="35%">Team</th>
+                                            <th width="20%">Points</th>
+                                            <th width="30%">Record</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for leader in leaders.most_total_points[:5] %}
+                                        <tr>
+                                            <td class="fw-bold text-primary">{{ loop.index }}</td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    {% if get_team_logo_url(leader.team) %}
+                                                    <img src="{{ get_team_logo_url(leader.team, '20') }}" alt="{{ leader.team }}" class="me-2" style="width: 20px; height: 20px;">
+                                                    {% endif %}
+                                                    <div>
+                                                        <strong>{{ leader.team }}</strong>
+                                                        <br><small class="text-muted">{{ leader.conference }}</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="fw-bold text-info">{{ leader.points_fielded }}</td>
+                                            <td>{{ leader.total_wins }}-{{ leader.total_losses }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- DEFENSIVE LEADERS -->
+            <div class="row mb-5">
+                <div class="col-12">
+                    <h2 class="h3 fw-bold text-danger mb-3">🛡️ Defensive Leaders</h2>
+                </div>
+                
+                <!-- Best Defense -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-header bg-danger text-white">
+                            <h5 class="card-title mb-0">🔒 Best Defense</h5>
+                            <small>Fewest Points Allowed Per Game</small>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th width="15%">Rank</th>
+                                            <th width="35%">Team</th>
+                                            <th width="20%">PPG</th>
+                                            <th width="30%">Record</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for leader in leaders.best_defense[:5] %}
+                                        <tr>
+                                            <td class="fw-bold text-primary">{{ loop.index }}</td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    {% if get_team_logo_url(leader.team) %}
+                                                    <img src="{{ get_team_logo_url(leader.team, '20') }}" alt="{{ leader.team }}" class="me-2" style="width: 20px; height: 20px;">
+                                                    {% endif %}
+                                                    <div>
+                                                        <strong>{{ leader.team }}</strong>
+                                                        <br><small class="text-muted">{{ leader.conference }}</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="fw-bold text-danger">{{ leader.ppg }}</td>
+                                            <td>{{ leader.record }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Fewest Total Points Allowed -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="card-title mb-0">🚫 Fewest Points Allowed</h5>
+                            <small>Season Total</small>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th width="15%">Rank</th>
+                                            <th width="35%">Team</th>
+                                            <th width="20%">Points</th>
+                                            <th width="30%">Record</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for leader in leaders.fewest_total_points[:5] %}
+                                        <tr>
+                                            <td class="fw-bold text-primary">{{ loop.index }}</td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    {% if get_team_logo_url(leader.team) %}
+                                                    <img src="{{ get_team_logo_url(leader.team, '20') }}" alt="{{ leader.team }}" class="me-2" style="width: 20px; height: 20px;">
+                                                    {% endif %}
+                                                    <div>
+                                                        <strong>{{ leader.team }}</strong>
+                                                        <br><small class="text-muted">{{ leader.conference }}</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="fw-bold text-warning">{{ leader.points_allowed }}</td>
+                                            <td>{{ leader.total_wins }}-{{ leader.total_losses }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- RECORD LEADERS -->
+            <div class="row mb-5">
+                <div class="col-12">
+                    <h2 class="h3 fw-bold text-primary mb-3">🏆 Record Leaders</h2>
+                </div>
+                
+                <!-- Best Overall Record -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="card-title mb-0">🥇 Best Overall Record</h5>
+                            <small>Minimum 6 Games Played</small>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th width="15%">Rank</th>
+                                            <th width="35%">Team</th>
+                                            <th width="25%">Record</th>
+                                            <th width="25%">Win %</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for leader in leaders.best_record[:5] %}
+                                        <tr>
+                                            <td class="fw-bold text-primary">{{ loop.index }}</td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    {% if get_team_logo_url(leader.team) %}
+                                                    <img src="{{ get_team_logo_url(leader.team, '20') }}" alt="{{ leader.team }}" class="me-2" style="width: 20px; height: 20px;">
+                                                    {% endif %}
+                                                    <div>
+                                                        <strong>{{ leader.team }}</strong>
+                                                        <br><small class="text-muted">{{ leader.conference }}</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="fw-bold">{{ leader.record }}</td>
+                                            <td class="fw-bold text-success">{{ leader.win_pct }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Best Road Record -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="card-title mb-0">✈️ Best Road Warriors</h5>
+                            <small>Away Game Record</small>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th width="15%">Rank</th>
+                                            <th width="35%">Team</th>
+                                            <th width="25%">Road Record</th>
+                                            <th width="25%">Road %</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for leader in leaders.best_road_record[:5] %}
+                                        <tr>
+                                            <td class="fw-bold text-primary">{{ loop.index }}</td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    {% if get_team_logo_url(leader.team) %}
+                                                    <img src="{{ get_team_logo_url(leader.team, '20') }}" alt="{{ leader.team }}" class="me-2" style="width: 20px; height: 20px;">
+                                                    {% endif %}
+                                                    <div>
+                                                        <strong>{{ leader.team }}</strong>
+                                                        <br><small class="text-muted">{{ leader.conference }}</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="fw-bold">{{ leader.road_record }}</td>
+                                            <td class="fw-bold text-secondary">{{ leader.road_win_pct }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- MARGIN LEADERS -->
+            <div class="row mb-5">
+                <div class="col-12">
+                    <h2 class="h3 fw-bold text-dark mb-3">📈 Margin Leaders</h2>
+                </div>
+                
+                <!-- Best Margin of Victory -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="card-title mb-0">📊 Best Average Margin</h5>
+                            <small>Points Per Game Differential</small>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th width="15%">Rank</th>
+                                            <th width="35%">Team</th>
+                                            <th width="25%">Avg Margin</th>
+                                            <th width="25%">Record</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for leader in leaders.best_margin[:5] %}
+                                        <tr>
+                                            <td class="fw-bold text-primary">{{ loop.index }}</td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    {% if get_team_logo_url(leader.team) %}
+                                                    <img src="{{ get_team_logo_url(leader.team, '20') }}" alt="{{ leader.team }}" class="me-2" style="width: 20px; height: 20px;">
+                                                    {% endif %}
+                                                    <div>
+                                                        <strong>{{ leader.team }}</strong>
+                                                        <br><small class="text-muted">{{ leader.conference }}</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="fw-bold text-success">+{{ leader.avg_margin }}</td>
+                                            <td>{{ leader.record }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Toughest Schedule -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-header bg-dark text-white">
+                            <h5 class="card-title mb-0">💪 Toughest Schedule</h5>
+                            <small>Strength of Schedule</small>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th width="15%">Rank</th>
+                                            <th width="35%">Team</th>
+                                            <th width="25%">SOS</th>
+                                            <th width="25%">Record</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for leader in leaders.toughest_schedule[:5] %}
+                                        <tr>
+                                            <td class="fw-bold text-primary">{{ loop.index }}</td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    {% if get_team_logo_url(leader.team) %}
+                                                    <img src="{{ get_team_logo_url(leader.team, '20') }}" alt="{{ leader.team }}" class="me-2" style="width: 20px; height: 20px;">
+                                                    {% endif %}
+                                                    <div>
+                                                        <strong>{{ leader.team }}</strong>
+                                                        <br><small class="text-muted">{{ leader.conference }}</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="fw-bold text-dark">{{ "%.3f"|format(leader.strength_of_schedule) }}</td>
+                                            <td>{{ leader.total_wins }}-{{ leader.total_losses }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- INDIVIDUAL GAME RECORDS -->
+            <div class="row mb-5">
+                <div class="col-12">
+                    <h2 class="h3 fw-bold text-purple mb-3">🎮 Individual Game Records</h2>
+                </div>
+                
+                <!-- Biggest Wins -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-header" style="background: linear-gradient(135deg, #8b5cf6, #a855f7); color: white;">
+                            <h5 class="card-title mb-0">💥 Biggest Wins</h5>
+                            <small>Largest Margin of Victory</small>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th width="15%">Rank</th>
+                                            <th width="40%">Game</th>
+                                            <th width="20%">Margin</th>
+                                            <th width="25%">Week</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for game in leaders.biggest_wins[:5] %}
+                                        <tr>
+                                            <td class="fw-bold text-primary">{{ loop.index }}</td>
+                                            <td>
+                                                <strong>{{ game.winner }}</strong> {{ game.location }}
+                                                <br><small class="text-muted">{{ game.loser }}</small>
+                                                <br><small class="text-secondary">{{ game.score }}</small>
+                                            </td>
+                                            <td class="fw-bold" style="color: #8b5cf6;">{{ game.margin }}</td>
+                                            <td>{{ game.week }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Highest Scoring Games -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-header" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white;">
+                            <h5 class="card-title mb-0">🔥 Highest Scoring Games</h5>
+                            <small>Most Combined Points</small>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th width="15%">Rank</th>
+                                            <th width="40%">Matchup</th>
+                                            <th width="20%">Total</th>
+                                            <th width="25%">Week</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for game in leaders.highest_scoring_games[:5] %}
+                                        <tr>
+                                            <td class="fw-bold text-primary">{{ loop.index }}</td>
+                                            <td>
+                                                <strong>{{ game.home_team }}</strong> vs
+                                                <br><strong>{{ game.away_team }}</strong>
+                                                <br><small class="text-secondary">{{ game.score }}</small>
+                                                {% if game.overtime %}<span class="badge bg-warning text-dark ms-1">OT</span>{% endif %}
+                                            </td>
+                                            <td class="fw-bold" style="color: #f59e0b;">{{ game.total_points }}</td>
+                                            <td>{{ game.week }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- CURRENT TOP 10 -->
+            <div class="row mb-5">
+                <div class="col-12">
+                    <div class="card shadow border-0">
+                        <div class="card-header" style="background: linear-gradient(135deg, #1e40af, #3b82f6); color: white;">
+                            <h5 class="card-title mb-0">🏆 Current Top 10 Rankings</h5>
+                            <small>Based on Overall Performance</small>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th width="10%">Rank</th>
+                                            <th width="35%">Team</th>
+                                            <th width="15%">Record</th>
+                                            <th width="15%">Rating</th>
+                                            <th width="25%">Conference</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for team in leaders.best_ranking[:10] %}
+                                        <tr>
+                                            <td class="fw-bold text-primary fs-5">{{ loop.index }}</td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    {% if get_team_logo_url(team.team) %}
+                                                    <img src="{{ get_team_logo_url(team.team, '20') }}" alt="{{ team.team }}" class="me-2" style="width: 24px; height: 24px;">
+                                                    {% endif %}
+                                                    <strong>{{ team.team }}</strong>
+                                                </div>
+                                            </td>
+                                            <td class="fw-bold">{{ team.total_wins }}-{{ team.total_losses }}</td>
+                                            <td class="fw-bold text-primary">{{ "%.2f"|format(team.adjusted_total) }}</td>
+                                            <td><span class="badge bg-light text-dark">{{ team.conference }}</span></td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+/* Custom styling for the team leaders page */
+.text-purple {
+    color: #8b5cf6 !important;
+}
+
+.card {
+    border: 1px solid rgba(0,0,0,0.05) !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
+}
+
+.card-header {
+    border-bottom: 1px solid rgba(255,255,255,0.2) !important;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0,123,255,0.05) !important;
+}
+
+.badge {
+    font-size: 0.75em;
+    font-weight: 600;
+}
+
+/* Team logo styling */
+img[alt] {
+    border-radius: 2px;
+    object-fit: contain;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+    .display-5 {
+        font-size: 1.75rem;
+    }
+    
+    .card-header h5 {
+        font-size: 1rem;
+    }
+    
+    .table td, .table th {
+        padding: 0.5rem 0.25rem;
+        font-size: 0.875rem;
+    }
+}
+</style>
+{% endblock %}

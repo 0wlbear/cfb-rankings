@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container my-4">
+  <h1 class="mb-4">Weekly Report{% if week %} - Week {{ week }}{% endif %}</h1>
+  {% if report %}
+    <div class="card">
+      <div class="card-body">
+        {# Split the report into paragraphs based on double newlines #}
+        {% for paragraph in report.split('\n\n') %}
+          <p>{{ paragraph }}</p>
+        {% endfor %}
+      </div>
+    </div>
+  {% else %}
+    <p>No report available at this time.</p>
+  {% endif %}
+</div>
+{% endblock %}

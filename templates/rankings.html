@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 
+
 {% block content %}
+
 <div class="container-fluid">
     <div class="row justify-content-center">
         <div class="col-12 col-xl-11">
@@ -97,6 +99,7 @@
                                 <td class="text-center hide-xl">{{ team.home_wins }}</td>
                                 <td class="text-center hide-xl">{{ team.road_wins }}</td>
                                 <td class="text-center hide-lg">{{ "%.3f"|format(team.strength_of_schedule) }}</td>
+                          
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -294,4 +297,5 @@ if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.us
     }
 }
 </script>
+
 {% endblock %}

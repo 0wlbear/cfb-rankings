@@ -42,6 +42,39 @@
             </div>
         </div>
 
+              {% if CFB_GEN_AI_ENABLED %}
+<!-- AI Analysis Section -->
+<div class="card mb-4">
+    <div class="card-header bg-info text-white">
+        <h3 class="mb-0">🤖 AI Analysis</h3>
+    </div>
+    <div class="card-body">
+        <div id="ai-analysis-content">
+            <p class="text-muted">Click below to get AI-powered analysis of {{ team_name }}'s ranking and performance.</p>
+        </div>
+        
+        <div class="text-center mt-3">
+            <button id="ai-ranking-btn" class="btn btn-primary me-2" onclick="loadAIRankingExplanation()">
+                <i class="fas fa-brain"></i> Explain Ranking
+            </button>
+            
+            {% if has_games %}
+            <button id="ai-season-btn" class="btn btn-outline-primary" onclick="loadAISeasonAnalysis()">
+                <i class="fas fa-chart-line"></i> Season Analysis
+            </button>
+            {% endif %}
+        </div>
+        
+        <div id="ai-loading" style="display: none;" class="text-center mt-3">
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <span class="ms-2">AI is analyzing...</span>
+        </div>
+    </div>
+</div>
+{% endif %}
+
         <!-- Component Breakdown -->
         <div class="card mb-4">
             <div class="card-header bg-success text-white">
@@ -476,6 +509,75 @@ if (winLossCtx) {
     {% endif %}
 });
 </script>
+<script>
+// AI Analysis Functions for Team Detail Page
+function loadAIRankingExplanation() {
+    const button = document.getElementById('ai-ranking-btn');
+    const content = document.getElementById('ai-analysis-content');
+    const loading = document.getElementById('ai-loading');
+    
+    // Show loading overlay
+    window.AILoading.show('AI Analyzing Ranking...', 'Processing team performance data');
+    
+    // Make request to AI ranking explanation endpoint
+    fetch(`/ai/explain_ranking/{{ team_name | urlencode }}`)
+        .then(response => response.text())
+        .then(html => {
+            // Extract just the AI analysis section from the full page response
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            
+            // Find the AI analysis paragraph
+            const aiAnalysis = tempDiv.querySelector('[style*="background: #e3f2fd"] p');
+            if (aiAnalysis) {
+                content.innerHTML = `
+                    <div style="background: #e3f2fd; padding: 15px; border-radius: 8px;">
+                        <h5><i class="fas fa-brain"></i> AI Ranking Analysis</h5>
+                        ${aiAnalysis.outerHTML}
+                        <small class="text-muted d-block mt-2">
+                            <i class="fas fa-clock"></i> Generated just now
+                        </small>
+                    </div>
+                `;
+            } else {
+                content.innerHTML = '<p class="text-success">Analysis loaded! <a href="/ai/explain_ranking/{{ team_name | urlencode }}">View full analysis</a></p>';
+            }
+        })
+        .catch(error => {
+            content.innerHTML = '<p class="text-danger">Error loading AI analysis. Please try again.</p>';
+            console.error('AI Analysis Error:', error);
+        })
+        .finally(() => {
+        window.AILoading.hide();
+        });
+}
+
+function loadAISeasonAnalysis() {
+    const button = document.getElementById('ai-season-btn');
+    const content = document.getElementById('ai-analysis-content');
+    const loading = document.getElementById('ai-loading');
+    
+    window.AILoading.show('AI Analyzing Season...', 'Reviewing season performance trends');
+    
+    // For now, this could analyze the team's recent games
+    // You could create a new AI function specifically for season analysis
+    const recentGames = {{ recent_games | tojson | safe }};
+    const teamRecord = '{{ team_name }} ({{ record }})';
+    
+    content.innerHTML = `
+        <div style="background: #fff3e0; padding: 15px; border-radius: 8px;">
+            <h5><i class="fas fa-chart-line"></i> Season Analysis</h5>
+            <p>{{ team_name }} has played ${recentGames.length} games this season with a record of {{ record }}.</p>
+            <p><em>Advanced AI season analysis coming soon...</em></p>
+            <small class="text-muted">
+                <i class="fas fa-info-circle"></i> This feature will provide deep insights into season trends and performance patterns.
+            </small>
+        </div>
+    `;
+    
+    window.AILoading.hide();
+}
+</script>
 <style>
 .chart-container {
     position: relative;
@@ -507,6 +609,32 @@ if (winLossCtx) {
 #winLossChart {
     max-width: 250px !important;
     max-height: 250px !important;
+}
+
+.ai-analysis-card {
+    border-left: 4px solid #2196F3;
+}
+
+.ai-loading-overlay {
+    background: rgba(255, 255, 255, 0.8);
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+}
+
+.ai-analysis-result {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 </style>
