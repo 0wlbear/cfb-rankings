@@ -1,14 +1,60 @@
 {% extends "base.html" %}
 
-
 {% block content %}
 
 <div class="container-fluid">
     <div class="row justify-content-center">
         <div class="col-12 col-xl-11">
             <div class="text-center mb-4">
-                <h2>2025 Comprehensive Team Statistics</h2>
-                <p class="text-muted">Click column headers to sort</p>
+                <h2>2025 Comprehensive Team Statistics
+                    {% if selected_conference != 'All Conferences' %}
+                        - {{ selected_conference }}
+                    {% endif %}
+                </h2>
+                <p class="text-muted">
+                    {% if selected_conference != 'All Conferences' %}
+                        Showing {{ total_teams }} {{ selected_conference }} teams | 
+                    {% endif %}
+                    Click column headers to sort
+                </p>
+            </div>
+            
+            <!-- Conference Filter Controls -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body py-3">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center">
+                                        <label for="conferenceFilter" class="form-label me-3 mb-0">
+                                            <strong>Filter by Conference:</strong>
+                                        </label>
+                                        <select id="conferenceFilter" class="form-select" style="width: auto; min-width: 200px;" onchange="filterByConference()">
+                                            <option value="all" {% if selected_conference == 'All Conferences' %}selected{% endif %}>
+                                                All Conferences
+                                            </option>
+                                            {% for conference in conference_list %}
+                                                <option value="{{ conference }}" 
+                                                        {% if selected_conference == conference %}selected{% endif %}>
+                                                    {{ conference }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 text-md-end mt-2 mt-md-0">
+                                    <small class="text-muted">
+                                        Showing {{ total_teams }} of {{ comprehensive_stats|length if selected_conference == 'All Conferences' else 'all' }} teams
+                                        {% if selected_conference != 'All Conferences' %}
+                                            | <a href="{{ url_for('rankings') }}" class="text-decoration-none">View All Conferences</a>
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <!-- Desktop Table -->
@@ -23,38 +69,40 @@
                                 <th class="sortable-header" onclick="simpleSortTable(1, 'text')">
                                     Team <span class="sort-indicator" id="sort-1"></span>
                                 </th>
+                                {% if selected_conference == 'All Conferences' %}
                                 <th class="sortable-header text-center" onclick="simpleSortTable(2, 'text')">
                                     Conf <span class="sort-indicator" id="sort-2"></span>
                                 </th>
-                                <th class="sortable-header text-center" onclick="simpleSortTable(3, 'number')">
-                                    W <span class="sort-indicator" id="sort-3"></span>
+                                {% endif %}
+                                <th class="sortable-header text-center" onclick="simpleSortTable({% if selected_conference == 'All Conferences' %}3{% else %}2{% endif %}, 'number')">
+                                    W <span class="sort-indicator" id="sort-{% if selected_conference == 'All Conferences' %}3{% else %}2{% endif %}"></span>
                                 </th>
-                                <th class="sortable-header text-center" onclick="simpleSortTable(4, 'number')">
-                                    L <span class="sort-indicator" id="sort-4"></span>
+                                <th class="sortable-header text-center" onclick="simpleSortTable({% if selected_conference == 'All Conferences' %}4{% else %}3{% endif %}, 'number')">
+                                    L <span class="sort-indicator" id="sort-{% if selected_conference == 'All Conferences' %}4{% else %}3{% endif %}"></span>
                                 </th>
-                                <th class="sortable-header text-center power-rating-col" onclick="simpleSortTable(5, 'number')">
-                                    Power Rating <span class="sort-indicator" id="sort-5"></span>
+                                <th class="sortable-header text-center power-rating-col" onclick="simpleSortTable({% if selected_conference == 'All Conferences' %}5{% else %}4{% endif %}, 'number')">
+                                    Power Rating <span class="sort-indicator" id="sort-{% if selected_conference == 'All Conferences' %}5{% else %}4{% endif %}"></span>
                                 </th>
-                                <th class="sortable-header text-center hide-xl" onclick="simpleSortTable(6, 'number')">
-                                    PF <span class="sort-indicator" id="sort-6"></span>
+                                <th class="sortable-header text-center hide-xl" onclick="simpleSortTable({% if selected_conference == 'All Conferences' %}6{% else %}5{% endif %}, 'number')">
+                                    PF <span class="sort-indicator" id="sort-{% if selected_conference == 'All Conferences' %}6{% else %}5{% endif %}"></span>
                                 </th>
-                                <th class="sortable-header text-center hide-xl" onclick="simpleSortTable(7, 'number')">
-                                    PA <span class="sort-indicator" id="sort-7"></span>
+                                <th class="sortable-header text-center hide-xl" onclick="simpleSortTable({% if selected_conference == 'All Conferences' %}7{% else %}6{% endif %}, 'number')">
+                                    PA <span class="sort-indicator" id="sort-{% if selected_conference == 'All Conferences' %}7{% else %}6{% endif %}"></span>
                                 </th>
-                                <th class="sortable-header text-center hide-lg" onclick="simpleSortTable(8, 'number')">
-                                    MoV <span class="sort-indicator" id="sort-8"></span>
+                                <th class="sortable-header text-center hide-lg" onclick="simpleSortTable({% if selected_conference == 'All Conferences' %}8{% else %}7{% endif %}, 'number')">
+                                    MoV <span class="sort-indicator" id="sort-{% if selected_conference == 'All Conferences' %}8{% else %}7{% endif %}"></span>
                                 </th>
-                                <th class="sortable-header text-center hide-lg" onclick="simpleSortTable(9, 'number')">
-                                    PD <span class="sort-indicator" id="sort-9"></span>
+                                <th class="sortable-header text-center hide-lg" onclick="simpleSortTable({% if selected_conference == 'All Conferences' %}9{% else %}8{% endif %}, 'number')">
+                                    PD <span class="sort-indicator" id="sort-{% if selected_conference == 'All Conferences' %}9{% else %}8{% endif %}"></span>
                                 </th>
-                                <th class="sortable-header text-center hide-xl" onclick="simpleSortTable(10, 'number')">
-                                    HW <span class="sort-indicator" id="sort-10"></span>
+                                <th class="sortable-header text-center hide-xl" onclick="simpleSortTable({% if selected_conference == 'All Conferences' %}10{% else %}9{% endif %}, 'number')">
+                                    HW <span class="sort-indicator" id="sort-{% if selected_conference == 'All Conferences' %}10{% else %}9{% endif %}"></span>
                                 </th>
-                                <th class="sortable-header text-center hide-xl" onclick="simpleSortTable(11, 'number')">
-                                    RW <span class="sort-indicator" id="sort-11"></span>
+                                <th class="sortable-header text-center hide-xl" onclick="simpleSortTable({% if selected_conference == 'All Conferences' %}11{% else %}10{% endif %}, 'number')">
+                                    RW <span class="sort-indicator" id="sort-{% if selected_conference == 'All Conferences' %}11{% else %}10{% endif %}"></span>
                                 </th>
-                                <th class="sortable-header text-center hide-lg" onclick="simpleSortTable(12, 'number')">
-                                    SoS <span class="sort-indicator" id="sort-12"></span>
+                                <th class="sortable-header text-center hide-lg" onclick="simpleSortTable({% if selected_conference == 'All Conferences' %}12{% else %}11{% endif %}, 'number')">
+                                    SoS <span class="sort-indicator" id="sort-{% if selected_conference == 'All Conferences' %}12{% else %}11{% endif %}"></span>
                                 </th>
                             </tr>
                         </thead>
@@ -71,6 +119,7 @@
                                         <a href="{{ url_for('public_team_detail', team_name=team.team) }}" class="text-decoration-none">{{ team.team }}</a>
                                     </div>
                                 </td>
+                                {% if selected_conference == 'All Conferences' %}
                                 <td class="text-center">
                                     {% set badge_class = {
                                         'ACC': 'primary',
@@ -85,8 +134,11 @@
                                         'Mountain West': 'success',
                                         'Sun Belt': 'warning text-dark'
                                     }.get(team.conference, 'secondary') %}
-                                    <span class="badge bg-{{ badge_class }}">{{ team.conference }}</span>
+                                    <a href="{{ url_for('rankings', conference=team.conference) }}" class="text-decoration-none">
+                                        <span class="badge bg-{{ badge_class }}">{{ team.conference }}</span>
+                                    </a>
                                 </td>
+                                {% endif %}
                                 <td class="text-center">{{ team.total_wins }}</td>
                                 <td class="text-center">{{ team.total_losses }}</td>
                                 <td class="text-center text-primary power-rating-col">
@@ -99,7 +151,6 @@
                                 <td class="text-center hide-xl">{{ team.home_wins }}</td>
                                 <td class="text-center hide-xl">{{ team.road_wins }}</td>
                                 <td class="text-center hide-lg">{{ "%.3f"|format(team.strength_of_schedule) }}</td>
-                          
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -125,7 +176,7 @@
                 </div>
             </div>
 
-            <!-- Mobile Table - FIXED -->
+            <!-- Mobile Table -->
             <div class="d-lg-none">
                 <div class="table-responsive">
                     <table class="table table-striped" id="mobileStatsTable">
@@ -153,6 +204,7 @@
                                                     {{ team.team }}
                                                 </a>
                                             </div>
+                                            {% if selected_conference == 'All Conferences' %}
                                             <div class="mt-1">
                                                 {% set badge_class = {
                                                     'ACC': 'primary', 'Big Ten': 'success', 'Big XII': 'warning text-dark',
@@ -160,19 +212,20 @@
                                                     'American': 'dark', 'Conference USA': 'light text-dark',
                                                     'MAC': 'primary', 'Mountain West': 'success', 'Sun Belt': 'warning text-dark'
                                                 }.get(team.conference, 'secondary') %}
-                                                <span class="badge bg-{{ badge_class }}" style="font-size: 0.7em;">
-                                                    {{ team.conference }}
-                                                </span>
+                                                <a href="{{ url_for('rankings', conference=team.conference) }}" class="text-decoration-none">
+                                                    <span class="badge bg-{{ badge_class }}" style="font-size: 0.7em;">
+                                                        {{ team.conference }}
+                                                    </span>
+                                                </a>
                                             </div>
+                                            {% endif %}
                                         </div>
                                     </div>
                                 </td>
-                                <!-- FIXED: This is now the actual RECORD column -->
                                 <td class="text-center">
                                     <div class="fw-bold text-dark">{{ team.total_wins }}-{{ team.total_losses }}</div>
                                     <small class="text-muted">SoS: {{ "%.3f"|format(team.strength_of_schedule) }}</small>
                                 </td>
-                                <!-- FIXED: This is now the actual RATING column -->
                                 <td class="text-center">
                                     <div class="fw-bold text-primary">{{ "%.2f"|format(team.adjusted_total) }}</div>
                                 </td>
@@ -186,75 +239,20 @@
     </div>
 </div>
 
-<style>
-.sortable-header {
-    cursor: pointer;
-    user-select: none;
-    background-color: #f8f9fa;
-    transition: background-color 0.2s;
-    padding: 12px 8px !important;
-}
-
-.sortable-header:hover {
-    background-color: #e9ecef !important;
-}
-
-.sort-indicator {
-    margin-left: 5px;
-    font-size: 0.8em;
-    min-width: 10px;
-    display: inline-block;
-}
-
-.sort-indicator.asc::after {
-    content: " ▲";
-    color: #0066cc;
-}
-
-.sort-indicator.desc::after {
-    content: " ▼"; 
-    color: #0066cc;
-}
-
-/* Optimize table spacing */
-.table td, .table th {
-    padding: 8px 6px;
-    vertical-align: middle;
-}
-
-.table-responsive {
-    margin: 0 auto;
-}
-
-/* Ensure good logo alignment */
-.d-flex.align-items-center img {
-    border-radius: 4px;
-    object-fit: cover;
-}
-
-/* Center the page content */
-.container-fluid {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 0 15px;
-}
-
-/* Responsive adjustments */
-@media (max-width: 1200px) {
-    .table td, .table th {
-        padding: 6px 4px;
-        font-size: 0.9rem;
-    }
-}
-
-@media (max-width: 768px) {
-    .table td, .table th {
-        padding: 8px 6px;
-    }
-}
-</style>
-
+<!-- JavaScript for conference filtering -->
 <script>
+function filterByConference() {
+    const conferenceSelect = document.getElementById('conferenceFilter');
+    const selectedConference = conferenceSelect.value;
+    
+    if (selectedConference === 'all') {
+        window.location.href = "{{ url_for('rankings') }}";
+    } else {
+        window.location.href = "{{ url_for('rankings', conference='') }}" + encodeURIComponent(selectedConference);
+    }
+}
+
+// Existing JavaScript (keep all your existing sorting functions)
 // Skip JavaScript on mobile devices
 if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
     console.log("Mobile detected - skipping table sorting");

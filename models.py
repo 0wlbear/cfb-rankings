@@ -338,6 +338,10 @@ class CFBTemporalAnalysis(db.Model):
             'analysis_date': self.analysis_date.isoformat() if self.analysis_date else None
         }
 
+# In your models.py file, find the CFBAlgorithmPerformance class and add this field:
+
+# In your models.py file, update the CFBAlgorithmPerformance class:
+
 class CFBAlgorithmPerformance(db.Model):
     """Track which CFB algorithm factors are most/least predictive"""
     __tablename__ = 'cfb_algorithm_performance'
@@ -346,13 +350,27 @@ class CFBAlgorithmPerformance(db.Model):
     season_year = db.Column(db.Integer, nullable=False, default=2025)
     
     # Factor being analyzed
-    factor_name = db.Column(db.String(100), nullable=False)  # e.g., 'opponent_quality_gap', 'recent_form'
-    factor_category = db.Column(db.String(50), nullable=False)  # e.g., 'core', 'adjustment', 'context'
+    factor_name = db.Column(db.String(100), nullable=True)  # Changed to nullable=True
+    factor_category = db.Column(db.String(50), nullable=True)  # Changed to nullable=True
     
     # Performance metrics
     prediction_count = db.Column(db.Integer, default=0)
-    correlation_with_accuracy = db.Column(db.Float, nullable=True)  # How well this factor predicts outcomes
-    avg_impact_on_prediction = db.Column(db.Float, nullable=True)   # Average influence on final prediction
+    correlation_with_accuracy = db.Column(db.Float, nullable=True)
+    avg_impact_on_prediction = db.Column(db.Float, nullable=True)
+    
+    # ADD ALL THESE MISSING ACCURACY TRACKING FIELDS:
+    winner_accuracy = db.Column(db.Float, nullable=True)
+    average_accuracy = db.Column(db.Float, nullable=True)
+    average_margin_error = db.Column(db.Float, nullable=True)
+    average_total_error = db.Column(db.Float, nullable=True)
+    predictions_verified = db.Column(db.Integer, default=0)
+    average_confidence = db.Column(db.Float, nullable=True)
+    factor_importance = db.Column(db.Text, nullable=True)
+    optimization_suggestions = db.Column(db.Text, nullable=True)
+    
+    # ADD THESE ADDITIONAL FIELDS THAT MIGHT BE NEEDED:
+    factor_importance = db.Column(db.Text, nullable=True)  # JSON storage for factor rankings
+    optimization_suggestions = db.Column(db.Text, nullable=True)  # JSON storage for suggestions
     
     # Current vs suggested values
     current_weight = db.Column(db.Float, nullable=True)
@@ -361,7 +379,7 @@ class CFBAlgorithmPerformance(db.Model):
     
     # Analysis metadata
     analysis_date = db.Column(db.DateTime, default=datetime.utcnow)
-    sample_size = db.Column(db.Integer, default=0)  # Number of games this analysis is based on
+    sample_size = db.Column(db.Integer, default=0)
     
     # Unique constraint
     __table_args__ = (
@@ -377,6 +395,17 @@ class CFBAlgorithmPerformance(db.Model):
             'prediction_count': self.prediction_count,
             'correlation_with_accuracy': round(self.correlation_with_accuracy, 3) if self.correlation_with_accuracy else None,
             'avg_impact_on_prediction': round(self.avg_impact_on_prediction, 3) if self.avg_impact_on_prediction else None,
+            
+            # ADD ALL THESE LINES TO THE to_dict() METHOD:
+            'winner_accuracy': round(self.winner_accuracy, 1) if self.winner_accuracy else None,
+            'average_accuracy': round(self.average_accuracy, 1) if self.average_accuracy else None,
+            'average_margin_error': round(self.average_margin_error, 2) if self.average_margin_error else None,
+            'average_total_error': round(self.average_total_error, 2) if self.average_total_error else None,
+            'predictions_verified': self.predictions_verified,
+            'average_confidence': round(self.average_confidence, 2) if self.average_confidence else None,
+            'factor_importance': json.loads(self.factor_importance) if self.factor_importance else {},
+            'optimization_suggestions': json.loads(self.optimization_suggestions) if self.optimization_suggestions else [],
+            
             'current_weight': self.current_weight,
             'suggested_weight': self.suggested_weight,
             'confidence_score': round(self.confidence_score, 3) if self.confidence_score else None,

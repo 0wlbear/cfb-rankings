@@ -231,8 +231,26 @@
                 background: #007bff;
                 border-radius: 2px;
             }
+        }
+        
+        /* FIXED: Mobile navbar improvements - all links look the same */
+        @media (max-width: 991.98px) {
+            /* Hide desktop dropdown containers entirely on mobile */
+            .desktop-dropdown {
+                display: none !important;
+            }
             
-            /* Mobile navbar improvements with centered layout */
+            /* Hide the direct nav links on mobile so only mobile-nav-links show */
+            .navbar-nav.mx-auto > .nav-link {
+                display: none !important;
+            }
+            
+            /* Show mobile nav links */
+            .mobile-nav-links {
+                display: block !important;
+            }
+            
+            /* Mobile navbar collapse styling */
             .navbar-collapse {
                 background-color: rgba(15, 23, 42, 0.95) !important;
                 backdrop-filter: blur(10px);
@@ -250,12 +268,6 @@
                 transform: none !important;
             }
             
-            .navbar-nav.mx-auto .modern-nav-link {
-                width: 100%;
-                text-align: center;
-                margin: 0;
-            }
-            
             .navbar-nav.ms-auto {
                 flex-direction: column !important;
                 align-items: center;
@@ -266,9 +278,25 @@
                 margin-left: 0 !important;
             }
             
+            .mobile-nav-links .modern-nav-link {
+                width: 100%;
+                text-align: center;
+                margin: 0;
+                border-radius: 0.5rem;
+                background: rgba(255, 255, 255, 0.05);
+                margin-bottom: 0.25rem;
+            }
+            
             .btn-modern-outline {
                 width: 100%;
                 text-align: center;
+            }
+        }
+        
+        /* Hide mobile links on desktop */
+        @media (min-width: 992px) {
+            .mobile-nav-links {
+                display: none !important;
             }
         }
         
@@ -462,105 +490,6 @@
     100% { transform: rotate(360deg); }
 }
 
-    </style>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏈</text></svg>">
-</head>
-<body>
-    
-   <!-- FIXED: Using NFL's working navbar centering approach -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top" style="background: linear-gradient(135deg, #14532d 0%, #166534 50%, #16a34a 100%) !important;">
-    <div class="container-fluid px-4">
-        <!-- Brand -->
-      <a class="navbar-brand d-flex align-items-center" href="{{ url_for('public_landing') }}">
-             <svg width="240" height="60" viewBox="0 0 240 60">
-            <!-- Larger football icon -->
-            <ellipse cx="27" cy="30" rx="18" ry="10.5" fill="#22c55e" stroke="#ffffff" stroke-width="3"/>
-            <!-- Football laces -->
-            <line x1="27" y1="19.5" x2="27" y2="40.5" stroke="#ffffff" stroke-width="3.5"/>
-            <line x1="16.5" y1="24.8" x2="37.5" y2="24.8" stroke="#ffffff" stroke-width="2.2"/>
-            <line x1="16.5" y1="35.2" x2="37.5" y2="35.2" stroke="#ffffff" stroke-width="2.2"/>
-            
-            <!-- Larger text layout -->
-            <text x="63" y="27" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#ffffff">CFB</text>
-            <text x="63" y="45" font-family="Arial, sans-serif" font-size="18" font-weight="600" fill="#ffffff" letter-spacing="1.2px">RANK</text>
-        </svg>
-            </a>
-        <!-- Mobile hamburger button -->
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        
-        <!-- Collapsible navigation -->
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <!-- Main navigation - centered with consolidated dropdowns -->
-            <div class="navbar-nav mx-auto d-flex justify-content-center">
-                <a class="nav-link modern-nav-link" href="{{ url_for('rankings') }}">Rankings</a>
-                <a class="nav-link modern-nav-link" href="{{ url_for('scoreboard') }}">Scoreboard</a>
-                <a class="nav-link modern-nav-link" href="{{ url_for('ai_ask') }}">
-                      <i class="fas fa-robot"></i> Ask AI
-                    </a>
-                
-                <!-- Playoffs & Bowls Dropdown -->
-                <div class="nav-item dropdown">
-                    <a class="nav-link modern-nav-link dropdown-toggle" href="#" id="playoffsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        Playoffs & Bowls
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-dark modern-dropdown" aria-labelledby="playoffsDropdown">
-                        <li><a class="dropdown-item modern-dropdown-item" href="{{ url_for('cfp_bracket') }}">CFP Bracket</a></li>
-                        <li><a class="dropdown-item modern-dropdown-item" href="{{ url_for('bowl_projections') }}">Bowl Projections</a></li>
-                    </ul>
-                </div>
-                
-                <!-- More Dropdown -->
-                <div class="nav-item dropdown">
-                    <a class="nav-link modern-nav-link dropdown-toggle" href="#" id="moreDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        More
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-dark modern-dropdown" aria-labelledby="moreDropdown">
-                        <li><a class="dropdown-item modern-dropdown-item" href="{{ url_for('team_leaders') }}">Team Leaders</a></li>
-                        <li><a class="dropdown-item modern-dropdown-item" href="{{ url_for('poll_comparison') }}">Poll Comparison</a></li>
-                        <li><a class="dropdown-item modern-dropdown-item" href="/weekly_movement">Weekly Movement</a></li>
-                        <li><a class="dropdown-item modern-dropdown-item" href="{{ url_for('archived_seasons') }}">Past Seasons</a></li>
-                        {% if is_admin %}
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item modern-dropdown-item admin-item" href="{{ url_for('team_compare') }}">Compare Teams</a></li>
-                        <li><a class="dropdown-item modern-dropdown-item admin-item" href="{{ url_for('admin') }}">Admin Panel</a></li>
-                        {% endif %}
-                    </ul>
-                </div>
-                
-                <!-- Mobile-only individual links (hidden on desktop) -->
-                <div class="mobile-nav-links">
-                    <a class="nav-link modern-nav-link" href="{{ url_for('team_leaders') }}">Team Leaders</a>
-                    <a class="nav-link modern-nav-link" href="{{ url_for('poll_comparison') }}">Poll Comparison</a>
-                    <a class="nav-link modern-nav-link" href="/weekly_movement">Weekly Movement</a>
-                    <a class="nav-link modern-nav-link" href="{{ url_for('cfp_bracket') }}">CFP Bracket</a>
-                    <a class="nav-link modern-nav-link" href="{{ url_for('bowl_projections') }}">Bowl Projections</a>
-                    <a class="nav-link modern-nav-link" href="{{ url_for('archived_seasons') }}">Past Seasons</a>
-                    <a class="nav-link modern-nav-link" href="{{ url_for('ai_ask') }}">
-              <i class="fas fa-robot"></i> Ask AI
-            </a>
-                    {% if is_admin %}
-                    <a class="nav-link modern-nav-link admin-link" href="{{ url_for('team_compare') }}">Compare Teams</a>
-                    <a class="nav-link modern-nav-link admin-link" href="{{ url_for('admin') }}">Admin Panel</a>
-                    {% endif %}
-                </div>
-            </div>
-            
-            <!-- Right side navigation -->
-            <div class="navbar-nav ms-auto">
-                {% if is_admin %}
-                    <a class="nav-link modern-nav-link logout-link me-2" href="{{ url_for('logout') }}">Logout</a>
-                    
-                {% else %}
-                    <a class="nav-link modern-nav-link login-link" href="{{ url_for('login') }}">Admin Login</a>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</nav>
-
-<style>
 /* Modern Dropdown Styling */
 .modern-dropdown {
     background: rgba(15, 23, 42, 0.95) !important;
@@ -621,7 +550,6 @@
 }
 
 /* Divider styling */
-/* Divider styling */
 .dropdown-divider {
     border-color: rgba(255, 255, 255, 0.2) !important;
     margin: 0.5rem 1rem !important;
@@ -640,28 +568,6 @@
     transform: rotate(180deg);
 }
 
-/* Mobile dropdown improvements */
-@media (max-width: 991.98px) {
-    /* Hide dropdown menus on mobile since we show individual links */
-    .dropdown-menu {
-        display: none !important;
-    }
-    
-    .mobile-nav-links .modern-nav-link {
-        margin: 0;
-        border-radius: 0.5rem;
-        background: rgba(255, 255, 255, 0.05);
-        margin-bottom: 0.25rem;
-    }
-}
-
-/* Hide mobile links on desktop */
-@media (min-width: 992px) {
-    .mobile-nav-links {
-        display: none !important;
-    }
-}
-
     .cfb-footer {
     text-align: center;
     font-size: 0.9rem;
@@ -671,8 +577,105 @@
     bottom: 0;
     width: 100%;
 }
-
 </style>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏈</text></svg>">
+</head>
+<body>
+    
+   <!-- FIXED: Using proper mobile-friendly navbar approach -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top" style="background: linear-gradient(135deg, #14532d 0%, #166534 50%, #16a34a 100%) !important;">
+    <div class="container-fluid px-4">
+        <!-- Brand -->
+      <a class="navbar-brand d-flex align-items-center" href="{{ url_for('public_landing') }}">
+             <svg width="240" height="60" viewBox="0 0 240 60">
+            <!-- Larger football icon -->
+            <ellipse cx="27" cy="30" rx="18" ry="10.5" fill="#22c55e" stroke="#ffffff" stroke-width="3"/>
+            <!-- Football laces -->
+            <line x1="27" y1="19.5" x2="27" y2="40.5" stroke="#ffffff" stroke-width="3.5"/>
+            <line x1="16.5" y1="24.8" x2="37.5" y2="24.8" stroke="#ffffff" stroke-width="2.2"/>
+            <line x1="16.5" y1="35.2" x2="37.5" y2="35.2" stroke="#ffffff" stroke-width="2.2"/>
+            
+            <!-- Larger text layout -->
+            <text x="63" y="27" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#ffffff">CFB</text>
+            <text x="63" y="45" font-family="Arial, sans-serif" font-size="18" font-weight="600" fill="#ffffff" letter-spacing="1.2px">RANK</text>
+        </svg>
+            </a>
+        <!-- Mobile hamburger button -->
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        
+        <!-- Collapsible navigation -->
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <!-- Main navigation - centered with consolidated dropdowns -->
+            <div class="navbar-nav mx-auto d-flex justify-content-center">
+                <a class="nav-link modern-nav-link" href="{{ url_for('rankings') }}">Rankings</a>
+                <a class="nav-link modern-nav-link" href="{{ url_for('scoreboard') }}">Scoreboard</a>
+                <a class="nav-link modern-nav-link" href="{{ url_for('ai_ask') }}">
+                      <i class="fas fa-robot"></i> Ask AI
+                    </a>
+                
+                <!-- FIXED: Desktop-only Playoffs & Bowls Dropdown -->
+                <div class="nav-item dropdown desktop-dropdown">
+                    <a class="nav-link modern-nav-link dropdown-toggle" href="#" id="playoffsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Playoffs & Bowls
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-dark modern-dropdown" aria-labelledby="playoffsDropdown">
+                        <li><a class="dropdown-item modern-dropdown-item" href="{{ url_for('cfp_bracket') }}">CFP Bracket</a></li>
+                        <li><a class="dropdown-item modern-dropdown-item" href="{{ url_for('bowl_projections') }}">Bowl Projections</a></li>
+                    </ul>
+                </div>
+                
+                <!-- FIXED: Desktop-only More Dropdown -->
+                <div class="nav-item dropdown desktop-dropdown">
+                    <a class="nav-link modern-nav-link dropdown-toggle" href="#" id="moreDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        More
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-dark modern-dropdown" aria-labelledby="moreDropdown">
+                        <li><a class="dropdown-item modern-dropdown-item" href="{{ url_for('team_leaders') }}">Team Leaders</a></li>
+                        <li><a class="dropdown-item modern-dropdown-item" href="{{ url_for('poll_comparison') }}">Poll Comparison</a></li>
+                        <li><a class="dropdown-item modern-dropdown-item" href="/weekly_movement">Weekly Movement</a></li>
+                        <li><a class="dropdown-item modern-dropdown-item" href="{{ url_for('archived_seasons') }}">Past Seasons</a></li>
+                        {% if is_admin %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item modern-dropdown-item admin-item" href="{{ url_for('team_compare') }}">Compare Teams</a></li>
+                        <li><a class="dropdown-item modern-dropdown-item admin-item" href="{{ url_for('admin') }}">Admin Panel</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+                
+               <!-- Mobile-only individual links (hidden on desktop) -->
+                <div class="mobile-nav-links">
+                    <a class="nav-link modern-nav-link" href="{{ url_for('rankings') }}">Rankings</a>
+                    <a class="nav-link modern-nav-link" href="{{ url_for('scoreboard') }}">Scoreboard</a>
+                    <a class="nav-link modern-nav-link" href="{{ url_for('ai_ask') }}">
+                        <i class="fas fa-robot"></i> Ask AI
+                    </a>
+                    <a class="nav-link modern-nav-link" href="{{ url_for('cfp_bracket') }}">CFP Bracket</a>
+                    <a class="nav-link modern-nav-link" href="{{ url_for('bowl_projections') }}">Bowl Projections</a>
+                    <a class="nav-link modern-nav-link" href="{{ url_for('team_leaders') }}">Team Leaders</a>
+                    <a class="nav-link modern-nav-link" href="{{ url_for('poll_comparison') }}">Poll Comparison</a>
+                    <a class="nav-link modern-nav-link" href="/weekly_movement">Weekly Movement</a>
+                    <a class="nav-link modern-nav-link" href="{{ url_for('archived_seasons') }}">Past Seasons</a>
+                    {% if is_admin %}
+                    <a class="nav-link modern-nav-link admin-link" href="{{ url_for('team_compare') }}">Compare Teams</a>
+                    <a class="nav-link modern-nav-link admin-link" href="{{ url_for('admin') }}">Admin Panel</a>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Right side navigation -->
+            <div class="navbar-nav ms-auto">
+                {% if is_admin %}
+                    <a class="nav-link modern-nav-link logout-link me-2" href="{{ url_for('logout') }}">Logout</a>
+                    
+                {% else %}
+                    <a class="nav-link modern-nav-link login-link" href="{{ url_for('login') }}">Admin Login</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</nav>
     
     <div class="container mt-4">
         <!-- Flash Messages with Modern Styling -->

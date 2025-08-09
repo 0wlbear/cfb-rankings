@@ -6861,20 +6861,44 @@ def public_landing():
     return render_template('public_landing.html', top_25=top_25)
 
 @app.route('/rankings')
+@app.route('/rankings/<conference>')
 @time_route
-def rankings():
+def rankings(conference=None):
+    """Main rankings page with comprehensive team statistics and conference filtering"""
     
-    """Main rankings page with comprehensive team statistics"""
+    # Get all team stats
     comprehensive_stats = get_all_team_stats_bulk()
+    
+    # Apply conference filter if specified
+    if conference and conference != 'all':
+        # Decode URL-encoded conference name (handles spaces, etc.)
+        from urllib.parse import unquote
+        decoded_conference = unquote(conference)
+        
+        # Validate conference exists
+        if decoded_conference in CONFERENCES:
+            comprehensive_stats = [team for team in comprehensive_stats 
+                                 if team['conference'] == decoded_conference]
+            selected_conference = decoded_conference
+        else:
+            flash(f'Conference "{decoded_conference}" not found. Showing all teams.', 'warning')
+            selected_conference = 'All Conferences'
+    else:
+        selected_conference = 'All Conferences'
+    
+    # Get recent games
     recent_games = get_games_data()[-10:]
-
-
+    
+    # Create conference list for dropdown (sorted)
+    conference_list = sorted(CONFERENCES.keys())
+    
     return render_template('rankings.html', 
                          comprehensive_stats=comprehensive_stats, 
                          recent_games=recent_games,
-                         CFB_GEN_AI_ENABLED=CFB_GEN_AI_ENABLED)
-
-
+                         CFB_GEN_AI_ENABLED=CFB_GEN_AI_ENABLED,
+                         selected_conference=selected_conference,
+                         conference_list=conference_list,
+                         total_teams=len(comprehensive_stats))
 
 
 def prepare_team_chart_data(team_name):
