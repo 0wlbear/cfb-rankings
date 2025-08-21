@@ -5289,6 +5289,10 @@ def parse_schedule_text(schedule_text, week, team_clarifications=None):
             if not any(indicator in line_lower for indicator in ['vs', 'at', '@']):
                 print(f"SKIPPING (no game indicators): {line}")
                 continue
+
+            # DEBUG: Let's see what we're trying to parse
+            print(f"DEBUG: Trying to parse game line: '{line}'")
+            
                 
             game = None
             
@@ -5314,17 +5318,29 @@ def parse_schedule_text(schedule_text, week, team_clarifications=None):
             line_clean = re.sub(r'\b(ESPN|FOX|CBS|NBC|ABC|FS1|FS2|BTN|SECN|ACCN|ESPN2|ESPNU|CBSSN|Paramount\+|Peacock|ESPNEWS)\b', '', line_clean, flags=re.IGNORECASE)
 
             # NEW: Remove venue information (words like "Stadium", "Arena", "Center", etc.)
-            line_clean = re.sub(r'\b(Stadium|Arena|Center|Field|Dome|Bowl|Coliseum|Memorial|Municipal|County|University|College|High|School|Complex|Park|Facility)\b.*$', '', line_clean, flags=re.IGNORECASE)
+            line_clean = re.sub(r'\b(Stadium|Arena|Center|Field|Dome|Coliseum|Memorial|Municipal|County|University|College|High|School|Complex|Park|Facility)\b.*$', '', line_clean, flags=re.IGNORECASE)
 
             # NEW: Split on tabs and take only the first part (team matchup)
             if '\t' in line_clean:
                 line_clean = line_clean.split('\t')[0].strip()
 
             line_clean = re.sub(r'\s+', ' ', line_clean).strip()
+            print(f"DEBUG: After all cleaning: '{line_clean}'")
+            print(f"DEBUG: Does line contain 'vs'? {' vs ' in line_clean}")
+            print(f"DEBUG: Does line contain '('? {'(' in line_clean}")
+            print(f"DEBUG: Searching for 'vs' in line: {repr(line_clean)}")
+            if 'vs' in line_clean:
+                vs_index = line_clean.find('vs')
+                before_vs = line_clean[vs_index-2:vs_index+2] if vs_index >= 2 else line_clean[:vs_index+2]
+                after_vs = line_clean[vs_index:vs_index+4] if vs_index+4 <= len(line_clean) else line_clean[vs_index:]
+                print(f"DEBUG: Characters around 'vs': before='{before_vs}' after='{after_vs}'")
+
             
             
             # Format 1: "Team A vs Team B (location)" - neutral site
-            if ' vs ' in line_clean and '(' in line_clean:
+            if (' vs ' in line_clean or ' vs. ' in line_clean) and '(' in line_clean:
+                parts = line_clean.split(' vs ')
+                print(f"DEBUG: Split on 'vs' gives: team1='{parts[0]}' team2='{parts[1]}'")
                 teams_part = line_clean.split('(')[0].strip()
                 location = line_clean.split('(')[1].split(')')[0].strip()
                 team1, team2 = [t.strip() for t in teams_part.split(' vs ')]
@@ -5369,8 +5385,21 @@ def parse_schedule_text(schedule_text, week, team_clarifications=None):
                 }
             
             # Format 3: "Team A vs Team B" - Check if it's a bowl game (neutral) or regular game (Team A home)
-            elif ' vs ' in line_clean:
-                team1, team2 = [t.strip() for t in line_clean.split(' vs ')]
+            elif ' vs ' in line_clean or ' vs. ' in line_clean:
+                # DEBUG: Let's see what the split produces
+                split_parts = line_clean.split(' vs ')
+                print(f"DEBUG: Splitting '{line_clean}' on ' vs ' gives: {split_parts}")
+                if len(split_parts) < 2:
+                    # Try splitting on ' vs. ' instead
+                    split_parts = line_clean.split(' vs. ')
+                    print(f"DEBUG: Splitting '{line_clean}' on ' vs. ' gives: {split_parts}")
+
+                if len(split_parts) >= 2:
+                    team1, team2 = [t.strip() for t in split_parts]
+                    print(f"DEBUG: team1='{team1}' team2='{team2}'")
+                else:
+                    print(f"DEBUG: Split failed, skipping line")
+                    continue
                 
                 team1_resolved = resolve_team_name(team1)
                 team2_resolved = resolve_team_name(team2)
@@ -5401,8 +5430,10 @@ def parse_schedule_text(schedule_text, week, team_clarifications=None):
                 
             
             if game:
-                
+                print(f"DEBUG: Successfully created game: {game['away_team']} vs {game['home_team']}")
                 games.append(game)
+            else:
+                print(f"DEBUG: No game created for line: '{line}'")
                 
         except Exception as e:
             print(f"Error parsing line '{line}': {e}")
@@ -7181,7 +7212,8 @@ def scoreboard(week=None):
                 'week': game['week'],
                 'tv_network': game.get('tv_network'),
                 'date_added': 'Scheduled Game',
-                'from_schedule': True
+                'from_schedule': True,
+                'bowl_game_name': game.get('bowl_game_name')
             }
             # NEW: Find corresponding Game record for AI analysis
             corresponding_game = Game.query.filter_by(
@@ -8027,6 +8059,8 @@ def add_game():
             away_score = int(request.form['away_score'])
             is_neutral_site = 'neutral_site' in request.form
             is_overtime = 'overtime' in request.form
+            is_bowl_game = 'is_bowl_game' in request.form
+            bowl_game_name = request.form.get('bowl_name', '').strip() if is_bowl_game else None
             
             # Validate that teams are different
             if home_team == away_team:
@@ -8048,7 +8082,9 @@ def add_game():
                 home_score=home_score,
                 away_score=away_score,
                 is_neutral_site=is_neutral_site,
-                overtime=is_overtime
+                overtime=is_overtime,
+                is_bowl_game=is_bowl_game,
+                bowl_game_name=bowl_game_name
             )
             db.session.add(game)
             
@@ -8260,6 +8296,8 @@ def add_bulk_games():
             away_score = games_data.get(f'games[{index}][away_score]', [''])[0]
             neutral_site = f'games[{index}][neutral_site]' in games_data
             overtime = f'games[{index}][overtime]' in games_data
+            is_bowl_game = f'games[{index}][is_bowl_game]' in games_data
+            bowl_game_name = games_data.get(f'games[{index}][bowl_name]', [''])[0].strip() if is_bowl_game else None
             
             # Validate required fields
             if not all([week, home_team, away_team, home_score, away_score]):
@@ -8279,7 +8317,9 @@ def add_bulk_games():
                 home_score=home_score,
                 away_score=away_score,
                 is_neutral_site=neutral_site,
-                overtime=overtime
+                overtime=overtime,
+                is_bowl_game=is_bowl_game,
+                bowl_game_name=bowl_game_name
             )
             db.session.add(game)
             
@@ -8862,7 +8902,7 @@ def remove_scheduled_game(scheduled_game_id):
         flash(f'❌ Error removing scheduled game: {e}', 'error')
     
     # Redirect back to the weekly results page for the same week
-    return redirect(url_for('weekly_results', week=scheduled_game.week if 'scheduled_game' in locals() else request.form.get('week', '1')))
+    return redirect(url_for('scoreboard', week=scheduled_game.week if 'scheduled_game' in locals() else request.form.get('week', '1')))
 
 
 def reverse_team_stats_in_db(team, opponent, team_score, opp_score, is_home, is_neutral_site, is_overtime):

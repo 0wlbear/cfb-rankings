@@ -69,6 +69,17 @@
                                         <label class="form-check-label">Overtime</label>
                                     </div>
                                 </div>
+                                    <!-- NEW: Bowl Game Section -->
+                                    <div class="col-md-2">
+                                        <div class="form-check mt-4">
+                                            <input class="form-check-input bowl-checkbox" type="checkbox" name="games[0][is_bowl_game]" onchange="toggleBowlNameInput(0)">
+                                            <label class="form-check-label">Bowl Game</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 bowl-name-section" style="display: none;">
+                                    <label class="form-label">Bowl Name</label>
+                                    <input type="text" class="form-control bowl-name-input" name="games[0][bowl_name]" placeholder="e.g. Rose Bowl">
+                                </div>
                             </div>
 
                             <div class="row">
@@ -145,7 +156,7 @@ function addGameRow() {
     const container = document.getElementById('games-container');
     const newIndex = gameCount;
     
-    // ✅ GET THE SELECTED WEEK FROM GAME 1
+    // GET THE SELECTED WEEK FROM GAME 1
     const firstWeekSelect = document.querySelector('select[name="games[0][week]"]');
     const selectedWeek = firstWeekSelect ? firstWeekSelect.value : '';
     
@@ -172,17 +183,27 @@ function addGameRow() {
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <div class="form-check mt-4">
                             <input class="form-check-input neutral-checkbox" type="checkbox" name="games[${newIndex}][neutral_site]" onchange="updateNeutralLabels(${newIndex})">
                             <label class="form-check-label">Neutral Site</label>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <div class="form-check mt-4">
                             <input class="form-check-input" type="checkbox" name="games[${newIndex}][overtime]">
                             <label class="form-check-label">Overtime</label>
                         </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-check mt-4">
+                            <input class="form-check-input bowl-checkbox" type="checkbox" name="games[${newIndex}][is_bowl_game]" onchange="toggleBowlNameInput(${newIndex})">
+                            <label class="form-check-label">Bowl Game</label>
+                        </div>
+                    </div>
+                    <div class="col-md-3 bowl-name-section" style="display: none;">
+                        <label class="form-label">Bowl Name</label>
+                        <input type="text" class="form-control bowl-name-input" name="games[${newIndex}][bowl_name]" placeholder="e.g. Rose Bowl">
                     </div>
                 </div>
 
@@ -242,7 +263,7 @@ function addGameRow() {
     
     container.appendChild(gameRow);
     
-    // ✅ SET THE WEEK TO MATCH GAME 1
+    // SET THE WEEK TO MATCH GAME 1
     const newWeekSelect = gameRow.querySelector('select[name="games[' + newIndex + '][week]"]');
     if (newWeekSelect && selectedWeek) {
         newWeekSelect.value = selectedWeek;
@@ -294,6 +315,22 @@ function updateNeutralLabels(index) {
     } else {
         awayHeader.textContent = 'Away Team';
         homeHeader.textContent = 'Home Team';
+    }
+}
+
+function toggleBowlNameInput(index) {
+    const gameRow = document.querySelector(`[data-game-index="${index}"]`);
+    const bowlCheckbox = gameRow.querySelector(`input[name="games[${index}][is_bowl_game]"]`);
+    const bowlNameSection = gameRow.querySelector('.bowl-name-section');
+    const bowlNameInput = gameRow.querySelector(`input[name="games[${index}][bowl_name]"]`);
+    
+    if (bowlCheckbox.checked) {
+        bowlNameSection.style.display = 'block';
+        bowlNameInput.required = true;
+    } else {
+        bowlNameSection.style.display = 'none';
+        bowlNameInput.required = false;
+        bowlNameInput.value = ''; // Clear the value when hidden
     }
 }
 </script>

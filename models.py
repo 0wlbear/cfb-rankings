@@ -26,6 +26,8 @@ class Game(db.Model):
     overtime = db.Column(db.Boolean, default=False)  # True/False
     date_added = db.Column(db.DateTime, default=datetime.utcnow)  # When game was added
     game_date = db.Column(db.Date, nullable=True)  # When game was actually played
+    is_bowl_game = db.Column(db.Boolean, default=False)
+    bowl_game_name = db.Column(db.String(255), nullable=True)
     
     # ADD THESE LINES FOR PERFORMANCE (right before def to_dict):
     __table_args__ = (
@@ -48,7 +50,9 @@ class Game(db.Model):
             'is_neutral_site': self.is_neutral_site,
             'overtime': self.overtime,
             'date_added': self.date_added.strftime('%Y-%m-%d %H:%M:%S') if self.date_added else None,
-            'game_date': self.game_date.strftime('%Y-%m-%d') if self.game_date else None
+            'game_date': self.game_date.strftime('%Y-%m-%d') if self.game_date else None,
+            'is_bowl_game': self.is_bowl_game,
+            'bowl_game_name': self.bowl_game_name
         }
 
 class TeamStats(db.Model):
