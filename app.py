@@ -970,6 +970,12 @@ BOWL_GAMES_DETECTION = {
     'Bowl Game': ['bowl', 'bowl game'],  # Fallback for any unspecified bowl
 }
 
+SCHEDULE_MANIPULATION_PENALTIES = {
+    "Multiple weak opponents late in season": 1.5,
+    "Multiple FCS opponents scheduled": 1.0,
+    "Excessive home game scheduling": 0.8
+}
+
 
 def detect_bowl_game(line_text):
     """Detect bowl game name from a line of text"""
@@ -1618,6 +1624,26 @@ CONFERENCE_STRENGTH_MULTIPLIERS = {
     'Independent': 1.0      # Varies by team (Notre Dame vs UConn)
 }
 
+def calculate_all_basic_team_strengths():
+    """Pre-calculate basic strength ratings for all teams to avoid recursion"""
+    basic_strengths = {}
+    
+    # Get all teams from database
+    all_teams = TeamStats.query.all()
+    
+    for team_record in all_teams:
+        team_name = team_record.team_name
+        stats = team_record.to_dict()
+        total_games = stats['wins'] + stats['losses']
+        
+        if total_games == 0:
+            basic_strengths[team_name] = 5.0
+        else:
+            win_pct = stats['wins'] / total_games
+            basic_strengths[team_name] = 2.0 + (win_pct * 6.0)  # Scale 2-8 based on win percentage
+    
+    return basic_strengths
+
 def get_enhanced_opponent_quality(opponent_name):
     """Enhanced opponent quality WITHOUT conference strength multipliers"""
     
@@ -1628,8 +1654,9 @@ def get_enhanced_opponent_quality(opponent_name):
     if opponent_name not in team_stats:
         return 1.5
     
-    # Get base strength (this is what actually matters)
-    base_strength = calculate_team_base_strength(opponent_name)
+    # Use cached basic strengths to avoid recursion
+    basic_strengths_cache = calculate_all_basic_team_strengths()
+    base_strength = calculate_team_base_strength(opponent_name, basic_strengths_cache)
     
     # REMOVED: Conference multiplier section
     # No more artificial boosts for conference membership
@@ -1643,28 +1670,20 @@ def get_enhanced_opponent_quality(opponent_name):
     
     return max(1.0, min(10.0, base_strength))
 
-def calculate_team_base_strength(team_name, iteration=0, max_iterations=3):
+def calculate_team_base_strength(team_name, basic_strengths_cache=None):
     """
-    Calculate a team's base strength using iterative opponent quality.
+    Calculate a team's base strength using pre-computed basic strengths to avoid recursion.
     Returns value between 1-10 (10 = elite, 5 = average, 1 = terrible)
     """
-    if iteration >= max_iterations:
-        # Base case: use simple metrics
-        team_record = TeamStats.query.filter_by(team_name=team_name).first()  # 
-        if not team_record:  # 
-            return 5.0  # 
-        stats = team_record.to_dict()  # 
-        total_games = stats['wins'] + stats['losses']
-        if total_games == 0:
-            return 5.0  # Neutral rating for teams with no games
-        
-        win_pct = stats['wins'] / total_games
-        return 2.0 + (win_pct * 6.0)  # Scale 2-8 based on win percentage
+    # If no cache provided, calculate it (fallback for single calls)
+    if basic_strengths_cache is None:
+        basic_strengths_cache = calculate_all_basic_team_strengths()
     
-    team_record = TeamStats.query.filter_by(team_name=team_name).first()  # 
-    if not team_record:  # 
-        return 5.0  # 
-    stats = team_record.to_dict()  # 
+    team_record = TeamStats.query.filter_by(team_name=team_name).first()
+    if not team_record:
+        return 5.0
+    
+    stats = team_record.to_dict()
     total_games = stats['wins'] + stats['losses']
     
     if total_games == 0:
@@ -1674,25 +1693,22 @@ def calculate_team_base_strength(team_name, iteration=0, max_iterations=3):
     win_pct = stats['wins'] / total_games
     base_score = 2.0 + (win_pct * 4.0)  # 2-6 range from win percentage
     
-    # Add opponent-adjusted component
+    # Add opponent-adjusted component using pre-computed strengths
     opponent_quality_sum = 0
     game_count = 0
     
     for game in stats['games']:
         opponent = game['opponent']
-        opponent_record = TeamStats.query.filter_by(team_name=opponent).first()  # 
-        if opponent_record and opponent != team_name:  # 
-            # Recursive call with iteration limit
-            opp_strength = calculate_team_base_strength(opponent, iteration + 1, max_iterations)
+        if opponent in basic_strengths_cache and opponent != team_name:
+            # Use pre-computed strength instead of recursive call
+            opp_strength = basic_strengths_cache[opponent]
             
-            # Weight by game result and margin
+            # Weight by game result and margin (same logic as before)
             if game['result'] == 'W':
-                # Beating strong opponents adds more, beating weak opponents adds less
-                quality_bonus = (opp_strength - 5.0) * 0.3  # Scale opponent strength impact
+                quality_bonus = (opp_strength - 5.0) * 0.3
                 margin_factor = min(1.0, abs(game['team_score'] - game['opp_score']) / 14.0)
                 opponent_quality_sum += quality_bonus * margin_factor
             else:
-                # Losing to strong opponents hurts less, losing to weak opponents hurts more
                 quality_penalty = (5.0 - opp_strength) * 0.4
                 margin_factor = min(1.0, abs(game['team_score'] - game['opp_score']) / 21.0)
                 opponent_quality_sum -= quality_penalty * margin_factor
@@ -1705,7 +1721,18 @@ def calculate_team_base_strength(team_name, iteration=0, max_iterations=3):
     else:
         final_strength = base_score
     
-    # Bound the result between 1-10
+     # NEW: Early season subdivision-level adjustments (add this section)
+    if total_games <= 3:  # Apply only in early season
+        print(f"EARLY SEASON ADJUSTMENT: {team_name} ({team_conf}) - games: {total_games}, final_strength: {final_strength}")
+        team_conf = get_team_conference(team_name)
+        
+        if team_conf in P4_CONFERENCES:
+            # P4 teams get quality floor - prevent 0-1 P4 teams from rating too low
+            final_strength = max(final_strength, 4.0)
+        elif team_conf in G5_CONFERENCES:
+            # G5 teams get quality ceiling - prevent 1-0 G5 teams from rating too high  
+            final_strength = min(final_strength, 6.5)
+
     return max(1.0, min(10.0, final_strength))
 
 def get_current_opponent_quality(opponent_name):
@@ -1720,7 +1747,9 @@ def get_current_opponent_quality(opponent_name):
     if not opponent_record:  # 
         return 1.5  # Lower default for unknown opponents
     
-    base_strength = calculate_team_base_strength(opponent_name)
+    # Use cached basic strengths to avoid recursion
+    basic_strengths_cache = calculate_all_basic_team_strengths()
+    base_strength = calculate_team_base_strength(opponent_name, basic_strengths_cache)
     
     # Adjust for recent form (last 4 games) - only for real teams
     opponent_stats = opponent_record.to_dict()  # 
@@ -1738,21 +1767,43 @@ def get_current_opponent_quality(opponent_name):
 
 # Team-specific home field advantages
 STRONG_HOME_FIELD_TEAMS = {
-    'Oregon': 1.4,         # Autzen Stadium
-    'LSU': 1.35,           # Death Valley at night
-    'Penn State': 1.35,    # White Out games
-    'Texas A&M': 1.3,      # 12th Man
-    'Clemson': 1.3,        # Death Valley
-    'Georgia': 1.25,       # Between the Hedges
-    'Alabama': 1.25,       # Bryant-Denny Stadium
-    'Ohio State': 1.25,    # The Shoe
-    'Michigan': 1.2,       # Big House
-    'Notre Dame': 1.2,     # Mystique factor
-    'Florida': 1.2,        # The Swamp
-    'Tennessee': 1.2,      # Neyland Stadium
-    'Wisconsin': 1.15,     # Camp Randall
-    'Iowa': 1.15,          # Kinnick Stadium
-    'West Virginia': 1.15, # Mountaineer Field
+    # Top 5 - Most intimidating venues
+    'LSU': 1.30,           # #1 Tiger Stadium
+    'Alabama': 1.30,       # #2 Bryant-Denny Stadium  
+    'Florida': 1.30,       # #3 Ben Hill Griffin Stadium
+    'Penn State': 1.30,    # #4 Beaver Stadium
+    'Auburn': 1.30,        # #5 Jordan-Hare Stadium
+    
+    # Tier 2 - Elite difficulty (6-10)
+    'Tennessee': 1.25,     # #6 Neyland Stadium
+    'Texas A&M': 1.25,    # #7 Kyle Field
+    'Oregon': 1.25,       # #8 Autzen Stadium
+    'Florida State': 1.25, # #9 Doak Campbell Stadium
+    'Oklahoma State': 1.25, # #10 Boone Pickens Stadium
+    
+    # Tier 3 - Very tough (11-15)
+    'Georgia': 1.20,       # #11 Sanford Stadium
+    'Ohio State': 1.20,   # #12 Ohio Stadium
+    'Clemson': 1.20,      # #13 Memorial Stadium (Death Valley)
+    'Iowa': 1.20,         # #14 Kinnick Stadium
+    'Wisconsin': 1.20,    # #15 Camp Randall Stadium
+    
+    # Tier 4 - Above average (16-20)
+    'Oklahoma': 1.15,     # #16 Gaylord Family Memorial
+    'Michigan': 1.15,     # #17 Michigan Stadium
+    'Washington': 1.15,   # #18 Husky Stadium
+    'Virginia Tech': 1.15, # #19 Lane Stadium
+    'South Carolina': 1.15, # #20 Williams-Brice Stadium
+    
+    # Tier 5 - Notable venues (21-25)
+    'Texas': 1.12,        # #21 DKR Memorial Stadium
+    'Utah': 1.12,         # #22 Rice-Eccles Stadium
+    'Nebraska': 1.12,     # #23 Memorial Stadium
+    'Arkansas': 1.12,     # #24 Reynolds Razorback Stadium
+    'Washington State': 1.12, # #25 Martin Stadium
+    
+    # Keep Notre Dame for its mystique factor
+    'Notre Dame': 1.15,   # Historical significance
 }
 
 def calculate_margin_bonus_capped(margin, opponent_quality):
@@ -2055,35 +2106,35 @@ def calculate_enhanced_loss_penalty(game, team_name):
     is_overtime = game.get('overtime', False)
     week = game.get('week', '1')
     
-    # CATASTROPHIC FCS LOSS PENALTY (Enhanced from before)
+    # CATASTROPHIC FCS LOSS PENALTY (Adjusted)
     is_fcs_loss = (opponent == 'FCS' or opponent.upper() == 'FCS')
     if is_fcs_loss:
-        base_penalty = 10.0  # Even higher base penalty
+        base_penalty = 8.0  # Reduced from 10.0
         
-        # Margin makes it devastating
+        # More margin sensitivity
         if margin <= 3:
-            margin_penalty = 2.0
+            margin_penalty = 1.0  # Close loss - still bad but not devastating
         elif margin <= 7:
-            margin_penalty = 3.0
+            margin_penalty = 2.0
         elif margin <= 14:
-            margin_penalty = 4.0
+            margin_penalty = 3.5
         else:
-            margin_penalty = 6.0  # Blowout loss to FCS
+            margin_penalty = 5.0  # Blowout loss to FCS still severe
         
-        # Enhanced home field penalty
+        # Location penalty (same logic)
         home_field_mult = get_enhanced_home_field_multiplier(team_name, location)
         if location == 'Home':
-            location_penalty = 3.0 * home_field_mult  # Worse if you have strong home field
+            location_penalty = 2.5 * home_field_mult  # Reduced from 3.0
         elif location == 'Away':
-            location_penalty = 1.5
+            location_penalty = 1.0  # Reduced from 1.5
         else:
-            location_penalty = 2.0
+            location_penalty = 1.5  # Reduced from 2.0
         
-        overtime_reduction = 1.0 if is_overtime else 0.0
+        overtime_reduction = 1.5 if is_overtime else 0.0  # Increased reduction
         temporal_weight = get_temporal_weight_by_week(week)
         
         total_penalty = (base_penalty + margin_penalty + location_penalty - overtime_reduction) * temporal_weight
-        return max(12.0, total_penalty)  # Minimum 12-point penalty for any FCS loss
+        return max(8.0, total_penalty)  # Reduced minimum from 12.0 to 8.0
     
     # REGULAR LOSS PENALTIES (Enhanced)
     base_penalty = 3.0
@@ -2539,6 +2590,12 @@ def calculate_enhanced_scientific_ranking(team_name):
     
     # COMPONENT 5: Schedule Quality Penalty (NEW)
     schedule_penalty = calculate_schedule_quality_penalty(team_name)
+
+    # COMPONENT 5B: Schedule Manipulation Penalties
+    manipulation_flags = detect_schedule_manipulation(team_name)
+    manipulation_penalty = 0
+    for flag in manipulation_flags:
+        manipulation_penalty += SCHEDULE_MANIPULATION_PENALTIES.get(flag, 0)
     
     # COMPONENT 6: Games Bonus
     games_bonus = min(2.5, total_games * 0.18)  # Slightly enhanced
@@ -2560,7 +2617,8 @@ def calculate_enhanced_scientific_ranking(team_name):
     total_score = (
         adjusted_victory_value -    # Core victory value
         loss_penalty -             # Loss penalties
-        schedule_penalty +         # Schedule quality penalty
+        schedule_penalty -         # Schedule quality penalty
+        manipulation_penalty +     # Schedule manipulation penalty
         temporal_adj +             # Recent form
         consistency_factor +       # Reliability
         sos_bonus +               # Strength of schedule
@@ -2676,13 +2734,26 @@ def get_all_team_stats_bulk():
                         if opp_games > 0:
                             opp_win_pct = opp_data['wins'] / opp_games
                             opponent_quality = 2.0 + (opp_win_pct * 6.0)  # 2-8 scale
+
+                            # Base quality using subdivision-aware calculation
+                            opp_conf = get_team_conference(opponent)
+                            if opp_conf in P4_CONFERENCES:
+                                opponent_quality = 4.0 + (opp_win_pct * 4.0)  # P4: 4.0-8.0 range
+                            elif opp_conf in G5_CONFERENCES:
+                                opponent_quality = 2.5 + (opp_win_pct * 4.0)  # G5: 2.5-6.5 range
+                            else:
+                                opponent_quality = 2.0 + (opp_win_pct * 6.0)  # Default/Other: 2.0-8.0 range
+
+
                         else:
                             opponent_quality = 5.0
                     else:
                         opponent_quality = 5.0  # Unknown opponent
                     
                     # 2. Location Multiplier
-                    location_mult = {'Home': 1.0, 'Away': 1.3, 'Neutral': 1.15}.get(location, 1.0)
+                    location_mult = {'Home': 1.0, 'Away': 1.3, 'Neutral': 1.15}.get(game['home_away'], 1.0)
+
+                    travel_bonus = calculate_travel_adjustment(team_name, opponent, game['home_away'])
                     
                     # 3. Margin Bonus
                     margin = team_score - opp_score
@@ -2696,7 +2767,7 @@ def get_all_team_stats_bulk():
                         margin_bonus = 1.54 + (margin - 21) * 0.02
                     
                     # 4. Calculate victory value
-                    victory_value = (opponent_quality * location_mult) + margin_bonus
+                    victory_value = (opponent_quality * location_mult) + margin_bonus + travel_bonus
                     
                     # 5. FCS cap
                     if opponent == 'FCS':
@@ -2824,7 +2895,10 @@ def calculate_fast_stats(team_name, team_data, opponent_quality_cache):
                 opponent_quality = opponent_quality_cache.get(opponent, 5.0)
                 margin = game['team_score'] - game['opp_score']
                 location_mult = {'Home': 1.0, 'Away': 1.3, 'Neutral': 1.15}.get(game['home_away'], 1.0)
-                margin_bonus = min(2.0, margin * 0.1)
+                
+                # FIXED: Use opponent-quality-based margin caps
+                margin_bonus = calculate_margin_bonus_capped(margin, opponent_quality)
+                
                 victory_value += (opponent_quality * location_mult) + margin_bonus
     
 
@@ -2863,7 +2937,6 @@ def calculate_fast_stats(team_name, team_data, opponent_quality_cache):
         'opp_wl_differential': 0,  # Simplified for speed
         'strength_of_record': 0.500  # Simplified for speed
     }
-
 
 
 
@@ -3052,14 +3125,14 @@ def calculate_travel_adjustment(team_name, opponent_name, location, is_loss=Fals
     
     if zone_diff >= 3:  # Cross-country travel (3+ time zones)
         if is_loss:
-            return -0.3  # Slight penalty reduction for tough travel
+            return -0.15  # Reduced from -0.3
         else:
-            return 0.4   # Bonus for winning despite travel
+            return 0.2   # Reduced from 0.4
     elif zone_diff == 2:  # Moderate travel (2 time zones)
         if is_loss:
-            return -0.15
+            return -0.075  # Reduced from -0.15
         else:
-            return 0.2
+            return 0.1     # Reduced from 0.2
     
     return 0.0
 
