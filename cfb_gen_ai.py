@@ -443,61 +443,56 @@ Answer in 2-3 sentences:"""
 
 
 def generate_weekly_report(context_data):
-    """Generate weekly report - USING FAST MODEL"""
+    """Generate weekly report - USING FAST MODEL - NO CACHE"""
     if not GEN_AI_AVAILABLE:
         return "Weekly report generation unavailable"
 
-    cache_key = get_cache_key(str(context_data)[:500])  # Even shorter cache key
-    
-    def _make_api_call():
-        try:
-            # MINIMAL CONTEXT for speed
-            recent_games = context_data.get('recent_games', [])[:5]  # Only 5 games
-            ranking_changes = context_data.get('ranking_changes', [])[:10]  # Only 10 changes
+    try:
+        # MINIMAL CONTEXT for speed
+        recent_games = context_data.get('recent_games', [])
+        ranking_changes = context_data.get('ranking_changes', [])[:10]  # Only 10 changes
 
-            # Ultra-compact context
-            games_summary = []
-            for g in recent_games:
-                away = g.get('away_team', '')
-                home = g.get('home_team', '')
-                ascore = g.get('away_score', '')
-                hscore = g.get('home_score', '')
-                games_summary.append(f"{away} {ascore}-{hscore} {home}")
+        # Ultra-compact context
+        games_summary = []
+        for g in recent_games:
+            away = g.get('away_team', '')
+            home = g.get('home_team', '')
+            ascore = g.get('away_score', '')
+            hscore = g.get('home_score', '')
+            games_summary.append(f"{away} {ascore}-{hscore} {home}")
 
-            changes_summary = []
-            for c in ranking_changes[:5]:  # Only top 5 changes
-                team = c.get('team', '')
-                move = c.get('movement_text', '')
-                if '▲' in move or '▼' in move:
-                    changes_summary.append(f"{team} {move}")
+        changes_summary = []
+        for c in ranking_changes[:5]:  # Only top 5 changes
+            team = c.get('team', '')
+            move = c.get('movement_text', '')
+            if '▲' in move or '▼' in move:
+                changes_summary.append(f"{team} {move}")
 
-            # ULTRA-SHORT PROMPT
-            prompt = f"""Write a brief CFB weekly summary (2 paragraphs max):
+        # ULTRA-SHORT PROMPT
+        prompt = f"""Write a brief CFB weekly summary (2 paragraphs max):
 
 Results: {'; '.join(games_summary)}
 Rankings: {'; '.join(changes_summary)}
 
 Remember: 12-team playoff means ranks #1-12 all make playoffs. Be factual, not dramatic."""
 
-            body = {
-                "anthropic_version": "bedrock-2023-05-31",
-                "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": 250,  # MUCH shorter
-                "temperature": 0.1
-            }
+        body = {
+            "anthropic_version": "bedrock-2023-05-31",
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": 250,
+            "temperature": 0.1
+        }
 
-            response = bedrock_client.invoke_model(
-                modelId=get_model_for_task("simple"),  # FAST MODEL
-                body=json.dumps(body)
-            )
-            
-            result = json.loads(response['body'].read())
-            return result['content'][0]['text'].strip()
-            
-        except Exception as e:
-            return f"Report error: {str(e)}"
-    
-    return cached_ai_call(cache_key, _make_api_call)
+        response = bedrock_client.invoke_model(
+            modelId=get_model_for_task("simple"),
+            body=json.dumps(body)
+        )
+        
+        result = json.loads(response['body'].read())
+        return result['content'][0]['text'].strip()
+        
+    except Exception as e:
+        return f"Report error: {str(e)}"
 
 def get_ai_cache_stats():
     """Get cache statistics for monitoring"""

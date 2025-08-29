@@ -1723,8 +1723,9 @@ def calculate_team_base_strength(team_name, basic_strengths_cache=None):
     
      # NEW: Early season subdivision-level adjustments (add this section)
     if total_games <= 3:  # Apply only in early season
-        print(f"EARLY SEASON ADJUSTMENT: {team_name} ({team_conf}) - games: {total_games}, final_strength: {final_strength}")
         team_conf = get_team_conference(team_name)
+        print(f"EARLY SEASON ADJUSTMENT: {team_name} ({team_conf}) - games: {total_games}, final_strength: {final_strength}")
+        
         
         if team_conf in P4_CONFERENCES:
             # P4 teams get quality floor - prevent 0-1 P4 teams from rating too low
@@ -4225,20 +4226,25 @@ def ai_weekly_report(week=None):
         # Get ALL games
         all_games = get_games_data()
         
+        # DEBUG: Print total games found
+        print(f"DEBUG: Found {len(all_games)} total games in database")
+        
         if week:
             # Filter to games from the specified week
             week_games = [game for game in all_games if game['week'] == week]
             context_data['recent_games'] = week_games
             report_title = f"Week {week} Results"
+            print(f"DEBUG: Filtered to {len(week_games)} games for week {week}")
         else:
             # Default: get last 10 games (original behavior)
             recent_games = all_games[-10:] if all_games else []
             context_data['recent_games'] = recent_games
             report_title = "Recent Games"
+            print(f"DEBUG: Using last {len(recent_games)} games")
         
-        # 🐛 DEBUG: Print what we actually got
-        print(f"DEBUG: Report for week: {week or 'Recent'}")
-        print(f"DEBUG: Found {len(context_data['recent_games'])} games")
+        # DEBUG: Print the games being passed to AI
+        for i, game in enumerate(context_data['recent_games']):
+            print(f"DEBUG Game {i+1}: {game['away_team']} {game['away_score']}-{game['home_score']} {game['home_team']}")
         
     except Exception as e:
         print(f"DEBUG: Error getting games: {e}")
@@ -4258,13 +4264,20 @@ def ai_weekly_report(week=None):
             })
         
         context_data['ranking_changes'] = ranking_changes
+        print(f"DEBUG: Added {len(ranking_changes)} ranking changes")
         
     except Exception as e:
         print(f"DEBUG: Error getting rankings: {e}")
         context_data['ranking_changes'] = []
 
+    # DEBUG: Print what we're sending to AI
+    print(f"DEBUG: Sending to AI - {len(context_data['recent_games'])} games, {len(context_data['ranking_changes'])} rankings")
+
     # Call the AI function to generate the report
     report_text = generate_weekly_report(context_data)
+    
+    # DEBUG: Print first 100 chars of AI response
+    print(f"DEBUG: AI returned: {report_text[:100]}...")
 
     # Render the weekly report template
     return render_template('ai_weekly_report.html', 
@@ -7288,12 +7301,14 @@ def scoreboard(week=None):
                 'from_schedule': True,
                 'bowl_game_name': game.get('bowl_game_name')
             }
-            # NEW: Find corresponding Game record for AI analysis
-            corresponding_game = Game.query.filter_by(
-                week=game['week'],
-                home_team=game['home_team'],
-                away_team=game['away_team']
+            # NEW: Find corresponding Game record for AI analysis (flexible matching)
+            corresponding_game = Game.query.filter_by(week=game['week']).filter(
+                db.or_(
+                    db.and_(Game.home_team == game['home_team'], Game.away_team == game['away_team']),
+                    db.and_(Game.home_team == game['away_team'], Game.away_team == game['home_team'])
+                )
             ).first()
+
             if corresponding_game:
                 completed_game['id'] = corresponding_game.id
                 

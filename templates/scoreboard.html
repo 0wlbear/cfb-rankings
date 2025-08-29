@@ -529,8 +529,31 @@ function changeWeek() {
     window.location.href = "{{ url_for('scoreboard') }}/" + selectedWeek;
 }
 
-// Debug form submission
 document.addEventListener('DOMContentLoaded', function() {
+    // Fix for loading overlay getting stuck on browser back navigation
+    function hideLoadingOverlay() {
+        if (window.AILoading && window.AILoading.hide) {
+            window.AILoading.hide();
+        }
+    }
+    
+    // Hide overlay on initial page load
+    hideLoadingOverlay();
+    
+    // Hide overlay when page is shown (including back/forward navigation)
+    window.addEventListener('pageshow', hideLoadingOverlay);
+    
+    // Hide overlay when page gets focus (backup for various scenarios)
+    window.addEventListener('focus', hideLoadingOverlay);
+    
+    // Hide overlay when user returns to this tab
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            hideLoadingOverlay();
+        }
+    });
+
+    // Debug form submission
     const form = document.querySelector('form[action*="import_schedule"]');
     if (form) {
         console.log('📅 Found import form');
@@ -565,7 +588,6 @@ document.addEventListener('DOMContentLoaded', function() {
             );
             
             // Let the normal navigation happen
-            // The overlay will disappear when the new page loads
         });
     });
 
@@ -581,25 +603,6 @@ document.addEventListener('DOMContentLoaded', function() {
             );
             
             // Let the normal navigation happen
-        });
-    });
-});
-</script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Add loading overlay to AI Analysis links
-    const aiAnalysisLinks = document.querySelectorAll('.ai-analysis-link');
-    
-    aiAnalysisLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
-            // Show loading overlay
-            window.AILoading.show(
-                'AI Analyzing Game Impact...', 
-                'Processing ranking implications'
-            );
-            
-            // Let the normal navigation happen
-            // The overlay will disappear when the new page loads
         });
     });
 });
