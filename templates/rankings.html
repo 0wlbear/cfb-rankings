@@ -63,46 +63,50 @@
                     <table class="table table-striped table-sm" id="statsTable">
                         <thead>
                             <tr>
-                                <th class="sortable-header text-center" onclick="simpleSortTable(0, 'number')">
-                                    Rank <span class="sort-indicator" id="sort-0"></span>
+                                <th class="sortable-header text-center" onclick="sortTable(0, 'number')">
+                                    Rank <span class="sort-indicator"></span>
                                 </th>
-                                <th class="sortable-header" onclick="simpleSortTable(1, 'text')">
-                                    Team <span class="sort-indicator" id="sort-1"></span>
+                                <th class="sortable-header" onclick="sortTable(1, 'text')">
+                                    Team <span class="sort-indicator"></span>
                                 </th>
                                 {% if selected_conference == 'All Conferences' %}
-                                <th class="sortable-header text-center" onclick="simpleSortTable(2, 'text')">
-                                    Conf <span class="sort-indicator" id="sort-2"></span>
+                                <th class="sortable-header text-center" onclick="sortTable(2, 'text')">
+                                    Conf <span class="sort-indicator"></span>
                                 </th>
                                 {% endif %}
-                                <th class="sortable-header text-center" onclick="simpleSortTable({% if selected_conference == 'All Conferences' %}3{% else %}2{% endif %}, 'number')">
-                                    W <span class="sort-indicator" id="sort-{% if selected_conference == 'All Conferences' %}3{% else %}2{% endif %}"></span>
+                                <th class="sortable-header text-center" onclick="sortTable({% if selected_conference == 'All Conferences' %}3{% else %}2{% endif %}, 'number')">
+                                    W <span class="sort-indicator"></span>
                                 </th>
-                                <th class="sortable-header text-center" onclick="simpleSortTable({% if selected_conference == 'All Conferences' %}4{% else %}3{% endif %}, 'number')">
-                                    L <span class="sort-indicator" id="sort-{% if selected_conference == 'All Conferences' %}4{% else %}3{% endif %}"></span>
+                                <th class="sortable-header text-center" onclick="sortTable({% if selected_conference == 'All Conferences' %}4{% else %}3{% endif %}, 'number')">
+                                    L <span class="sort-indicator"></span>
                                 </th>
-                                <th class="sortable-header text-center power-rating-col" onclick="simpleSortTable({% if selected_conference == 'All Conferences' %}5{% else %}4{% endif %}, 'number')">
-                                    Power Rating <span class="sort-indicator" id="sort-{% if selected_conference == 'All Conferences' %}5{% else %}4{% endif %}"></span>
+                                <th class="sortable-header text-center power-rating-col" onclick="sortTable({% if selected_conference == 'All Conferences' %}5{% else %}4{% endif %}, 'number')">
+                                    Power Rating <span class="sort-indicator"></span>
                                 </th>
-                                <th class="sortable-header text-center hide-xl" onclick="simpleSortTable({% if selected_conference == 'All Conferences' %}6{% else %}5{% endif %}, 'number')">
-                                    PF <span class="sort-indicator" id="sort-{% if selected_conference == 'All Conferences' %}6{% else %}5{% endif %}"></span>
+                                <th class="sortable-header text-center hide-xl" onclick="sortTable({% if selected_conference == 'All Conferences' %}6{% else %}5{% endif %}, 'number')">
+                                    PF <span class="sort-indicator"></span>
                                 </th>
-                                <th class="sortable-header text-center hide-xl" onclick="simpleSortTable({% if selected_conference == 'All Conferences' %}7{% else %}6{% endif %}, 'number')">
-                                    PA <span class="sort-indicator" id="sort-{% if selected_conference == 'All Conferences' %}7{% else %}6{% endif %}"></span>
+                                <th class="sortable-header text-center hide-xl" onclick="sortTable({% if selected_conference == 'All Conferences' %}7{% else %}6{% endif %}, 'number')">
+                                    PA <span class="sort-indicator"></span>
                                 </th>
-                                <th class="sortable-header text-center hide-lg" onclick="simpleSortTable({% if selected_conference == 'All Conferences' %}8{% else %}7{% endif %}, 'number')">
-                                    MoV <span class="sort-indicator" id="sort-{% if selected_conference == 'All Conferences' %}8{% else %}7{% endif %}"></span>
+                                <th class="sortable-header text-center hide-lg" onclick="sortTable({% if selected_conference == 'All Conferences' %}8{% else %}7{% endif %}, 'number')">
+                                    MoV <span class="sort-indicator"></span>
                                 </th>
-                                <th class="sortable-header text-center hide-lg" onclick="simpleSortTable({% if selected_conference == 'All Conferences' %}9{% else %}8{% endif %}, 'number')">
-                                    PD <span class="sort-indicator" id="sort-{% if selected_conference == 'All Conferences' %}9{% else %}8{% endif %}"></span>
+                                <th class="sortable-header text-center hide-lg" onclick="sortTable({% if selected_conference == 'All Conferences' %}9{% else %}8{% endif %}, 'number')">
+                                    PD <span class="sort-indicator"></span>
                                 </th>
-                                <th class="sortable-header text-center hide-xl" onclick="simpleSortTable({% if selected_conference == 'All Conferences' %}10{% else %}9{% endif %}, 'number')">
-                                    HW <span class="sort-indicator" id="sort-{% if selected_conference == 'All Conferences' %}10{% else %}9{% endif %}"></span>
+                                <th class="sortable-header text-center hide-xl" onclick="sortTable({% if selected_conference == 'All Conferences' %}10{% else %}9{% endif %}, 'number')">
+                                    HW <span class="sort-indicator"></span>
                                 </th>
-                                <th class="sortable-header text-center hide-xl" onclick="simpleSortTable({% if selected_conference == 'All Conferences' %}11{% else %}10{% endif %}, 'number')">
-                                    RW <span class="sort-indicator" id="sort-{% if selected_conference == 'All Conferences' %}11{% else %}10{% endif %}"></span>
+                                <th class="sortable-header text-center hide-xl" onclick="sortTable({% if selected_conference == 'All Conferences' %}11{% else %}10{% endif %}, 'number')">
+                                    RW <span class="sort-indicator"></span>
                                 </th>
-                                <th class="sortable-header text-center hide-lg" onclick="simpleSortTable({% if selected_conference == 'All Conferences' %}12{% else %}11{% endif %}, 'number')">
-                                    SoS <span class="sort-indicator" id="sort-{% if selected_conference == 'All Conferences' %}12{% else %}11{% endif %}"></span>
+                                <th class="sortable-header text-center hide-lg" onclick="sortTable({% if selected_conference == 'All Conferences' %}12{% else %}11{% endif %}, 'number')">
+                                    SoS <span class="sort-indicator"></span>
+                                </th>
+                                <!-- NEW SoR COLUMN -->
+                                <th class="sortable-header text-center hide-lg" onclick="sortTable({% if selected_conference == 'All Conferences' %}13{% else %}12{% endif %}, 'number')">
+                                    SoR <span class="sort-indicator"></span>
                                 </th>
                             </tr>
                         </thead>
@@ -151,6 +155,8 @@
                                 <td class="text-center hide-xl">{{ team.home_wins }}</td>
                                 <td class="text-center hide-xl">{{ team.road_wins }}</td>
                                 <td class="text-center hide-lg">{{ "%.3f"|format(team.strength_of_schedule) }}</td>
+                                <!-- NEW SoR DATA -->
+                                <td class="text-center hide-lg">{{ "%.3f"|format(team.strength_of_record) }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -224,7 +230,8 @@
                                 </td>
                                 <td class="text-center">
                                     <div class="fw-bold text-dark">{{ team.total_wins }}-{{ team.total_losses }}</div>
-                                    <small class="text-muted">SoS: {{ "%.3f"|format(team.strength_of_schedule) }}</small>
+                                    <small class="text-muted">SoS: {{ "%.3f"|format(team.strength_of_schedule) }}</small><br>
+                                    <small class="text-muted">SoR: {{ "%.3f"|format(team.strength_of_record) }}</small>
                                 </td>
                                 <td class="text-center">
                                     <div class="fw-bold text-primary">{{ "%.2f"|format(team.adjusted_total) }}</div>
@@ -239,7 +246,46 @@
     </div>
 </div>
 
-<!-- JavaScript for conference filtering -->
+<!-- CSS for clean sort indicators -->
+<style>
+.sortable-header {
+    cursor: pointer;
+    position: relative;
+    user-select: none;
+}
+
+.sortable-header:hover {
+    background-color: #f8f9fa !important;
+}
+
+.sort-indicator {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    color: #6c757d;
+    width: 12px;
+    text-align: center;
+}
+
+.sortable-header.sorted-asc .sort-indicator::before {
+    content: '▲';
+    color: #007bff;
+}
+
+.sortable-header.sorted-desc .sort-indicator::before {
+    content: '▼';
+    color: #007bff;
+}
+
+.sortable-header:not(.sorted-asc):not(.sorted-desc) .sort-indicator::before {
+    content: '⇅';
+    color: #adb5bd;
+}
+</style>
+
+<!-- JavaScript for conference filtering and sorting -->
 <script>
 function filterByConference() {
     const conferenceSelect = document.getElementById('conferenceFilter');
@@ -252,47 +298,90 @@ function filterByConference() {
     }
 }
 
-// Existing JavaScript (keep all your existing sorting functions)
-// Skip JavaScript on mobile devices
-if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-    console.log("Mobile detected - skipping table sorting");
-    function simpleSortTable() { return; }
-    function toggleColumns() { return; }
-    function resetColumns() { return; }
-} else {
-    // Desktop JavaScript
-    let lastSortedColumn = -1;
-    let lastSortDirection = 'asc';
+// WORKING SORT FUNCTION
+let lastSortedColumn = -1;
+let lastSortDirection = 'asc';
 
-    function simpleSortTable(columnIndex, dataType) {
-        const table = document.getElementById('statsTable');
-        const tbody = document.getElementById('tableBody');
+function sortTable(columnIndex, dataType) {
+    const table = document.getElementById('statsTable');
+    const tbody = document.getElementById('tableBody');
+    
+    if (!table || !tbody) {
+        return;
+    }
+    
+    // Get all rows
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    // Determine sort direction
+    let sortDirection = 'asc';
+    if (lastSortedColumn === columnIndex && lastSortDirection === 'asc') {
+        sortDirection = 'desc';
+    }
+    
+    // Sort rows based on column content
+    rows.sort((a, b) => {
+        const aCell = a.cells[columnIndex];
+        const bCell = b.cells[columnIndex];
         
-        if (!table || !tbody) {
-            return;
+        let aValue, bValue;
+        
+        if (dataType === 'number') {
+            // Extract numeric values
+            aValue = parseFloat(aCell.textContent.trim()) || 0;
+            bValue = parseFloat(bCell.textContent.trim()) || 0;
+        } else {
+            // Text values
+            aValue = aCell.textContent.trim().toLowerCase();
+            bValue = bCell.textContent.trim().toLowerCase();
         }
         
-        // Get all rows
-        const rows = Array.from(tbody.querySelectorAll('tr'));
-        
-        // Update global state
-        lastSortedColumn = columnIndex;
-        lastSortDirection = sortDirection;
+        if (sortDirection === 'asc') {
+            return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
+        } else {
+            return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
+        }
+    });
+    
+    // Clear tbody and re-append sorted rows
+    tbody.innerHTML = '';
+    rows.forEach(row => tbody.appendChild(row));
+    
+    // Update sort indicators with CSS classes
+    document.querySelectorAll('.sortable-header').forEach(header => {
+        header.classList.remove('sorted-asc', 'sorted-desc');
+    });
+    
+    const currentHeader = document.querySelector(`th.sortable-header:nth-child(${columnIndex + 1})`);
+    if (currentHeader) {
+        currentHeader.classList.add(sortDirection === 'asc' ? 'sorted-asc' : 'sorted-desc');
     }
+    
+    // Update rank numbers in first column after sorting
+    rows.forEach((row, index) => {
+        const rankCell = row.cells[0];
+        if (rankCell) {
+            rankCell.textContent = index + 1;
+        }
+    });
+    
+    // Update global state
+    lastSortedColumn = columnIndex;
+    lastSortDirection = sortDirection;
+}
 
-    function toggleColumns(className) {
-        const elements = document.querySelectorAll('.' + className);
-        elements.forEach(el => {
-            el.style.display = el.style.display === 'none' ? '' : 'none';
-        });
-    }
+function toggleColumns(className) {
+    const elements = document.querySelectorAll('.' + className);
+    elements.forEach(el => {
+        el.style.display = el.style.display === 'none' ? '' : 'none';
+    });
+}
 
-    function resetColumns() {
-        const hiddenElements = document.querySelectorAll('.hide-xl, .hide-lg');
-        hiddenElements.forEach(el => {
-            el.style.display = '';
-        });
-    }
+function resetColumns() {
+    const hiddenElements = document.querySelectorAll('.hide-xl, .hide-lg');
+    hiddenElements.forEach(el => {
+        el.style.display = '';
+    });
 }
 </script>
 

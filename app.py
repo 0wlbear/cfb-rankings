@@ -2745,7 +2745,6 @@ def get_all_team_stats_bulk():
                             else:
                                 opponent_quality = 2.0 + (opp_win_pct * 6.0)  # Default/Other: 2.0-8.0 range
 
-
                         else:
                             opponent_quality = 5.0
                     else:
@@ -2823,6 +2822,21 @@ def get_all_team_stats_bulk():
                     
                     total_loss_penalty += loss_penalty
             
+            # CALCULATE STRENGTH OF SCHEDULE using bulk data
+            opponent_total_wins = 0
+            opponent_total_losses = 0
+            opponent_total_games = 0
+            
+            for game in team_data['games']:
+                opponent = game['opponent']
+                if opponent in team_lookup and opponent != 'FCS':
+                    opp_data = team_lookup[opponent]
+                    opponent_total_wins += opp_data['wins']
+                    opponent_total_losses += opp_data['losses']
+                    opponent_total_games += (opp_data['wins'] + opp_data['losses'])
+            
+            strength_of_schedule = opponent_total_wins / opponent_total_games if opponent_total_games > 0 else 0.500
+            
             # Apply conference multiplier
             team_conf = get_team_conference(team_name)
             if team_conf in ['American', 'Conference USA', 'MAC', 'Mountain West', 'Sun Belt'] or team_name == 'Connecticut':
@@ -2849,10 +2863,13 @@ def get_all_team_stats_bulk():
                 'point_differential': team_data['points_for'] - team_data['points_against'],
                 'home_wins': team_data['home_wins'],
                 'road_wins': team_data['road_wins'],
-                'strength_of_schedule': 0.500,  # Could calculate this too if needed
+                'strength_of_schedule': round(strength_of_schedule, 3),  # NOW CALCULATED PROPERLY
                 'totals': round(adjusted_total, 3),
                 'scientific_breakdown': {'total_score': adjusted_total},
-                'opp_w': 0, 'opp_l': 0, 'opp_wl_differential': 0, 'strength_of_record': 0.5
+                'opp_w': opponent_total_wins, 
+                'opp_l': opponent_total_losses, 
+                'opp_wl_differential': opponent_total_wins - opponent_total_losses, 
+                'strength_of_record': round(strength_of_schedule * (team_data['wins'] / max(1, team_data['wins'] + team_data['losses'])), 3)
             }
             
             comprehensive_stats.append(stats)
@@ -2868,7 +2885,6 @@ def get_all_team_stats_bulk():
     except Exception as e:
         print(f"Error in bulk loading: {e}")
         return []
-
 
 
 def calculate_fast_stats(team_name, team_data, opponent_quality_cache):
