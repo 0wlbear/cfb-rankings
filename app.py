@@ -5233,6 +5233,7 @@ def parse_schedule_text(schedule_text, week, team_clarifications=None):
         """Resolve team name using clarifications or existing mappings"""
         original_name = team_name
         team_name = clean_team_name(team_name)
+        print(f"DEBUG: Resolving '{original_name}' -> cleaned: '{team_name}'")
 
         # First check if we have a clarification for this session
         if team_clarifications and team_name in team_clarifications:
@@ -5241,8 +5242,10 @@ def parse_schedule_text(schedule_text, week, team_clarifications=None):
         
         # Check if it's a known FBS team
         if team_name in TEAMS:
-            
+            print(f"DEBUG: Found '{team_name}' in TEAMS")
             return team_name
+        else:
+            print(f"DEBUG: '{team_name}' NOT found in TEAMS")
             
         # Check common variations
         for standard_name, variants in TEAM_VARIATIONS.items():
@@ -5420,13 +5423,16 @@ def parse_schedule_text(schedule_text, week, team_clarifications=None):
             line_clean = re.sub(r'\b(ESPN|FOX|CBS|NBC|ABC|FS1|FS2|BTN|SECN|ACCN|ESPN2|ESPNU|CBSSN|Paramount\+|Peacock|ESPNEWS)\b', '', line_clean, flags=re.IGNORECASE)
 
             # NEW: Remove venue information (words like "Stadium", "Arena", "Center", etc.)
-            line_clean = re.sub(r'\b(Stadium|Arena|Center|Field|Dome|Coliseum|Memorial|Municipal|County|University|College|High|School|Complex|Park|Facility)\b.*$', '', line_clean, flags=re.IGNORECASE)
+            line_clean = re.sub(r'\b(Stadium|Arena|Center|Field|Dome|Coliseum|Memorial|Municipal|County|High|School|Complex|Park|Facility)\b.*$', '', line_clean, flags=re.IGNORECASE)
 
             # NEW: Split on tabs and take only the first part (team matchup)
             if '\t' in line_clean:
                 line_clean = line_clean.split('\t')[0].strip()
 
             line_clean = re.sub(r'\s+', ' ', line_clean).strip()
+            print(f"DEBUG: Processing game line: '{line}'")
+            print(f"DEBUG: After cleaning: '{line_clean}'")
+            print(f"DEBUG: Contains 'at'? {'at' in line_clean}")
             print(f"DEBUG: After all cleaning: '{line_clean}'")
             print(f"DEBUG: Does line contain 'vs'? {' vs ' in line_clean}")
             print(f"DEBUG: Does line contain '('? {'(' in line_clean}")

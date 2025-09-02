@@ -85,9 +85,6 @@
                                 {% else %}
                                     Week {{ week_option }}
                                 {% endif %}
-                                {% if week_option == selected_week and get_current_week_info().has_snapshots %}
-                                    (Auto-Selected)
-                                {% endif %}
                             </option>
                         {% endfor %}
                     </select>
