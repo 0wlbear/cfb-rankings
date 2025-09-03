@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+
+{% block title %}Week {{ week }} Predictions - College Football Rankings{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="display-5 fw-bold text-primary">
+                <i class="fas fa-calendar-week me-2"></i>Week {{ week }} Predictions
+            </h1>
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('cfb_ml_dashboard') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-tachometer-alt me-1"></i>ML Dashboard
+                </a>
+                <a href="/admin/ml/batch_predict" class="btn btn-outline-primary">
+                    <i class="fas fa-magic me-1"></i>Batch Predict
+                </a>
+            </div>
+        </div>
+
+        <!-- Statistics Overview -->
+        <div class="row mb-4">
+            <div class="col-lg-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-chart-pie me-2"></i>Week {{ week }} Statistics
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-6 col-md-2">
+                                <div class="p-2">
+                                    <h4 class="text-primary mb-1">{{ stats.total }}</h4>
+                                    <small class="text-muted">Total</small>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-2">
+                                <div class="p-2">
+                                    <h4 class="text-success mb-1">{{ stats.automated }}</h4>
+                                    <small class="text-muted">🤖 Auto</small>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-2">
+                                <div class="p-2">
+                                    <h4 class="text-info mb-1">{{ stats.manual }}</h4>
+                                    <small class="text-muted">👤 Manual</small>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-2">
+                                <div class="p-2">
+                                    <h4 class="text-warning mb-1">{{ stats.pending }}</h4>
+                                    <small class="text-muted">⏳ Pending</small>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-2">
+                                <div class="p-2">
+                                    <h4 class="text-success mb-1">{{ stats.correct }}</h4>
+                                    <small class="text-muted">✅ Correct</small>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-2">
+                                <div class="p-2">
+                                    <h4 class="{% if stats.accuracy >= 60 %}text-success{% elif stats.accuracy >= 50 %}text-warning{% else %}text-danger{% endif %} mb-1">
+                                        {{ stats.accuracy }}%
+                                    </h4>
+                                    <small class="text-muted">🎯 Accuracy</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Predictions Table -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-table me-2"></i>All Predictions ({{ predictions|length }})
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" id="predictionsTable">
+                        <thead class="table-dark sticky-top">
+                            <tr>
+                                <th style="cursor: pointer;" onclick="sortTable(0, false)">
+                                    Matchup <i class="fas fa-sort text-muted ms-1"></i>
+                                </th>
+                                <th style="cursor: pointer;" onclick="sortTable(1, false)">
+                                    Predicted Winner <i class="fas fa-sort text-muted ms-1"></i>
+                                </th>
+                                <th style="cursor: pointer;" onclick="sortTable(2, true)" class="text-center">
+                                    Margin <i class="fas fa-sort text-muted ms-1"></i>
+                                </th>
+                                <th style="cursor: pointer;" onclick="sortTable(3, true)" class="text-center">
+                                    Win % <i class="fas fa-sort text-muted ms-1"></i>
+                                </th>
+                                <th style="cursor: pointer;" onclick="sortTable(4, false)" class="text-center">
+                                    Confidence <i class="fas fa-sort text-muted ms-1"></i>
+                                </th>
+                                <th style="cursor: pointer;" onclick="sortTable(5, false)" class="text-center">
+                                    Type <i class="fas fa-sort text-muted ms-1"></i>
+                                </th>
+                                <th style="cursor: pointer;" onclick="sortTable(6, false)" class="text-center">
+                                    Date <i class="fas fa-sort text-muted ms-1"></i>
+                                </th>
+                                <th class="text-center">Result</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pred in predictions %}
+                            <tr class="{% if pred.prediction_type == 'automated' %}table-primary{% else %}table-light{% endif %}">
+                                <td class="fw-semibold">{{ pred.matchup }}</td>
+                                <td>
+                                    <strong class="text-dark">{{ pred.predicted_winner }}</strong>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-secondary">{{ pred.predicted_margin }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge {% if pred.win_probability >= 70 %}bg-success{% elif pred.win_probability >= 55 %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                                        {{ pred.win_probability }}%
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <small class="text-muted">{{ pred.confidence_level }}</small>
+                                </td>
+                                <td class="text-center">
+                                    {% if pred.prediction_type == 'automated' %}
+                                        <span class="badge bg-primary">🤖 Auto</span>
+                                    {% else %}
+                                        <span class="badge bg-info">👤 Manual</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <small class="text-muted">
+                                        {{ pred.prediction_date.strftime('%m/%d %H:%M') if pred.prediction_date else 'N/A' }}
+                                    </small>
+                                </td>
+                                <td class="text-center">
+                                    {% if pred.game_completed %}
+                                        {% if pred.winner_correct == True %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check me-1"></i>Correct
+                                            </span>
+                                            <br><small class="text-success">{{ pred.actual_winner }}</small>
+                                        {% elif pred.winner_correct == False %}
+                                            <span class="badge bg-danger">
+                                                <i class="fas fa-times me-1"></i>Wrong
+                                            </span>
+                                            <br><small class="text-danger">{{ pred.actual_winner }}</small>
+                                        {% else %}
+                                            <span class="badge bg-secondary">
+                                                Complete
+                                            </span>
+                                            <br><small class="text-muted">{{ pred.actual_winner or 'N/A' }}</small>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="fas fa-clock me-1"></i>Pending
+                                        </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="mt-4 text-center">
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('cfb_ml_dashboard') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-tachometer-alt me-1"></i>ML Dashboard
+                </a>
+                <a href="/admin/ml/batch_predict" class="btn btn-outline-success">
+                    <i class="fas fa-magic me-1"></i>Batch Predict
+                </a>
+                <a href="{{ url_for('view_all_predictions') }}" class="btn btn-outline-info">
+                    <i class="fas fa-list-alt me-1"></i>All Predictions
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Custom styling for the predictions table */
+.card {
+    border: none;
+    border-radius: 15px;
+}
+
+.card-header {
+    border-radius: 15px 15px 0 0 !important;
+    border-bottom: none;
+    padding: 1rem 1.5rem;
+}
+
+.table-responsive {
+    border-radius: 0 0 15px 15px;
+}
+
+/* Sticky header for long tables */
+.sticky-top {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+/* Row hover effects */
+.table-hover tbody tr:hover {
+    background-color: rgba(0,0,0,0.075) !important;
+    cursor: default;
+}
+
+/* Badge styling improvements */
+.badge {
+    font-size: 0.75rem;
+    padding: 0.35em 0.65em;
+}
+
+/* Sort indicators */
+.fas.fa-sort {
+    opacity: 0.5;
+    font-size: 0.8em;
+}
+
+th:hover .fas.fa-sort {
+    opacity: 1;
+    color: #fff !important;
+}
+
+/* Prediction type row coloring */
+.table-primary {
+    background-color: rgba(13, 110, 253, 0.1) !important;
+}
+
+.table-light {
+    background-color: rgba(248, 249, 250, 0.5) !important;
+}
+
+/* Statistics cards hover effect */
+.card:hover {
+    transform: translateY(-2px);
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+    .display-5 {
+        font-size: 1.75rem;
+    }
+    
+    .btn-group {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .btn-group .btn {
+        border-radius: 0.375rem !important;
+        margin-bottom: 0.25rem;
+    }
+    
+    .table td, .table th {
+        padding: 0.5rem 0.25rem;
+        font-size: 0.875rem;
+    }
+    
+    .badge {
+        font-size: 0.65rem;
+    }
+}
+
+/* Loading animation for table */
+.table tbody tr {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
+
+<script>
+// Enhanced table sorting function
+function sortTable(columnIndex, isNumeric = false) {
+    const table = document.getElementById('predictionsTable');
+    const tbody = table.getElementsByTagName('tbody')[0];
+    const rows = Array.from(tbody.getElementsByTagName('tr'));
+    
+    // Get current header and determine sort direction
+    const currentHeader = table.getElementsByTagName('th')[columnIndex];
+    const currentlyAscending = currentHeader.classList.contains('sort-asc');
+    const isAscending = !currentlyAscending;
+    
+    // Clear all sort indicators
+    const headers = table.getElementsByTagName('th');
+    for (let header of headers) {
+        header.classList.remove('sort-asc', 'sort-desc');
+        const sortIcon = header.querySelector('.fa-sort, .fa-sort-up, .fa-sort-down');
+        if (sortIcon) {
+            sortIcon.className = 'fas fa-sort text-muted ms-1';
+        }
+    }
+    
+    // Set new sort indicator
+    const sortIcon = currentHeader.querySelector('.fas');
+    if (sortIcon) {
+        if (isAscending) {
+            sortIcon.className = 'fas fa-sort-up text-white ms-1';
+            currentHeader.classList.add('sort-asc');
+        } else {
+            sortIcon.className = 'fas fa-sort-down text-white ms-1';
+            currentHeader.classList.add('sort-desc');
+        }
+    }
+    
+    // Sort rows
+    rows.sort((a, b) => {
+        let aVal = a.getElementsByTagName('td')[columnIndex].textContent.trim();
+        let bVal = b.getElementsByTagName('td')[columnIndex].textContent.trim();
+        
+        if (isNumeric) {
+            // Extract numeric values (handle percentages and other text)
+            aVal = parseFloat(aVal.replace(/[^\d.-]/g, '')) || 0;
+            bVal = parseFloat(bVal.replace(/[^\d.-]/g, '')) || 0;
+            return isAscending ? aVal - bVal : bVal - aVal;
+        } else {
+            return isAscending ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        }
+    });
+    
+    // Re-append sorted rows with animation
+    rows.forEach((row, index) => {
+        setTimeout(() => {
+            tbody.appendChild(row);
+        }, index * 10); // Stagger the animation
+    });
+}
+
+// Add click-to-expand functionality for mobile
+document.addEventListener('DOMContentLoaded', function() {
+    // Add any additional JavaScript initialization here
+    console.log('Week {{ week }} predictions loaded:', {{ predictions|length }} + ' predictions');
+});
+</script>
+{% endblock %}

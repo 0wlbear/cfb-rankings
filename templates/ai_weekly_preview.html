@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}AI Weekly Preview - Week {{ week }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Breadcrumb navigation -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('rankings') }}">Rankings</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('scoreboard', week=week) }}">Week {{ week }} Scoreboard</a></li>
+            <li class="breadcrumb-item active">AI Preview</li>
+        </ol>
+    </nav>
+
+    <!-- Main content card -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">🤖 AI Weekly Preview - Week {{ week }}</h2>
+        </div>
+        <div class="card-body">
+            <!-- Stats row -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="text-center p-3 bg-light rounded">
+                        <h3 class="mb-1">{{ total_games }}</h3>
+                        <small class="text-muted">Total Games</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center p-3 bg-light rounded">
+                        <h3 class="mb-1">{{ ranked_matchups }}</h3>
+                        <small class="text-muted">Ranked Matchups</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center p-3 bg-light rounded">
+                        <h3 class="mb-1">{{ datetime_generated }}</h3>
+                        <small class="text-muted">Generated</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Analysis -->
+            <div class="bg-light p-4 rounded mb-4">
+                <h4>🧠 AI Analysis</h4>
+                <p class="lead">{{ preview_text }}</p>
+            </div>
+
+            <!-- Featured Games -->
+            {% if game_previews %}
+            <h4>🏈 Featured Games</h4>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Matchup</th>
+                            <th>Time</th>
+                            <th>TV</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for game in game_previews %}
+                        <tr class="{% if game.is_ranked_matchup %}table-warning{% endif %}">
+                            <td>{{ game.matchup }}</td>
+                            <td>{{ game.time or 'TBD' }}</td>
+                            <td>{{ game.tv or 'TBD' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+        <div class="card-footer text-muted">
+            <a href="{{ url_for('scoreboard', week=week) }}" class="btn btn-primary">← Back to Week {{ week }} Scoreboard</a>
+            <a href="{{ url_for('rankings') }}" class="btn btn-secondary">View Rankings</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

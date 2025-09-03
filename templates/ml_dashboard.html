@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block title %}CFB ML Dashboard - College Football Rankings{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="display-5 fw-bold text-success">
+                <i class="fas fa-robot me-2"></i>CFB ML Tracking Dashboard
+            </h1>
+            <a href="{{ url_for('admin') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Admin
+            </a>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="/admin/ml/batch_predict" class="btn btn-success">
+                        <i class="fas fa-chart-line me-1"></i>Auto-Predict Games
+                    </a>
+                    <a href="/admin/ml/predictions" class="btn btn-primary">
+                        <i class="fas fa-eye me-1"></i>View All Predictions
+                    </a>
+                    <a href="/admin/ml/manage_predictions" class="btn btn-danger">
+                        <i class="fas fa-trash-alt me-1"></i>Manage/Delete Predictions
+                    </a>
+                    <a href="/admin/ml/export_season_data" class="btn btn-purple" style="background-color: #6f42c1; border-color: #6f42c1; color: white;">
+                        <i class="fas fa-download me-1"></i>Export Season Data
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overall Performance Stats -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>Overall Performance
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="card bg-light border-0 text-center h-100">
+                            <div class="card-body">
+                                <h5 class="card-title text-muted">Total Predictions</h5>
+                                <div class="display-4 fw-bold text-dark">{{ dashboard_data.total_predictions }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-primary bg-gradient text-white text-center h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">🤖 Automated</h5>
+                                <div class="display-4 fw-bold">{{ dashboard_data.automated_predictions }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card text-white text-center h-100" style="background: linear-gradient(135deg, #7b1fa2 0%, #9c27b0 100%);">
+                            <div class="card-body">
+                                <h5 class="card-title">👤 Manual</h5>
+                                <div class="display-4 fw-bold">{{ dashboard_data.manual_predictions }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Accuracy Comparison -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-bullseye me-2"></i>Accuracy Comparison
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Prediction Type</th>
+                                <th class="text-center">Total</th>
+                                <th class="text-center">Completed</th>
+                                <th class="text-center">Correct</th>
+                                <th class="text-center">Accuracy</th>
+                                <th class="text-center">Avg Margin Error</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pred_type, data in dashboard_data.accuracy_by_type.items() %}
+                            <tr class="{% if pred_type == 'automated' %}table-primary{% else %}table-light{% endif %}">
+                                <td class="fw-semibold">
+                                    {% if pred_type == 'automated' %}
+                                        🤖 Automated
+                                    {% else %}
+                                        👤 Manual
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">{{ data.total }}</td>
+                                <td class="text-center">{{ data.completed }}</td>
+                                <td class="text-center">{{ data.correct }}</td>
+                                <td class="text-center">
+                                    <span class="badge {% if data.accuracy|int >= 60 %}bg-success{% elif data.accuracy|int >= 50 %}bg-warning{% else %}bg-danger{% endif %} fs-6">
+                                        {{ data.accuracy }}%
+                                    </span>
+                                </td>
+                                <td class="text-center">{{ data.avg_margin_error }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weekly Breakdown -->
+        {% if dashboard_data.weekly_breakdown %}
+        <div class="card shadow-sm">
+            <div class="card-header bg-info text-white">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-calendar-week me-2"></i>Weekly Breakdown
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Week</th>
+                                <th class="text-center">Total</th>
+                                <th class="text-center">🤖 Automated</th>
+                                <th class="text-center">👤 Manual</th>
+                                <th class="text-center">Completed</th>
+                                <th class="text-center">Pending</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for week, data in dashboard_data.weekly_breakdown.items() %}
+                            <tr>
+                                <td class="fw-bold">Week {{ week }}</td>
+                                <td class="text-center">
+                                    <span class="badge bg-secondary">{{ data.total }}</span>
+                                </td>
+                                <td class="text-center">{{ data.automated }}</td>
+                                <td class="text-center">{{ data.manual }}</td>
+                                <td class="text-center">
+                                    <span class="badge bg-success">{{ data.completed }}</span>
+                                </td>
+                                <td class="text-center">
+                                    {% if data.pending > 0 %}
+                                        <span class="badge bg-warning text-dark">{{ data.pending }}</span>
+                                    {% else %}
+                                        <span class="badge bg-light text-dark">{{ data.pending }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group" role="group">
+                                        <a href="/admin/ml/view_predictions/{{ week }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                        {% if data.pending > 0 %}
+                                        <a href="/admin/ml/predict_week/{{ week }}" class="btn btn-sm btn-outline-success">
+                                            <i class="fas fa-magic"></i> Predict
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.btn-purple {
+    background-color: #6f42c1 !important;
+    border-color: #6f42c1 !important;
+    color: white !important;
+}
+
+.btn-purple:hover {
+    background-color: #5a32a3 !important;
+    border-color: #5a32a3 !important;
+    color: white !important;
+}
+
+.card {
+    border: none;
+    border-radius: 15px;
+}
+
+.card-header {
+    border-radius: 15px 15px 0 0 !important;
+    border-bottom: none;
+    padding: 1rem 1.5rem;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+.table-responsive {
+    border-radius: 10px;
+}
+
+.badge {
+    font-size: 0.75em;
+}
+
+.btn-group .btn {
+    font-size: 0.875rem;
+}
+
+/* Add hover effects for cards */
+.card:hover {
+    transform: translateY(-2px);
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+}
+
+/* Animate the stats cards */
+.display-4 {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
+{% endblock %}

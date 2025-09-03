@@ -1,0 +1,494 @@
+{% extends "base.html" %}
+
+{% block title %}Batch Auto-Predict - College Football Rankings{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="display-5 fw-bold text-success">
+                <i class="fas fa-magic me-2"></i>Batch Auto-Predict Games
+            </h1>
+            <a href="{{ url_for('cfb_ml_dashboard') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back to ML Dashboard
+            </a>
+        </div>
+
+        <!-- Overall Statistics -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>Prediction Overview
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6 col-md-3">
+                        <div class="p-2">
+                            <h3 class="text-primary mb-1">{{ batch_stats.total_weeks }}</h3>
+                            <small class="text-muted">Available Weeks</small>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="p-2">
+                            <h3 class="text-info mb-1">{{ batch_stats.total_games }}</h3>
+                            <small class="text-muted">Total Games</small>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="p-2">
+                            <h3 class="text-success mb-1">{{ batch_stats.total_predicted }}</h3>
+                            <small class="text-muted">Already Predicted</small>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="p-2">
+                            <h3 class="text-warning mb-1">{{ batch_stats.total_remaining }}</h3>
+                            <small class="text-muted">Remaining</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Progress Bar -->
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <small class="text-muted">Overall Progress</small>
+                            <small class="text-muted">{{ batch_stats.overall_percentage }}%</small>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-success" 
+                                 style="width: {{ batch_stats.overall_percentage }}%"
+                                 role="progressbar"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="alert alert-info alert-dismissible fade show shadow-sm mb-4" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-info-circle fa-2x me-3"></i>
+                <div>
+                    <h5 class="alert-heading mb-1">How Batch Prediction Works</h5>
+                    <p class="mb-0">Select weeks below to automatically generate ML predictions for all uncomputed games. The system will analyze team performance, rankings, and historical data to predict outcomes.</p>
+                </div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Weeks Selection -->
+        {% if weeks_data %}
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-calendar-week me-2"></i>Select Weeks to Predict
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for week in weeks_data %}
+                    <div class="list-group-item">
+                        <div class="row align-items-center">
+                            <div class="col-md-3">
+                                <h6 class="mb-1 fw-bold text-primary">
+                                    <i class="fas fa-calendar-alt me-2"></i>Week {{ week.week }}
+                                </h6>
+                                {% if week.is_complete %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check me-1"></i>Complete
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="fas fa-clock me-1"></i>{{ week.remaining }} Remaining
+                                    </span>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <small class="text-muted">Progress</small>
+                                    <small class="text-muted">{{ week.prediction_percentage }}%</small>
+                                </div>
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar {% if week.is_complete %}bg-success{% else %}bg-primary{% endif %}" 
+                                         style="width: {{ week.prediction_percentage }}%"
+                                         role="progressbar"></div>
+                                </div>
+                                <div class="mt-1">
+                                    <small class="text-muted">
+                                        {{ week.predicted_count }} of {{ week.total_games }} games predicted
+                                    </small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-2 text-center">
+                                <div class="row g-1">
+                                    <div class="col-12">
+                                        <span class="badge bg-secondary">{{ week.total_games }} Total</span>
+                                    </div>
+                                    <div class="col-12">
+                                        <span class="badge bg-success">{{ week.predicted_count }} Done</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3 text-md-end mt-2 mt-md-0">
+                                <div class="d-flex flex-column flex-md-row gap-2 justify-content-md-end">
+                                    {% if not week.is_complete %}
+                                        <button type="button" 
+                                                class="btn btn-success btn-sm predict-btn"
+                                                data-week="{{ week.week }}"
+                                                data-remaining="{{ week.remaining }}"
+                                                onclick="confirmPredictWeek('{{ week.week }}', {{ week.remaining }})">
+                                            <i class="fas fa-magic me-1"></i>
+                                            Predict Week {{ week.week }}
+                                        </button>
+                                    {% else %}
+                                        <button type="button" class="btn btn-outline-success btn-sm" disabled>
+                                            <i class="fas fa-check me-1"></i>
+                                            All Predicted
+                                        </button>
+                                    {% endif %}
+                                    
+                                    <a href="/admin/ml/view_predictions/{{ week.week }}" 
+                                       class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-eye me-1"></i>
+                                        View
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Bulk Actions -->
+        {% if batch_stats.total_remaining > 0 %}
+        <div class="card mt-4 shadow-sm border-success">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-bolt me-2"></i>Bulk Actions
+                </h5>
+            </div>
+            <div class="card-body text-center">
+                <p class="text-muted mb-3">Predict all remaining games across all weeks</p>
+                <button type="button" class="btn btn-success btn-lg" onclick="confirmPredictAll()">
+                    <i class="fas fa-magic me-2"></i>
+                    Predict All Remaining Games
+                    <span class="badge bg-dark ms-2">{{ batch_stats.total_remaining }}</span>
+                </button>
+                <div class="mt-2">
+                    <small class="text-muted">This will process {{ batch_stats.total_remaining }} games across {{ batch_stats.total_weeks }} weeks</small>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% else %}
+        <!-- No Data State -->
+        <div class="card shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">No Games Available</h4>
+                <p class="text-muted">There are no scheduled games available for prediction at this time.</p>
+                <a href="{{ url_for('cfb_ml_dashboard') }}" class="btn btn-primary">
+                    <i class="fas fa-tachometer-alt me-1"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Navigation -->
+        <div class="mt-4 text-center">
+            <a href="{{ url_for('cfb_ml_dashboard') }}" class="btn btn-outline-primary">
+                <i class="fas fa-tachometer-alt me-1"></i>ML Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Prediction Confirmation Modals -->
+<!-- Single Week Prediction Modal -->
+<div class="modal fade" id="predictWeekModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-magic me-2"></i>Predict Week Games
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    This will generate automated predictions for all unpredicted games.
+                </div>
+                <p>Generate predictions for <strong id="weekRemainingCount">0</strong> games in <strong id="weekModalNumber">Week 0</strong>?</p>
+                <p class="text-muted small">This process may take a few moments to complete.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <a href="#" class="btn btn-success" id="confirmPredictWeekBtn">
+                    <i class="fas fa-magic me-1"></i>Start Prediction
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Predict All Modal -->
+<div class="modal fade" id="predictAllModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-bolt me-2"></i>Predict All Games
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Large Operation:</strong> This will process multiple weeks of games.
+                </div>
+                <p>Generate predictions for <strong>{{ batch_stats.total_remaining }} games</strong> across <strong>{{ batch_stats.total_weeks }} weeks</strong>?</p>
+                <p class="text-muted small">This operation may take several minutes to complete. Please be patient.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="startBulkPrediction()">
+                    <i class="fas fa-bolt me-1"></i>Predict All Games
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Custom styling for batch predict */
+.card {
+    border: none;
+    border-radius: 15px;
+}
+
+.card-header {
+    border-radius: 15px 15px 0 0 !important;
+    border-bottom: none;
+    padding: 1rem 1.5rem;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+.list-group-item {
+    border-left: none;
+    border-right: none;
+    padding: 1.5rem;
+}
+
+.list-group-item:first-child {
+    border-top: none;
+}
+
+.list-group-item:last-child {
+    border-bottom: none;
+}
+
+/* Progress bars */
+.progress {
+    border-radius: 10px;
+    background-color: rgba(0,0,0,0.1);
+}
+
+.progress-bar {
+    border-radius: 10px;
+}
+
+/* Hover effects */
+.card:hover {
+    transform: translateY(-2px);
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+}
+
+.list-group-item:hover {
+    background-color: rgba(0,0,0,0.02);
+    transition: all 0.3s ease;
+}
+
+/* Button improvements */
+.btn-sm {
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+}
+
+.btn-lg {
+    padding: 0.75rem 2rem;
+    font-size: 1.1rem;
+}
+
+/* Badge improvements */
+.badge {
+    font-size: 0.75rem;
+    padding: 0.35em 0.65em;
+}
+
+/* Loading state for buttons */
+.predict-btn.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.predict-btn.loading::after {
+    content: '';
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid transparent;
+    border-top: 2px solid currentColor;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-left: 0.5rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Alert improvements */
+.alert {
+    border-radius: 10px;
+    border: none;
+}
+
+/* Modal improvements */
+.modal-content {
+    border-radius: 15px;
+    border: none;
+}
+
+.modal-header {
+    border-radius: 15px 15px 0 0;
+    border-bottom: none;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+    .list-group-item {
+        padding: 1rem;
+    }
+    
+    .d-flex.gap-2 {
+        flex-direction: column !important;
+    }
+    
+    .btn-sm {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+    }
+}
+
+/* Animation for list items */
+.list-group-item {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
+
+<script>
+// Confirmation functions
+function confirmPredictWeek(week, remaining) {
+    document.getElementById('weekModalNumber').textContent = 'Week ' + week;
+    document.getElementById('weekRemainingCount').textContent = remaining;
+    document.getElementById('confirmPredictWeekBtn').href = '/admin/ml/predict_week/' + week;
+    const modal = new bootstrap.Modal(document.getElementById('predictWeekModal'));
+    modal.show();
+}
+
+function confirmPredictAll() {
+    const modal = new bootstrap.Modal(document.getElementById('predictAllModal'));
+    modal.show();
+}
+
+function startBulkPrediction() {
+    // Show AI loading
+    window.AILoading.show('Processing Bulk Predictions...', 'This may take several minutes');
+    
+    // Close modal
+    bootstrap.Modal.getInstance(document.getElementById('predictAllModal')).hide();
+    
+    // Start predictions for each week
+    const weeks = {{ weeks_data | map(attribute='week') | list | tojson }};
+    let currentIndex = 0;
+    
+    function predictNextWeek() {
+        if (currentIndex >= weeks.length) {
+            window.AILoading.hide();
+            location.reload(); // Refresh to show updated counts
+            return;
+        }
+        
+        const week = weeks[currentIndex];
+        window.AILoading.show(`Processing Week ${week}...`, `${currentIndex + 1} of ${weeks.length} weeks`);
+        
+        // Make request to predict this week
+        fetch(`/admin/ml/predict_week/${week}`, {
+            method: 'GET'
+        }).then(() => {
+            currentIndex++;
+            setTimeout(predictNextWeek, 1000); // Small delay between weeks
+        }).catch(error => {
+            console.error('Error predicting week:', error);
+            window.AILoading.hide();
+            alert('Error occurred during bulk prediction. Please try again.');
+        });
+    }
+    
+    predictNextWeek();
+}
+
+// Add loading states to individual predict buttons
+document.addEventListener('DOMContentLoaded', function() {
+    const predictBtns = document.querySelectorAll('.predict-btn');
+    predictBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Don't add loading state here since we show modal first
+            // Loading state will be handled by the modal confirmation
+        });
+    });
+});
+
+// Handle individual week prediction with loading
+document.getElementById('confirmPredictWeekBtn')?.addEventListener('click', function(e) {
+    e.preventDefault();
+    const week = this.href.split('/').pop();
+    
+    // Show loading
+    window.AILoading.show(`Predicting Week ${week}...`, 'Analyzing games and generating predictions');
+    
+    // Close modal
+    bootstrap.Modal.getInstance(document.getElementById('predictWeekModal')).hide();
+    
+    // Navigate to prediction URL
+    setTimeout(() => {
+        window.location.href = this.href;
+    }, 500);
+});
+</script>
+{% endblock %}

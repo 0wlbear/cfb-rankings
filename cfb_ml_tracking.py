@@ -272,7 +272,7 @@ def update_temporal_analysis_with_results(week):
             and_(
                 CFBPredictionLog.week == week,
                 CFBPredictionLog.season_year == datetime.now().year,
-                CFBPredictionLog.actual_result.isnot(None)
+                CFBPredictionLog.winner_correct.isnot(None)
             )
         ).all()
         
@@ -326,23 +326,35 @@ def update_temporal_analysis_with_results(week):
 def update_algorithm_performance(week):
     """Update overall algorithm performance metrics"""
     try:
+        print("=== DEBUG: Starting performance calculation ===")
         # Get all predictions with results
         all_predictions = CFBPredictionLog.query.filter(
             and_(
                 CFBPredictionLog.season_year == datetime.now().year,
-                CFBPredictionLog.actual_result.isnot(None)
+                CFBPredictionLog.winner_correct.isnot(None)
             )
         ).all()
+
+        print(f"DEBUG: Found {len(all_predictions)} predictions with winner_correct set")
         
         if not all_predictions:
+            print("DEBUG: No predictions found, returning early")
             return
         
         # Calculate overall metrics
+        # Calculate overall metrics
         total_count = len(all_predictions)
         winner_correct_count = sum(1 for p in all_predictions if p.winner_correct)
-        avg_accuracy = sum(p.accuracy_score for p in all_predictions if p.accuracy_score) / total_count
-        avg_margin_error = sum(p.margin_error for p in all_predictions if p.margin_error) / total_count
-        avg_confidence = sum(p.confidence_score for p in all_predictions) / total_count
+
+        # Calculate average margin error (this field exists)
+        predictions_with_margin_error = [p for p in all_predictions if p.margin_error is not None]
+        avg_margin_error = sum(p.margin_error for p in predictions_with_margin_error) / len(predictions_with_margin_error) if predictions_with_margin_error else 0
+
+        # Calculate overall accuracy based on winner_correct percentage
+        avg_accuracy = (winner_correct_count / total_count) * 100.0
+
+        # Skip confidence calculation since confidence_score doesn't exist
+        avg_confidence = 0.5  # Default value
         
         winner_accuracy = (winner_correct_count / total_count) * 100.0
         
@@ -391,13 +403,21 @@ def analyze_prediction_factors(predictions):
     factor_impact = defaultdict(list)
     
     for prediction in predictions:
-        if prediction.prediction_factors and prediction.accuracy_score:
+        if prediction.prediction_factors_json:
             try:
-                factors = json.loads(prediction.prediction_factors)
+                factors = json.loads(prediction.prediction_factors_json)
+                
+                # Calculate accuracy score since the field doesn't exist
+                if prediction.winner_correct is True:
+                    calculated_accuracy = 100.0
+                elif prediction.winner_correct is False:
+                    calculated_accuracy = 0.0
+                else:
+                    continue  # Skip if no result
                 
                 # Analyze correlation between factors and accuracy
                 for factor_name in factors.get('key_factors', []):
-                    factor_impact[factor_name].append(prediction.accuracy_score)
+                    factor_impact[factor_name].append(calculated_accuracy)
                     
             except (json.JSONDecodeError, KeyError):
                 continue

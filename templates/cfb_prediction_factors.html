@@ -1,168 +1,385 @@
-<!-- =============================================== -->
-<!-- 3. cfb_prediction_factors.html - Factor Analysis -->
-<!-- =============================================== -->
-
 {% extends "base.html" %}
 
-{% block title %}CFB Prediction Factors Analysis{% endblock %}
+{% block title %}Prediction Factors Analysis - College Football Rankings{% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-4">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2>🔬 CFB Prediction Factors Analysis</h2>
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="display-5 fw-bold text-info">
+                <i class="fas fa-chart-line me-2"></i>Prediction Factors Analysis
+            </h1>
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('cfb_ml_dashboard') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>ML Dashboard
+                </a>
+                <a href="/admin/ml/recalculate_performance" class="btn btn-outline-warning">
+                    <i class="fas fa-sync me-1"></i>Recalculate
+                </a>
+            </div>
+        </div>
+
+        <!-- Performance Overview -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-tachometer-alt me-2"></i>Algorithm Performance Overview
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <div class="text-center p-3 bg-light rounded">
+                                    {% if performance.correct_predictions and performance.total_predictions and performance.total_predictions > 0 %}
+                                        <h4 class="text-primary mb-1">{{ "%.1f"|format((performance.correct_predictions / performance.total_predictions) * 100) }}%</h4>
+                                    {% elif performance.winner_accuracy %}
+                                        <h4 class="text-primary mb-1">{{ "%.1f"|format(performance.winner_accuracy) }}%</h4>
+                                    {% else %}
+                                        <h4 class="text-primary mb-1">N/A</h4>
+                                    {% endif %}
+                                    <small class="text-muted">Winner Accuracy</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center p-3 bg-light rounded">
+                                    <h4 class="text-success mb-1">{{ performance.prediction_count or 0 }}</h4>
+                                    <small class="text-muted">Total Predictions</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center p-3 bg-light rounded">
+                                    {% if performance.average_margin_error %}
+                                        <h4 class="text-warning mb-1">{{ "%.2f"|format(performance.average_margin_error) }}</h4>
+                                    {% else %}
+                                        <h4 class="text-warning mb-1">N/A</h4>
+                                    {% endif %}
+                                    <small class="text-muted">Avg Margin Error</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center p-3 bg-light rounded">
+                                    {% if performance.average_accuracy %}
+                                        <h4 class="text-info mb-1">{{ "%.1f"|format(performance.average_accuracy) }}%</h4>
+                                    {% else %}
+                                        <h4 class="text-info mb-1">N/A</h4>
+                                    {% endif %}
+                                    <small class="text-muted">Overall Accuracy</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-3">Performance Metrics</h6>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <small class="text-muted">Winner Accuracy</small>
+                                {% if performance.winner_accuracy %}
+                                    <small class="text-muted">{{ "%.1f"|format(performance.winner_accuracy) }}%</small>
+                                {% else %}
+                                    <small class="text-muted">N/A</small>
+                                {% endif %}
+                            </div>
+                            <div class="progress" style="height: 8px;">
+                                {% set accuracy_width = performance.winner_accuracy or 0 %}
+                                <div class="progress-bar bg-success" 
+                                     style="width: {{ accuracy_width }}%"
+                                     role="progressbar"></div>
+                            </div>
+                        </div>
+                        
+                        {% if performance.average_confidence %}
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <small class="text-muted">Average Confidence</small>
+                                <small class="text-muted">{{ "%.1f"|format(performance.average_confidence * 100) }}%</small>
+                            </div>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar bg-primary" 
+                                     style="width: {{ (performance.average_confidence * 100) }}%"
+                                     role="progressbar"></div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                Last Updated: {{ performance.updated_at.strftime('%m/%d/%Y %H:%M') if performance.updated_at else 'N/A' }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Factor Importance -->
+        {% if factor_importance %}
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-weight me-2"></i>Factor Importance Analysis
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-4">This analysis shows which factors contribute most to prediction accuracy.</p>
+                
+                <div class="row">
+                    {% for factor, data in factor_importance.items() %}
+                    {% set avg_accuracy = data.average_accuracy if data.average_accuracy is defined else data %}
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-semibold text-capitalize">{{ factor.replace('_', ' ') }}</span>
+                            <span class="badge {% if avg_accuracy >= 70 %}bg-success{% elif avg_accuracy >= 60 %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                                {{ "%.1f"|format(avg_accuracy) }}% 
+                                {% if data.sample_count is defined %}({{ data.sample_count }}){% endif %}
+                            </span>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar {% if avg_accuracy >= 70 %}bg-success{% elif avg_accuracy >= 60 %}bg-warning{% else %}bg-secondary{% endif %}" 
+                                 style="width: {{ avg_accuracy }}%"
+                                 role="progressbar"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Optimization Suggestions -->
+        {% if optimization_suggestions %}
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-lightbulb me-2"></i>Optimization Suggestions
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-4">AI-generated suggestions to improve prediction accuracy.</p>
+                
+                {% for suggestion in optimization_suggestions %}
+                <div class="alert alert-light border-start border-warning border-4 mb-3" role="alert">
+                    <div class="d-flex align-items-start">
+                        <i class="fas fa-arrow-right text-warning me-3 mt-1"></i>
+                        <div class="flex-grow-1">
+                            {% if suggestion is mapping %}
+                                <h6 class="alert-heading mb-2">
+                                    {{ suggestion.category or 'Optimization Suggestion' }}
+                                    {% if suggestion.priority %}
+                                        <span class="badge bg-{{ 'danger' if suggestion.priority == 'high' else 'warning' if suggestion.priority == 'medium' else 'secondary' }} ms-2">
+                                            {{ suggestion.priority.title() }}
+                                        </span>
+                                    {% endif %}
+                                </h6>
+                                <p class="mb-0">{{ suggestion.suggestion or suggestion.description or suggestion }}</p>
+                            {% else %}
+                                <p class="mb-0">{{ suggestion }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Performance Details -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-cogs me-2"></i>Technical Details
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <tbody>
+                            <tr>
+                                <th scope="row" class="text-muted">Season Year</th>
+                                <td>{{ performance.season_year or 'N/A' }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row" class="text-muted">Total Predictions</th>
+                                <td>{{ performance.prediction_count or 0 }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row" class="text-muted">Winner Accuracy</th>
+                                <td>
+                                    {% if performance.winner_accuracy %}
+                                        {{ "%.2f"|format(performance.winner_accuracy) }}%
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th scope="row" class="text-muted">Overall Accuracy Score</th>
+                                <td>
+                                    {% if performance.average_accuracy %}
+                                        {{ "%.2f"|format(performance.average_accuracy) }}%
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th scope="row" class="text-muted">Average Margin Error</th>
+                                <td>
+                                    {% if performance.average_margin_error %}
+                                        {{ "%.2f"|format(performance.average_margin_error) }} points
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th scope="row" class="text-muted">Average Confidence</th>
+                                <td>
+                                    {% if performance.average_confidence %}
+                                        {{ "%.1f"|format(performance.average_confidence * 100) }}%
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="mt-4 text-center">
+            <div class="btn-group" role="group">
                 <a href="{{ url_for('cfb_ml_dashboard') }}" class="btn btn-outline-primary">
-                    ← Back to ML Dashboard
+                    <i class="fas fa-tachometer-alt me-1"></i>ML Dashboard
+                </a>
+                <a href="/admin/ml/predictions" class="btn btn-outline-info">
+                    <i class="fas fa-list me-1"></i>View Predictions
+                </a>
+                <a href="/admin/ml/batch_predict" class="btn btn-outline-success">
+                    <i class="fas fa-magic me-1"></i>Batch Predict
                 </a>
             </div>
         </div>
     </div>
-
-    <!-- Performance Summary -->
-    {% if performance %}
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card border-primary">
-                <div class="card-header bg-primary text-white">
-                    <h5>📊 Algorithm Performance Summary</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-2">
-                            <strong>Total Predictions:</strong><br>
-                            <span class="h4">{{ performance.total_predictions }}</span>
-                        </div>
-                        <div class="col-md-2">
-                            <strong>Winner Accuracy:</strong><br>
-                            <span class="h4 text-success">{{ "%.1f"|format(performance.winner_accuracy) }}%</span>
-                        </div>
-                        <div class="col-md-2">
-                            <strong>Avg Accuracy:</strong><br>
-                            <span class="h4 text-info">{{ "%.1f"|format(performance.average_accuracy) }}%</span>
-                        </div>
-                        <div class="col-md-3">
-                            <strong>Avg Margin Error:</strong><br>
-                            <span class="h4 text-warning">{{ "%.1f"|format(performance.average_margin_error) }} pts</span>
-                        </div>
-                        <div class="col-md-3">
-                            <strong>Algorithm Version:</strong><br>
-                            <span class="h5">{{ performance.algorithm_version }}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Factor Importance Analysis -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5>🎯 Prediction Factor Importance</h5>
-                </div>
-                <div class="card-body">
-                    {% if factor_importance %}
-                    <div class="table-responsive">
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Rank</th>
-                                    <th>Factor Name</th>
-                                    <th>Average Accuracy</th>
-                                    <th>Sample Count</th>
-                                    <th>Consistency</th>
-                                    <th>Impact Assessment</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for factor_name, stats in factor_importance.items() %}
-                                <tr class="{{ 'table-success' if loop.index <= 3 else 'table-warning' if loop.index <= 6 else 'table-light' }}">
-                                    <td>
-                                        <span class="badge badge-{{ 'success' if loop.index <= 3 else 'warning' if loop.index <= 6 else 'secondary' }}">
-                                            #{{ loop.index }}
-                                        </span>
-                                    </td>
-                                    <td><strong>{{ factor_name }}</strong></td>
-                                    <td>
-                                        <span class="badge badge-{{ 'success' if stats.average_accuracy >= 75 else 'warning' if stats.average_accuracy >= 60 else 'danger' }}">
-                                            {{ "%.1f"|format(stats.average_accuracy) }}%
-                                        </span>
-                                    </td>
-                                    <td>{{ stats.sample_count }}</td>
-                                    <td>
-                                        {% set consistency = 100 - (stats.accuracy_variance|sqrt) %}
-                                        <span class="badge badge-{{ 'success' if consistency >= 80 else 'warning' if consistency >= 60 else 'danger' }}">
-                                            {{ "%.0f"|format(consistency) }}%
-                                        </span>
-                                    </td>
-                                    <td>
-                                        {% if loop.index <= 3 %}
-                                            <span class="text-success">🌟 High Impact</span>
-                                        {% elif loop.index <= 6 %}
-                                            <span class="text-warning">⚖️ Moderate Impact</span>
-                                        {% else %}
-                                            <span class="text-muted">📉 Low Impact</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <div class="text-center text-muted py-4">
-                        <h5>No factor analysis data available</h5>
-                        <p>Factor importance will be calculated after sufficient predictions with verified results.</p>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Optimization Suggestions -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5>💡 Optimization Suggestions</h5>
-                </div>
-                <div class="card-body">
-                    {% if optimization_suggestions %}
-                    {% for suggestion in optimization_suggestions %}
-                    <div class="alert alert-{{ 'success' if suggestion.type == 'positive' else 'warning' if suggestion.type == 'improvement' else 'info' if suggestion.type == 'insight' else 'danger' if suggestion.type == 'critical' else 'primary' }}">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div>
-                                <h6>
-                                    {% if suggestion.type == 'positive' %}🎉
-                                    {% elif suggestion.type == 'improvement' %}🔧
-                                    {% elif suggestion.type == 'insight' %}💡
-                                    {% elif suggestion.type == 'critical' %}⚠️
-                                    {% elif suggestion.type == 'temporal' %}⏱️
-                                    {% else %}📊
-                                    {% endif %}
-                                    {{ suggestion.category }}
-                                </h6>
-                                <p class="mb-0">{{ suggestion.suggestion }}</p>
-                            </div>
-                            <span class="badge badge-{{ 'danger' if suggestion.priority == 'high' else 'warning' if suggestion.priority == 'medium' else 'info' }}">
-                                {{ suggestion.priority|title }} Priority
-                            </span>
-                        </div>
-                    </div>
-                    {% endfor %}
-                    {% else %}
-                    <div class="text-center text-muted py-4">
-                        <h5>No optimization suggestions available</h5>
-                        <p>Suggestions will be generated based on prediction performance patterns.</p>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
+
+<style>
+/* Custom styling for prediction factors */
+.card {
+    border: none;
+    border-radius: 15px;
+}
+
+.card-header {
+    border-radius: 15px 15px 0 0 !important;
+    border-bottom: none;
+    padding: 1rem 1.5rem;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+/* Progress bars */
+.progress {
+    border-radius: 10px;
+    background-color: rgba(0,0,0,0.1);
+}
+
+.progress-bar {
+    border-radius: 10px;
+}
+
+/* Hover effects */
+.card:hover {
+    transform: translateY(-2px);
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+}
+
+/* Badge improvements */
+.badge {
+    font-size: 0.75rem;
+    padding: 0.35em 0.65em;
+}
+
+/* Alert improvements */
+.alert {
+    border-radius: 10px;
+}
+
+.border-4 {
+    border-width: 4px !important;
+}
+
+/* Table improvements */
+.table th,
+.table td {
+    padding: 0.75rem;
+    border-top: 1px solid rgba(0,0,0,0.1);
+}
+
+.table th {
+    font-weight: 600;
+    color: #6c757d;
+    border-top: none;
+    width: 30%;
+}
+
+/* Performance metric boxes */
+.bg-light.rounded {
+    transition: all 0.3s ease;
+}
+
+.bg-light.rounded:hover {
+    background-color: #e9ecef !important;
+    transform: translateY(-2px);
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+    .btn-group {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .btn-group .btn {
+        border-radius: 0.375rem !important;
+        margin-bottom: 0.25rem;
+    }
+    
+    .d-flex.justify-content-between {
+        flex-direction: column;
+        align-items: start !important;
+    }
+    
+    .badge {
+        margin-top: 0.25rem;
+    }
+}
+
+/* Animation for cards */
+.card {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Factor importance styling */
+.text-capitalize {
+    text-transform: capitalize;
+}
+</style>
 {% endblock %}

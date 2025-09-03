@@ -3613,12 +3613,10 @@ def batch_predict_interface():
         available_weeks = [week[0] for week in weeks_with_games]
         available_weeks.sort(key=lambda x: int(x) if x.isdigit() else 999)  # Sort numerically, bowls at end
         
-        # Simple HTML interface
-        interface_html = f"""
-        <h2>Batch Auto-Predict Games</h2>
-        <p>Select weeks to automatically predict all scheduled games:</p>
-        <ul>
-        """
+        # Process data for each week
+        weeks_data = []
+        total_unpredicted = 0
+        total_predicted = 0
         
         for week in available_weeks:
             # Count unpredicted games for this week
@@ -3633,22 +3631,34 @@ def batch_predict_interface():
                 CFBPredictionLog.prediction_type == 'automated'
             ).count()
             
-            interface_html += f"""
-            <li>
-                <strong>Week {week}:</strong> {unpredicted_count} games total, {predicted_count} already predicted
-                <a href='/admin/ml/predict_week/{week}' style='margin-left: 10px; padding: 5px 10px; background: #007bff; color: white; text-decoration: none; border-radius: 3px;'>
-                    Predict Week {week}
-                </a>
-            </li>
-            """
+            # Calculate remaining games to predict
+            remaining = max(0, unpredicted_count - predicted_count)
+            
+            week_data = {
+                'week': week,
+                'total_games': unpredicted_count,
+                'predicted_count': predicted_count,
+                'remaining': remaining,
+                'is_complete': remaining == 0,
+                'prediction_percentage': int((predicted_count / unpredicted_count * 100)) if unpredicted_count > 0 else 0
+            }
+            
+            weeks_data.append(week_data)
+            total_unpredicted += unpredicted_count
+            total_predicted += predicted_count
         
-        interface_html += f"""
-        </ul>
-        <br>
-        <a href='/admin/ml'>Back to ML Dashboard</a>
-        """
+        # Calculate overall stats
+        batch_stats = {
+            'total_weeks': len(available_weeks),
+            'total_games': total_unpredicted,
+            'total_predicted': total_predicted,
+            'total_remaining': total_unpredicted - total_predicted,
+            'overall_percentage': int((total_predicted / total_unpredicted * 100)) if total_unpredicted > 0 else 0
+        }
         
-        return interface_html
+        return render_template('batch_predict.html', 
+                             weeks_data=weeks_data,
+                             batch_stats=batch_stats)
         
     except Exception as e:
         flash(f'Error loading batch predict interface: {str(e)}', 'error')
@@ -3669,65 +3679,69 @@ def view_week_predictions(week):
         ).order_by(CFBPredictionLog.prediction_date.desc()).all()
         
         if not predictions:
-            return f"<h3>No predictions found for Week {week}</h3><a href='/admin/ml/batch_predict'>Back to Batch Predict</a>"
+            flash(f'No predictions found for Week {week}', 'info')
+            return redirect(url_for('cfb_ml_dashboard'))
         
-        # Create HTML table to display predictions
-        html = f"""
-        <h2>Week {week} Predictions ({len(predictions)} total)</h2>
-        <table border='1' style='border-collapse: collapse; width: 100%;'>
-            <tr style='background: #f0f0f0;'>
-                <th style='padding: 8px;'>Matchup</th>
-                <th style='padding: 8px;'>Predicted Winner</th>
-                <th style='padding: 8px;'>Margin</th>
-                <th style='padding: 8px;'>Win %</th>
-                <th style='padding: 8px;'>Confidence</th>
-                <th style='padding: 8px;'>Type</th>
-                <th style='padding: 8px;'>Date</th>
-                <th style='padding: 8px;'>Result</th>
-            </tr>
-        """
+        # Process predictions data for template
+        predictions_data = []
+        stats = {
+            'total': len(predictions),
+            'automated': 0,
+            'manual': 0,
+            'completed': 0,
+            'pending': 0,
+            'correct': 0,
+            'wrong': 0
+        }
         
         for pred in predictions:
-            # Determine if game is completed
-            result_status = "Pending"
+            # Calculate stats
+            if pred.prediction_type == 'automated':
+                stats['automated'] += 1
+            else:
+                stats['manual'] += 1
+                
             if pred.game_completed:
-                if pred.winner_correct:
-                    result_status = f"✅ Correct ({pred.actual_winner})"
-                elif pred.winner_correct == False:
-                    result_status = f"❌ Wrong ({pred.actual_winner})"
-                else:
-                    result_status = f"Result: {pred.actual_winner}"
+                stats['completed'] += 1
+                if pred.winner_correct is True:
+                    stats['correct'] += 1
+                elif pred.winner_correct is False:
+                    stats['wrong'] += 1
+            else:
+                stats['pending'] += 1
             
-            # Color code by prediction type
-            row_color = "#e8f4fd" if pred.prediction_type == 'automated' else "#fff"
-            
-            html += f"""
-            <tr style='background: {row_color};'>
-                <td style='padding: 8px;'>{pred.away_team} @ {pred.home_team}</td>
-                <td style='padding: 8px;'><strong>{pred.predicted_winner}</strong></td>
-                <td style='padding: 8px;'>{pred.predicted_margin}</td>
-                <td style='padding: 8px;'>{pred.win_probability}%</td>
-                <td style='padding: 8px;'>{pred.confidence_level or 'N/A'}</td>
-                <td style='padding: 8px;'>{pred.prediction_type}</td>
-                <td style='padding: 8px;'>{pred.prediction_date.strftime('%m/%d %H:%M') if pred.prediction_date else 'N/A'}</td>
-                <td style='padding: 8px;'>{result_status}</td>
-            </tr>
-            """
+            # Process prediction data
+            pred_data = {
+                'id': pred.id,
+                'matchup': f"{pred.away_team} @ {pred.home_team}",
+                'predicted_winner': pred.predicted_winner,
+                'predicted_margin': pred.predicted_margin,
+                'win_probability': pred.win_probability,
+                'confidence_level': pred.confidence_level or 'N/A',
+                'prediction_type': pred.prediction_type,
+                'prediction_date': pred.prediction_date,
+                'game_completed': pred.game_completed,
+                'winner_correct': pred.winner_correct,
+                'actual_winner': pred.actual_winner
+            }
+            predictions_data.append(pred_data)
         
-        html += f"""
-        </table>
-        <br>
-        <a href='/admin/ml/batch_predict'>Back to Batch Predict</a> | 
-        <a href='/admin/ml'>ML Dashboard</a>
-        """
+        # Calculate accuracy if there are completed games
+        if stats['completed'] > 0:
+            stats['accuracy'] = round((stats['correct'] / stats['completed']) * 100, 1)
+        else:
+            stats['accuracy'] = 0
         
-        return html
+        return render_template('week_predictions.html', 
+                             week=week,
+                             predictions=predictions_data,
+                             stats=stats)
         
     except Exception as e:
-        return f"<h3>Error loading predictions:</h3><p>{str(e)}</p><a href='/admin/ml'>Back to ML Dashboard</a>"
+        flash(f'Error loading predictions for Week {week}: {str(e)}', 'error')
+        return redirect(url_for('cfb_ml_dashboard'))
 
 
-# Also add this quick link route
 @app.route('/admin/ml/predictions')
 @login_required
 def view_all_predictions():
@@ -3741,29 +3755,35 @@ def view_all_predictions():
             CFBPredictionLog.prediction_date >= recent_date
         ).order_by(CFBPredictionLog.week, CFBPredictionLog.prediction_date.desc()).all()
         
-        # Group by week
-        weeks = {}
+        # Group by week and calculate stats
+        weeks_data = {}
         for pred in predictions:
-            if pred.week not in weeks:
-                weeks[pred.week] = []
-            weeks[pred.week].append(pred)
-        
-        html = "<h2>All Recent Predictions</h2>"
-        
-        for week, week_preds in weeks.items():
-            automated_count = len([p for p in week_preds if p.prediction_type == 'automated'])
-            manual_count = len([p for p in week_preds if p.prediction_type == 'manual'])
+            if pred.week not in weeks_data:
+                weeks_data[pred.week] = {
+                    'predictions': [],
+                    'automated_count': 0,
+                    'manual_count': 0,
+                    'total_count': 0
+                }
             
-            html += f"""
-            <h3>Week {week} ({len(week_preds)} total: {automated_count} automated, {manual_count} manual)</h3>
-            <a href='/admin/ml/view_predictions/{week}'>View Week {week} Details</a><br><br>
-            """
+            weeks_data[pred.week]['predictions'].append(pred)
+            weeks_data[pred.week]['total_count'] += 1
+            
+            if pred.prediction_type == 'automated':
+                weeks_data[pred.week]['automated_count'] += 1
+            else:
+                weeks_data[pred.week]['manual_count'] += 1
         
-        html += "<a href='/admin/ml'>Back to ML Dashboard</a>"
-        return html
+        # Sort weeks in descending order (most recent first)
+        sorted_weeks = dict(sorted(weeks_data.items(), key=lambda x: x[0], reverse=True))
+        
+        return render_template('ml_predictions.html', 
+                             weeks_data=sorted_weeks,
+                             total_predictions=len(predictions))
         
     except Exception as e:
-        return f"Error: {str(e)}"
+        flash(f'Error loading predictions: {str(e)}', 'error')
+        return redirect(url_for('cfb_ml_dashboard'))
 
 
 @app.route('/admin/ml/export_season_data')
@@ -8560,6 +8580,8 @@ def add_bulk_games():
         db.session.rollback()
         flash(f'Error adding games: {e}', 'error')
     
+    print("Performance object attributes:", dir(performance))
+    print("About to render template...")
     return redirect(url_for('add_game'))
 
 
@@ -8580,113 +8602,8 @@ def cfb_ml_dashboard():
             flash('Error loading enhanced ML dashboard data', 'error')
             return redirect(url_for('admin'))
         
-        # Create enhanced HTML dashboard
-        html = """
-        <h1>🤖 CFB ML Tracking Dashboard</h1>
-        <div style='display: flex; gap: 20px; margin-bottom: 20px;'>
-            <a href='/admin/ml/batch_predict' style='padding: 10px 15px; background: #28a745; color: white; text-decoration: none; border-radius: 5px;'>
-                📊 Auto-Predict Games
-            </a>
-            <a href='/admin/ml/predictions' style='padding: 10px 15px; background: #007bff; color: white; text-decoration: none; border-radius: 5px;'>
-                👁️ View All Predictions
-            </a>
-            <a href='/admin/ml/manage_predictions' style='padding: 10px 15px; background: #dc3545; color: white; text-decoration: none; border-radius: 5px;'>
-                🗑️ Manage/Delete Predictions
-            </a>
-              <a href='/admin/ml/export_season_data' style='padding: 10px 15px; background: #6f42c1; color: white; text-decoration: none; border-radius: 5px;'>
-        📤 Export Season Data
-             </a>
-        </div>
-        """
-        
-        # Overall Stats
-        html += f"""
-        <h2>📈 Overall Performance</h2>
-        <div style='display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;'>
-            <div style='padding: 15px; background: #f8f9fa; border-radius: 8px; text-align: center;'>
-                <h3>Total Predictions</h3>
-                <div style='font-size: 24px; font-weight: bold; color: #495057;'>{dashboard_data['total_predictions']}</div>
-            </div>
-            <div style='padding: 15px; background: #e3f2fd; border-radius: 8px; text-align: center;'>
-                <h3>Automated</h3>
-                <div style='font-size: 24px; font-weight: bold; color: #1976d2;'>{dashboard_data['automated_predictions']}</div>
-            </div>
-            <div style='padding: 15px; background: #f3e5f5; border-radius: 8px; text-align: center;'>
-                <h3>Manual</h3>
-                <div style='font-size: 24px; font-weight: bold; color: #7b1fa2;'>{dashboard_data['manual_predictions']}</div>
-            </div>
-        </div>
-        """
-        
-        # Accuracy Comparison
-        accuracy_data = dashboard_data['accuracy_by_type']
-        html += """
-        <h2>🎯 Accuracy Comparison</h2>
-        <table border='1' style='border-collapse: collapse; width: 100%; margin-bottom: 20px;'>
-            <tr style='background: #f0f0f0;'>
-                <th style='padding: 10px;'>Prediction Type</th>
-                <th style='padding: 10px;'>Total</th>
-                <th style='padding: 10px;'>Completed</th>
-                <th style='padding: 10px;'>Correct</th>
-                <th style='padding: 10px;'>Accuracy</th>
-                <th style='padding: 10px;'>Avg Margin Error</th>
-            </tr>
-        """
-        
-        for pred_type, data in accuracy_data.items():
-            color = "#e3f2fd" if pred_type == "automated" else "#f3e5f5"
-            icon = "🤖" if pred_type == "automated" else "👤"
-            html += f"""
-            <tr style='background: {color};'>
-                <td style='padding: 10px;'>{icon} {pred_type.title()}</td>
-                <td style='padding: 10px;'>{data['total']}</td>
-                <td style='padding: 10px;'>{data['completed']}</td>
-                <td style='padding: 10px;'>{data['correct']}</td>
-                <td style='padding: 10px;'><strong>{data['accuracy']}%</strong></td>
-                <td style='padding: 10px;'>{data['avg_margin_error']}</td>
-            </tr>
-            """
-        
-        html += "</table>"
-        
-        # Weekly Breakdown
-        weekly_data = dashboard_data['weekly_breakdown']
-        if weekly_data:
-            html += """
-            <h2>📅 Weekly Breakdown</h2>
-            <table border='1' style='border-collapse: collapse; width: 100%; margin-bottom: 20px;'>
-                <tr style='background: #f0f0f0;'>
-                    <th style='padding: 8px;'>Week</th>
-                    <th style='padding: 8px;'>Total</th>
-                    <th style='padding: 8px;'>🤖 Automated</th>
-                    <th style='padding: 8px;'>👤 Manual</th>
-                    <th style='padding: 8px;'>Completed</th>
-                    <th style='padding: 8px;'>Pending</th>
-                    <th style='padding: 8px;'>Actions</th>
-                </tr>
-            """
-            
-            for week, data in weekly_data.items():
-                html += f"""
-                <tr>
-                    <td style='padding: 8px;'><strong>Week {week}</strong></td>
-                    <td style='padding: 8px;'>{data['total']}</td>
-                    <td style='padding: 8px;'>{data['automated']}</td>
-                    <td style='padding: 8px;'>{data['manual']}</td>
-                    <td style='padding: 8px;'>{data['completed']}</td>
-                    <td style='padding: 8px;'>{data['pending']}</td>
-                    <td style='padding: 8px;'>
-                        <a href='/admin/ml/view_predictions/{week}' style='color: #007bff;'>View</a>
-                        {f" | <a href='/admin/ml/predict_week/{week}' style='color: #28a745;'>Predict</a>" if data['pending'] > 0 else ""}
-                    </td>
-                </tr>
-                """
-            
-            html += "</table>"
-        
-        html += "<br><a href='/admin'>← Back to Admin</a>"
-        
-        return html
+        return render_template('ml_dashboard.html', 
+                             dashboard_data=dashboard_data)
         
     except Exception as e:
         flash(f'Error loading enhanced CFB ML dashboard: {e}', 'error')
@@ -8833,6 +8750,91 @@ def cfb_ml_reset_tracking():
     return redirect(url_for('cfb_ml_dashboard'))
 
 
+@app.route('/admin/ml/recalculate_performance')
+@login_required
+def recalculate_performance():
+    """Manually recalculate performance metrics"""
+    debug_output = ["=== RECALCULATE DEBUG ==="]
+    
+    try:
+        debug_output.append("Attempting import...")
+        from cfb_ml_tracking import update_algorithm_performance
+        debug_output.append("Import successful")
+        
+        debug_output.append("Getting weeks...")
+        weeks = db.session.query(CFBPredictionLog.week).distinct().all()
+        debug_output.append(f"Found weeks: {[w[0] for w in weeks]}")
+        
+        debug_output.append("Starting performance updates...")
+        for week_tuple in weeks:
+            week = week_tuple[0]
+            debug_output.append(f"Processing week {week}")
+            update_algorithm_performance(week)
+            debug_output.append(f"Finished week {week}")
+        
+        debug_output.append("All done successfully!")
+        return f"<pre>{'<br>'.join(debug_output)}</pre><br><a href='/admin/ml/prediction_factors'>Check Results</a>"
+        
+    except Exception as e:
+        debug_output.append(f"ERROR: {str(e)}")
+        debug_output.append(f"Error type: {type(e)}")
+        import traceback
+        debug_output.append(f"Traceback: {traceback.format_exc()}")
+        return f"<pre>{'<br>'.join(debug_output)}</pre><br><a href='/admin/ml'>Back</a>"
+
+
+@app.route('/admin/ml/debug_predictions')
+@login_required
+def debug_predictions():
+    """Debug what predictions actually exist"""
+    try:
+        # Get ALL predictions regardless of filters
+        all_preds = CFBPredictionLog.query.all()
+        
+        # Get predictions with winner_correct set
+        winner_correct_preds = CFBPredictionLog.query.filter(
+            CFBPredictionLog.winner_correct.isnot(None)
+        ).all()
+        
+        # Get predictions for current year
+        current_year_preds = CFBPredictionLog.query.filter(
+            CFBPredictionLog.season_year == datetime.now().year
+        ).all()
+        
+        # Get sample prediction to see its actual structure
+        sample_pred = CFBPredictionLog.query.first()
+        
+        debug_info = {
+            'total_predictions': len(all_preds),
+            'predictions_with_winner_correct': len(winner_correct_preds),
+            'current_year_predictions': len(current_year_preds),
+            'current_year': datetime.now().year,
+        }
+        
+        if sample_pred:
+            # Only access attributes that we know exist
+            debug_info['sample_prediction'] = {
+                'id': sample_pred.id,
+                'week': sample_pred.week,
+                'season_year': sample_pred.season_year,
+                'winner_correct': sample_pred.winner_correct,
+                'team1_name': getattr(sample_pred, 'team1_name', 'N/A'),
+                'team2_name': getattr(sample_pred, 'team2_name', 'N/A'),
+                'predicted_winner': getattr(sample_pred, 'predicted_winner', 'N/A'),
+                'actual_winner': getattr(sample_pred, 'actual_winner', 'N/A'),
+                'prediction_type': getattr(sample_pred, 'prediction_type', 'N/A')
+            }
+            
+            # Show ALL attributes that actually exist
+            debug_info['all_attributes'] = [attr for attr in dir(sample_pred) if not attr.startswith('_')]
+        
+        return f"<pre>{json.dumps(debug_info, indent=2, default=str)}</pre><br><a href='/admin/ml'>Back</a>"
+        
+    except Exception as e:
+        return f"Error: {str(e)}<br><a href='/admin/ml'>Back</a>"
+
+
+
 # Add these routes to your app.py for deleting predictions
 
 @app.route('/admin/ml/delete_week/<week>')
@@ -8930,74 +8932,33 @@ def manage_predictions():
         all_predictions = CFBPredictionLog.query.all()
         
         # Group by week
-        weeks = {}
+        weeks_data = {}
         for pred in all_predictions:
-            if pred.week not in weeks:
-                weeks[pred.week] = {'manual': 0, 'automated': 0, 'total': 0}
-            weeks[pred.week][pred.prediction_type] += 1
-            weeks[pred.week]['total'] += 1
+            if pred.week not in weeks_data:
+                weeks_data[pred.week] = {'manual': 0, 'automated': 0, 'total': 0}
+            weeks_data[pred.week][pred.prediction_type] += 1
+            weeks_data[pred.week]['total'] += 1
         
-        # Sort weeks
-        sorted_weeks = sorted(weeks.keys(), key=lambda x: int(x) if x.isdigit() else 999)
+        # Sort weeks in descending order (most recent first)
+        sorted_weeks = sorted(weeks_data.keys(), key=lambda x: int(x) if x.isdigit() else 999, reverse=True)
         
         # Count totals
         total_manual = len([p for p in all_predictions if p.prediction_type == 'manual'])
         total_automated = len([p for p in all_predictions if p.prediction_type == 'automated'])
+        total_predictions = len(all_predictions)
         
-        html = f"""
-        <h2>🗑️ Manage Predictions</h2>
+        # Organize data for template
+        manage_data = {
+            'weeks': {week: weeks_data[week] for week in sorted_weeks},
+            'totals': {
+                'manual': total_manual,
+                'automated': total_automated,
+                'all': total_predictions
+            }
+        }
         
-        <div style='background: #fff3cd; padding: 15px; border-radius: 5px; margin-bottom: 20px;'>
-            <strong>⚠️ Warning:</strong> Deletion is permanent! Make sure you want to remove these predictions.
-        </div>
-        
-        <h3>Delete All Predictions</h3>
-        <div style='margin-bottom: 20px;'>
-            <a href='/admin/ml/delete_automated' onclick='return confirm("Delete all {total_automated} automated predictions? Manual predictions will be kept.")' 
-               style='padding: 8px 15px; background: #ffc107; color: black; text-decoration: none; border-radius: 3px; margin-right: 10px;'>
-                Delete All Automated ({total_automated})
-            </a>
-            <a href='/admin/ml/delete_all' onclick='return confirm("DELETE ALL {len(all_predictions)} PREDICTIONS? This cannot be undone!")' 
-               style='padding: 8px 15px; background: #dc3545; color: white; text-decoration: none; border-radius: 3px;'>
-                Delete Everything ({len(all_predictions)})
-            </a>
-        </div>
-        
-        <h3>Delete by Week</h3>
-        <table border='1' style='border-collapse: collapse; width: 100%;'>
-            <tr style='background: #f0f0f0;'>
-                <th style='padding: 8px;'>Week</th>
-                <th style='padding: 8px;'>Manual</th>
-                <th style='padding: 8px;'>Automated</th>
-                <th style='padding: 8px;'>Total</th>
-                <th style='padding: 8px;'>Actions</th>
-            </tr>
-        """
-        
-        for week in sorted_weeks:
-            data = weeks[week]
-            html += f"""
-            <tr>
-                <td style='padding: 8px;'><strong>Week {week}</strong></td>
-                <td style='padding: 8px;'>{data['manual']}</td>
-                <td style='padding: 8px;'>{data['automated']}</td>
-                <td style='padding: 8px;'>{data['total']}</td>
-                <td style='padding: 8px;'>
-                    <a href='/admin/ml/view_predictions/{week}' style='color: #007bff; margin-right: 10px;'>View</a>
-                    <a href='/admin/ml/delete_week/{week}' onclick='return confirm("Delete all {data['total']} predictions for Week {week}?")' 
-                       style='color: #dc3545;'>Delete Week</a>
-                </td>
-            </tr>
-            """
-        
-        html += f"""
-        </table>
-        
-        <br>
-        <a href='/admin/ml'>← Back to ML Dashboard</a>
-        """
-        
-        return html
+        return render_template('manage_predictions.html', 
+                             manage_data=manage_data)
         
     except Exception as e:
         flash(f'Error loading manage predictions: {str(e)}', 'error')
