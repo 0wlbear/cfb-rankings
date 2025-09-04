@@ -4697,36 +4697,33 @@ def predict_matchup_ultra_enhanced(team1_name, team2_name, location='neutral'):
 
         # Handle FCS matchups first - FCS should never be predicted to win
         if team1_name == 'FCS' and team2_name == 'FCS':
-            # FCS vs FCS - this shouldn't happen, but if it does, just pick one
             return {
-                'base_margin': 0,
+                'base_margin': 0.0,  # Changed from 0 to 0.0
                 'adjustments': {},
-                'final_margin': 3,
-                'win_probability': 55,
+                'final_margin': 3.0,  # Changed from 3 to 3.0
+                'win_probability': 55.0,  # Changed from 55 to 55.0
                 'winner': team1_name,
                 'confidence': 'Low',
                 'confidence_score': 0.3,
                 'prediction_methodology': 'FCS vs FCS Default'
             }
         elif team1_name == 'FCS':
-            # team2 (FBS) should always beat team1 (FCS)
             return {
-                'base_margin': 20,
+                'base_margin': 20.0,  # Changed from 20 to 20.0
                 'adjustments': {'FCS Opponent': 'Auto-loss'},
-                'final_margin': 20,
-                'win_probability': 85,
+                'final_margin': 20.0,  # Changed from 20 to 20.0
+                'win_probability': 85.0,  # Changed from 85 to 85.0
                 'winner': team2_name,
                 'confidence': 'High',
                 'confidence_score': 0.85,
                 'prediction_methodology': 'FCS Auto-Loss'
             }
         elif team2_name == 'FCS':
-            # team1 (FBS) should always beat team2 (FCS)
             return {
-                'base_margin': 20,
+                'base_margin': 20.0,  # Changed from 20 to 20.0
                 'adjustments': {'FCS Opponent': 'Auto-win'},
-                'final_margin': 20,
-                'win_probability': 85,
+                'final_margin': 20.0,  # Changed from 20 to 20.0
+                'win_probability': 85.0,  # Changed from 85 to 85.0
                 'winner': team1_name,
                 'confidence': 'High',
                 'confidence_score': 0.85,
@@ -8474,6 +8471,100 @@ def log_game_result_to_ml(home_team, away_team, home_score, away_score, week, is
 
 
 
+@app.route('/admin/ml/reprocess_week_results/<int:week>')
+@login_required
+def reprocess_week_results(week):
+    """Re-log all game results for a specific week to update predictions"""
+    try:
+        # Get all completed games for this week
+        week_games = Game.query.filter_by(week=str(week)).all()
+        
+        results_updated = 0
+        for game in week_games:
+            # Re-log each game result
+            updated = log_game_result_to_ml(
+                game.home_team, 
+                game.away_team, 
+                game.home_score, 
+                game.away_score, 
+                game.week, 
+                game.overtime
+            )
+            results_updated += updated
+        
+        flash(f'Re-processed {len(week_games)} games, updated {results_updated} predictions', 'success')
+        return redirect(url_for('cfb_ml_dashboard'))
+        
+    except Exception as e:
+        flash(f'Error reprocessing week results: {e}', 'error')
+        return redirect(url_for('cfb_ml_dashboard'))
+
+
+@app.route('/admin/ml/predict_completed_week/<int:week>')
+@login_required
+def predict_completed_week(week):
+    """Create predictions for already-completed games"""
+    try:
+        completed_games = ScheduledGame.query.filter(
+            ScheduledGame.week == str(week),
+            ScheduledGame.completed == True
+        ).all()
+        
+        predictions_created = 0
+        for scheduled_game in completed_games:
+            # Check if prediction already exists
+            existing = CFBPredictionLog.query.filter(
+                CFBPredictionLog.home_team == scheduled_game.home_team,
+                CFBPredictionLog.away_team == scheduled_game.away_team,
+                CFBPredictionLog.week == str(week)
+            ).first()
+            
+            if existing:
+                continue
+            
+            # Generate prediction
+            location = 'neutral' if scheduled_game.neutral else 'home'
+            prediction_result = predict_matchup_ultra_enhanced(  # Change back to original function
+                scheduled_game.home_team,
+                scheduled_game.away_team,
+                location
+            )
+            
+            # Create prediction log entry
+            prediction_log = CFBPredictionLog()
+            prediction_log.season_year = 2025
+            prediction_log.week = str(week)
+            prediction_log.home_team = scheduled_game.home_team
+            prediction_log.away_team = scheduled_game.away_team
+            prediction_log.prediction_type = 'automated'
+            
+            prediction_log.predicted_winner = prediction_result['winner']
+            prediction_log.predicted_margin = float(abs(prediction_result['final_margin']))
+            prediction_log.win_probability = float(prediction_result['win_probability'])
+            prediction_log.confidence_level = str(prediction_result['confidence'])
+            
+            adjustments = prediction_result.get('adjustments', {})
+            prediction_log.base_strength_diff = float(prediction_result.get('base_margin', 0))
+            prediction_log.schedule_strength_factor = float(adjustments.get('Enhanced Schedule Strength', 0))
+            prediction_log.momentum_factor = float(adjustments.get('Recent Momentum Edge', 0))
+            prediction_log.location_factor = float(adjustments.get('Enhanced Home Field', 0))
+            
+            prediction_log.game_completed = False
+            
+            db.session.add(prediction_log)
+            predictions_created += 1
+        
+        db.session.commit()
+        flash(f'Created {predictions_created} predictions from {len(completed_games)} completed scheduled games', 'success')
+        return redirect(url_for('cfb_ml_dashboard'))
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error: {e}', 'error')
+        return redirect(url_for('cfb_ml_dashboard'))
+
+
+
 @app.route('/add_bulk_games', methods=['POST'])
 @login_required
 def add_bulk_games():
@@ -8580,8 +8671,6 @@ def add_bulk_games():
         db.session.rollback()
         flash(f'Error adding games: {e}', 'error')
     
-    print("Performance object attributes:", dir(performance))
-    print("About to render template...")
     return redirect(url_for('add_game'))
 
 
