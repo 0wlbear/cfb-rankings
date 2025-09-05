@@ -3329,6 +3329,13 @@ def auto_predict_single_game(scheduled_game, overwrite=False):
     Returns: (success: bool, message: str, prediction_id: int or None)
     """
     try:
+
+        # NEW: Skip FCS games entirely
+        if (is_fcs_opponent(scheduled_game.home_team) or 
+            is_fcs_opponent(scheduled_game.away_team)):
+            return False, f"Skipped FCS game: {scheduled_game.away_team} @ {scheduled_game.home_team}", None
+
+
         # Check if prediction already exists
         existing = CFBPredictionLog.query.filter(
             CFBPredictionLog.week == scheduled_game.week,
@@ -3539,16 +3546,30 @@ def test_core_functions():
 @app.route('/admin/ml/predict_week/<int:week>')
 @login_required
 def auto_predict_week(week):
-    """Auto-predict all scheduled games for a specific week"""
+    """Auto-predict all scheduled FBS vs FBS games for a specific week (excludes FCS games)"""
     try:
-        # Get all unpredicted games for this week
-        unpredicted_games = ScheduledGame.query.filter(
+        # Get all unpredicted games for this week - EXCLUDE FCS GAMES
+        all_unpredicted_games = ScheduledGame.query.filter(
             ScheduledGame.week == str(week),
             ScheduledGame.completed == False
         ).all()
         
-        if not unpredicted_games:
-            flash(f'No unpredicted games found for Week {week}', 'info')
+        # Filter out FCS games and separate them
+        fbs_games = []
+        fcs_games_skipped = 0
+        
+        for game in all_unpredicted_games:
+            if (is_fcs_opponent(game.home_team) or is_fcs_opponent(game.away_team)):
+                fcs_games_skipped += 1
+                continue
+            fbs_games.append(game)
+        
+        # Check if we have any FBS vs FBS games to predict
+        if not fbs_games:
+            if fcs_games_skipped > 0:
+                flash(f'No FBS vs FBS games found for Week {week}. Skipped {fcs_games_skipped} FCS games (not predicted).', 'info')
+            else:
+                flash(f'No unpredicted games found for Week {week}', 'info')
             return redirect(url_for('cfb_ml_dashboard'))
         
         # Track results
@@ -3557,8 +3578,9 @@ def auto_predict_week(week):
         skipped_predictions = 0
         results = []
         
-        for game in unpredicted_games:
-            # Check if automated prediction already exists
+        # Process each FBS vs FBS game
+        for game in fbs_games:
+            # Check if automated prediction already exists for this specific game
             existing = CFBPredictionLog.query.filter(
                 CFBPredictionLog.week == str(week),
                 CFBPredictionLog.home_team == game.home_team,
@@ -3568,38 +3590,71 @@ def auto_predict_week(week):
             
             if existing:
                 skipped_predictions += 1
-                results.append(f"⏭️ {game.away_team} @ {game.home_team} - Already predicted")
+                results.append(f"Already predicted: {game.away_team} @ {game.home_team}")
                 continue
             
-            # Generate prediction
+            # Generate prediction for this FBS vs FBS game
             success, message, pred_id = auto_predict_single_game(game, overwrite=False)
             
             if success:
                 successful_predictions += 1
-                results.append(f"✅ {message}")
+                results.append(f"Success: {message}")
             else:
                 failed_predictions += 1
-                results.append(f"❌ {game.away_team} @ {game.home_team} - {message}")
+                results.append(f"Failed: {game.away_team} @ {game.home_team} - {message}")
         
-        # Show results
-        flash(f'Week {week} Auto-Prediction Results: {successful_predictions} successful, {failed_predictions} failed, {skipped_predictions} skipped', 'info')
+        # Prepare summary message
+        summary_parts = [
+            f'Week {week} Auto-Prediction Results:',
+            f'{successful_predictions} successful',
+            f'{failed_predictions} failed', 
+            f'{skipped_predictions} already predicted'
+        ]
         
-        # For now, show results on a simple page
+        if fcs_games_skipped > 0:
+            summary_parts.append(f'{fcs_games_skipped} FCS games excluded')
+        
+        summary_message = ', '.join(summary_parts)
+        
+        # Show results with appropriate flash type
+        if failed_predictions > 0:
+            flash(summary_message, 'warning')
+        else:
+            flash(summary_message, 'success')
+        
+        # Generate detailed results HTML for display
         results_html = f"""
         <h2>Week {week} Auto-Prediction Results</h2>
-        <p><strong>Summary:</strong> {successful_predictions} successful, {failed_predictions} failed, {skipped_predictions} skipped</p>
-        <h3>Details:</h3>
-        <ul>
+        
+        <div class="alert alert-info">
+            <strong>Summary:</strong><br>
+            • {successful_predictions} predictions created successfully<br>
+            • {failed_predictions} predictions failed<br>
+            • {skipped_predictions} games already had predictions<br>
+            • {len(fbs_games)} total FBS vs FBS games processed<br>
+            {f'• {fcs_games_skipped} FCS games excluded from predictions<br>' if fcs_games_skipped > 0 else ''}
+        </div>
+        
+        <h3>Detailed Results:</h3>
+        <div class="results-list">
         """
         
         for result in results:
-            results_html += f"<li>{result}</li>"
+            if result.startswith('Success'):
+                results_html += f'<div class="alert alert-success">{result}</div>'
+            elif result.startswith('Failed'):
+                results_html += f'<div class="alert alert-danger">{result}</div>'
+            else:
+                results_html += f'<div class="alert alert-secondary">{result}</div>'
         
         results_html += f"""
-        </ul>
-        <br>
-        <a href='/admin/ml'>Back to ML Dashboard</a> | 
-        <a href='/admin/ml/batch_predict'>Batch Predict</a>
+        </div>
+        
+        <div class="mt-3">
+            <a href="/admin/ml" class="btn btn-primary">Back to ML Dashboard</a>
+            <a href="/admin/ml/batch_predict" class="btn btn-secondary">Batch Predict</a>
+            <a href="/admin/ml/view_predictions/{week}" class="btn btn-info">View Week {week} Predictions</a>
+        </div>
         """
         
         return results_html
@@ -3612,48 +3667,73 @@ def auto_predict_week(week):
 @app.route('/admin/ml/batch_predict')
 @login_required  
 def batch_predict_interface():
-    """Interface to select weeks for batch prediction"""
+    """Interface to select weeks for batch prediction (excluding FCS games)"""
     try:
-        # Get all weeks that have scheduled games
+        # Get all weeks that have scheduled FBS vs FBS games
         weeks_with_games = db.session.query(ScheduledGame.week).filter(
-            ScheduledGame.completed == False
+            ScheduledGame.completed == False,
+            # Exclude FCS games
+            ~(ScheduledGame.home_team.ilike('%FCS%')),
+            ~(ScheduledGame.away_team.ilike('%FCS%')),
+            ScheduledGame.home_team != 'FCS',
+            ScheduledGame.away_team != 'FCS'
         ).distinct().all()
         
         available_weeks = [week[0] for week in weeks_with_games]
-        available_weeks.sort(key=lambda x: int(x) if x.isdigit() else 999)  # Sort numerically, bowls at end
+        available_weeks.sort(key=lambda x: int(x) if x.isdigit() else 999)
         
-        # Process data for each week
         weeks_data = []
         total_unpredicted = 0
         total_predicted = 0
+        total_fcs_excluded = 0
         
         for week in available_weeks:
-            # Count unpredicted games for this week
-            unpredicted_count = ScheduledGame.query.filter(
+            # Count FBS vs FBS games only
+            fbs_games = ScheduledGame.query.filter(
+                ScheduledGame.week == week,
+                ScheduledGame.completed == False,
+                ~(ScheduledGame.home_team.ilike('%FCS%')),
+                ~(ScheduledGame.away_team.ilike('%FCS%')),
+                ScheduledGame.home_team != 'FCS',
+                ScheduledGame.away_team != 'FCS'
+            ).all()
+            
+            # Count total games including FCS to show what we're excluding
+            all_games = ScheduledGame.query.filter(
                 ScheduledGame.week == week,
                 ScheduledGame.completed == False
             ).count()
             
-            # Count existing automated predictions
-            predicted_count = db.session.query(CFBPredictionLog).filter(
-                CFBPredictionLog.week == week,
-                CFBPredictionLog.prediction_type == 'automated'
-            ).count()
+            fbs_count = len(fbs_games)
+            fcs_excluded = all_games - fbs_count
+            total_fcs_excluded += fcs_excluded
             
-            # Calculate remaining games to predict
-            remaining = max(0, unpredicted_count - predicted_count)
+            # Count existing automated predictions for FBS games
+            predicted_count = 0
+            for game in fbs_games:
+                existing = CFBPredictionLog.query.filter(
+                    CFBPredictionLog.week == week,
+                    CFBPredictionLog.home_team == game.home_team,
+                    CFBPredictionLog.away_team == game.away_team,
+                    CFBPredictionLog.prediction_type == 'automated'
+                ).first()
+                if existing:
+                    predicted_count += 1
+            
+            remaining = fbs_count - predicted_count
             
             week_data = {
                 'week': week,
-                'total_games': unpredicted_count,
+                'total_games': fbs_count,  # Only FBS games
                 'predicted_count': predicted_count,
                 'remaining': remaining,
+                'fcs_excluded': fcs_excluded,  # NEW: Track excluded FCS games
                 'is_complete': remaining == 0,
-                'prediction_percentage': int((predicted_count / unpredicted_count * 100)) if unpredicted_count > 0 else 0
+                'prediction_percentage': int((predicted_count / fbs_count * 100)) if fbs_count > 0 else 0
             }
             
             weeks_data.append(week_data)
-            total_unpredicted += unpredicted_count
+            total_unpredicted += fbs_count
             total_predicted += predicted_count
         
         # Calculate overall stats
@@ -3662,6 +3742,7 @@ def batch_predict_interface():
             'total_games': total_unpredicted,
             'total_predicted': total_predicted,
             'total_remaining': total_unpredicted - total_predicted,
+            'total_fcs_excluded': total_fcs_excluded,  # NEW
             'overall_percentage': int((total_predicted / total_unpredicted * 100)) if total_unpredicted > 0 else 0
         }
         
@@ -8497,12 +8578,17 @@ def log_game_result_to_ml(home_team, away_team, home_score, away_score, week, is
 @app.route('/admin/ml/reprocess_week_results/<int:week>')
 @login_required
 def reprocess_week_results(week):
-    """Re-log all game results with flexible team matching for neutral site games"""
+    """Re-log all game results with flexible team matching for neutral site games (excluding FCS)"""
     try:
-        # Reset predictions back to incomplete
+        # Reset predictions back to incomplete - but only for FBS games
         predictions_to_reset = CFBPredictionLog.query.filter(
             CFBPredictionLog.week == str(week),
-            CFBPredictionLog.game_completed == True
+            CFBPredictionLog.game_completed == True,
+            # Only reset FBS vs FBS predictions
+            ~(CFBPredictionLog.home_team.ilike('%FCS%')),
+            ~(CFBPredictionLog.away_team.ilike('%FCS%')),
+            CFBPredictionLog.home_team != 'FCS',
+            CFBPredictionLog.away_team != 'FCS'
         ).all()
         
         for pred in predictions_to_reset:
@@ -8513,10 +8599,19 @@ def reprocess_week_results(week):
         
         db.session.commit()
         
-        # Get all games for this week
-        week_games = Game.query.filter_by(week=str(week)).all()
+        # Get all FBS games for this week (exclude FCS)
+        week_games = Game.query.filter(
+            Game.week == str(week),
+            ~(Game.home_team.ilike('%FCS%')),
+            ~(Game.away_team.ilike('%FCS%')),
+            Game.home_team != 'FCS',
+            Game.away_team != 'FCS'
+        ).all()
         
         results_updated = 0
+        fcs_games_total = Game.query.filter_by(week=str(week)).count()
+        fcs_games_excluded = fcs_games_total - len(week_games)
+        
         for game in week_games:
             # Find predictions for this game (check both orientations)
             predictions = CFBPredictionLog.query.filter(
@@ -8542,7 +8637,7 @@ def reprocess_week_results(week):
                 prediction.actual_margin = actual_margin
                 prediction.game_completed = True
                 
-                # Apply your new spread logic
+                # Apply your spread logic
                 predicted_spread = prediction.predicted_margin if prediction.predicted_margin else 0
                 if prediction.predicted_winner != actual_winner:
                     prediction.winner_correct = False
@@ -8552,7 +8647,13 @@ def reprocess_week_results(week):
                 results_updated += 1
         
         db.session.commit()
-        flash(f'Re-processed {len(week_games)} games, updated {results_updated} predictions', 'success')
+        
+        # Updated flash message
+        if fcs_games_excluded > 0:
+            flash(f'Re-processed {len(week_games)} FBS games, updated {results_updated} predictions. Excluded {fcs_games_excluded} FCS games.', 'success')
+        else:
+            flash(f'Re-processed {len(week_games)} games, updated {results_updated} predictions', 'success')
+        
         return redirect(url_for('cfb_ml_dashboard'))
         
     except Exception as e:
@@ -8563,19 +8664,44 @@ def reprocess_week_results(week):
 @app.route('/admin/ml/predict_completed_week/<int:week>')
 @login_required
 def predict_completed_week(week):
-    """Create predictions for already-completed games with full debugging"""
+    """Create predictions for already-completed games with full debugging (excluding FCS games)"""
     try:
+        # Get completed games for this week - EXCLUDE FCS GAMES
         completed_games = ScheduledGame.query.filter(
             ScheduledGame.week == str(week),
-            ScheduledGame.completed == True
+            ScheduledGame.completed == True,
+            # NEW: Filter out FCS games
+            ~(ScheduledGame.home_team.ilike('%FCS%')),
+            ~(ScheduledGame.away_team.ilike('%FCS%')),
+            ScheduledGame.home_team != 'FCS',
+            ScheduledGame.away_team != 'FCS'
         ).all()
         
-        print(f"DEBUG: Found {len(completed_games)} completed games for week {week}")
+        # Additional Python-level filtering for safety
+        fbs_completed_games = []
+        fcs_games_skipped = 0
+        
+        for game in completed_games:
+            if (is_fcs_opponent(game.home_team) or is_fcs_opponent(game.away_team)):
+                fcs_games_skipped += 1
+                continue
+            fbs_completed_games.append(game)
+        
+        print(f"DEBUG: Found {len(fbs_completed_games)} completed FBS vs FBS games for week {week}")
+        if fcs_games_skipped > 0:
+            print(f"DEBUG: Skipped {fcs_games_skipped} FCS games")
+        
+        if not fbs_completed_games:
+            if fcs_games_skipped > 0:
+                flash(f'No completed FBS vs FBS games found for Week {week}. Skipped {fcs_games_skipped} FCS games.', 'info')
+            else:
+                flash(f'No completed FBS games found for Week {week}', 'info')
+            return redirect(url_for('cfb_ml_dashboard'))
         
         predictions_created = 0
         errors = []
         
-        for i, scheduled_game in enumerate(completed_games):
+        for i, scheduled_game in enumerate(fbs_completed_games):
             try:
                 print(f"DEBUG: Processing game {i+1}: {scheduled_game.home_team} vs {scheduled_game.away_team}")
                 
@@ -8655,7 +8781,12 @@ def predict_completed_week(week):
             for error in errors:
                 print(f"  - {error}")
         
-        flash(f'Created {predictions_created} predictions. {len(errors)} errors occurred.', 'warning' if errors else 'success')
+        # Updated flash message to include FCS exclusion info
+        if fcs_games_skipped > 0:
+            flash(f'Created {predictions_created} predictions for FBS games. {len(errors)} errors occurred. Excluded {fcs_games_skipped} FCS games.', 'warning' if errors else 'success')
+        else:
+            flash(f'Created {predictions_created} predictions. {len(errors)} errors occurred.', 'warning' if errors else 'success')
+        
         return redirect(url_for('cfb_ml_dashboard'))
         
     except Exception as e:
@@ -8664,6 +8795,9 @@ def predict_completed_week(week):
         print(f"DEBUG: Full traceback: {traceback.format_exc()}")
         flash(f'Error: {e}', 'error')
         return redirect(url_for('cfb_ml_dashboard'))
+
+
+
 
 @app.route('/admin/ml/debug_week/<int:week>')
 @login_required

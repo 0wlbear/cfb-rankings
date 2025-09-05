@@ -689,12 +689,15 @@ def setup_cfb_ml_tracking():
 
 
 def get_enhanced_ml_dashboard_data():
-    """Get enhanced ML dashboard data with automated vs manual breakdowns"""
+    """Get enhanced ML dashboard data with automated vs manual breakdowns and FCS exclusion stats"""
     try:
         from datetime import datetime, timedelta
         
         # Get all predictions
         all_predictions = CFBPredictionLog.query.all()
+        
+        # Calculate FCS exclusion statistics
+        fcs_exclusions = calculate_fcs_exclusion_stats()
         
         if not all_predictions:
             return {
@@ -703,7 +706,8 @@ def get_enhanced_ml_dashboard_data():
                 'automated_predictions': 0,
                 'recent_predictions': [],
                 'accuracy_by_type': {},
-                'weekly_breakdown': {}
+                'weekly_breakdown': {},
+                'fcs_exclusions': fcs_exclusions
             }
         
         # Separate by prediction type
@@ -734,7 +738,7 @@ def get_enhanced_ml_dashboard_data():
                 'avg_margin_error': avg_margin_error
             }
         
-        # Weekly breakdown
+        # Weekly breakdown with FCS exclusion info
         weekly_breakdown = {}
         weeks = list(set([p.week for p in all_predictions]))
         weeks.sort(key=lambda x: int(x) if x.isdigit() else 999)
@@ -745,16 +749,26 @@ def get_enhanced_ml_dashboard_data():
             week_automated = [p for p in week_predictions if p.prediction_type == 'automated']
             week_completed = [p for p in week_predictions if p.game_completed]
             
+            # Calculate FCS exclusions for this specific week
+            week_fcs_stats = calculate_week_fcs_exclusions(week)
+            
             weekly_breakdown[week] = {
                 'total': len(week_predictions),
                 'manual': len(week_manual),
                 'automated': len(week_automated),
                 'completed': len(week_completed),
-                'pending': len(week_predictions) - len(week_completed)
+                'pending': len(week_predictions) - len(week_completed),
+                'fcs_excluded': week_fcs_stats['fcs_excluded'],
+                'total_scheduled': week_fcs_stats['total_scheduled'],
+                'fbs_games': week_fcs_stats['fbs_games']
             }
         
         # Recent predictions (last 20)
         recent_predictions = sorted(all_predictions, key=lambda x: x.prediction_date or datetime.min, reverse=True)[:20]
+        
+        # Calculate overall prediction coverage (how many FBS games we're predicting vs total FBS games)
+        total_fbs_games = fcs_exclusions['total_fbs_games']
+        prediction_coverage = round((len(all_predictions) / total_fbs_games * 100), 1) if total_fbs_games > 0 else 0
         
         return {
             'total_predictions': len(all_predictions),
@@ -763,9 +777,101 @@ def get_enhanced_ml_dashboard_data():
             'completed_predictions': len(completed_predictions),
             'accuracy_by_type': accuracy_by_type,
             'weekly_breakdown': weekly_breakdown,
-            'recent_predictions': [p.to_dict() for p in recent_predictions]
+            'recent_predictions': [p.to_dict() for p in recent_predictions],
+            'fcs_exclusions': fcs_exclusions,
+            'prediction_coverage': prediction_coverage
         }
         
     except Exception as e:
         print(f"Error getting enhanced ML dashboard data: {e}")
         return None
+
+
+def calculate_fcs_exclusion_stats():
+    """Calculate FCS exclusion statistics across all scheduled games"""
+    try:
+        # Count total scheduled games (including FCS)
+        total_scheduled = ScheduledGame.query.filter(ScheduledGame.completed == False).count()
+        
+        # Count FBS vs FBS games only
+        fbs_scheduled = ScheduledGame.query.filter(
+            ScheduledGame.completed == False,
+            ~(ScheduledGame.home_team.ilike('%FCS%')),
+            ~(ScheduledGame.away_team.ilike('%FCS%')),
+            ScheduledGame.home_team != 'FCS',
+            ScheduledGame.away_team != 'FCS'
+        ).count()
+        
+        # Count completed games for historical context
+        total_completed = ScheduledGame.query.filter(ScheduledGame.completed == True).count()
+        
+        fbs_completed = ScheduledGame.query.filter(
+            ScheduledGame.completed == True,
+            ~(ScheduledGame.home_team.ilike('%FCS%')),
+            ~(ScheduledGame.away_team.ilike('%FCS%')),
+            ScheduledGame.home_team != 'FCS',
+            ScheduledGame.away_team != 'FCS'
+        ).count()
+        
+        fcs_excluded_upcoming = total_scheduled - fbs_scheduled
+        fcs_excluded_completed = total_completed - fbs_completed
+        
+        return {
+            'total_scheduled': total_scheduled,
+            'fbs_games': fbs_scheduled,
+            'fcs_excluded': fcs_excluded_upcoming,
+            'total_completed': total_completed,
+            'fbs_completed': fbs_completed,
+            'fcs_excluded_completed': fcs_excluded_completed,
+            'total_fbs_games': fbs_scheduled + fbs_completed,
+            'exclusion_percentage': round((fcs_excluded_upcoming / total_scheduled * 100), 1) if total_scheduled > 0 else 0
+        }
+        
+    except Exception as e:
+        print(f"Error calculating FCS exclusion stats: {e}")
+        return {
+            'total_scheduled': 0,
+            'fbs_games': 0,
+            'fcs_excluded': 0,
+            'total_completed': 0,
+            'fbs_completed': 0,
+            'fcs_excluded_completed': 0,
+            'total_fbs_games': 0,
+            'exclusion_percentage': 0
+        }
+
+
+def calculate_week_fcs_exclusions(week):
+    """Calculate FCS exclusions for a specific week"""
+    try:
+        # Count total scheduled games for this week
+        total_scheduled = ScheduledGame.query.filter(
+            ScheduledGame.week == str(week),
+            ScheduledGame.completed == False
+        ).count()
+        
+        # Count FBS vs FBS games for this week
+        fbs_games = ScheduledGame.query.filter(
+            ScheduledGame.week == str(week),
+            ScheduledGame.completed == False,
+            ~(ScheduledGame.home_team.ilike('%FCS%')),
+            ~(ScheduledGame.away_team.ilike('%FCS%')),
+            ScheduledGame.home_team != 'FCS',
+            ScheduledGame.away_team != 'FCS'
+        ).count()
+        
+        fcs_excluded = total_scheduled - fbs_games
+        
+        return {
+            'total_scheduled': total_scheduled,
+            'fbs_games': fbs_games,
+            'fcs_excluded': fcs_excluded
+        }
+        
+    except Exception as e:
+        print(f"Error calculating week {week} FCS exclusions: {e}")
+        return {
+            'total_scheduled': 0,
+            'fbs_games': 0,
+            'fcs_excluded': 0
+        }
