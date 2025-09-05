@@ -1965,6 +1965,53 @@ def calculate_victory_value(game, team_name):
 
 # Add helper function to show bowl eligibility status:
 
+
+def reset_prediction_to_pending(home_team, away_team, week):
+    """Reset prediction back to pending when a game is deleted"""
+    if not CFB_ML_ENABLED:
+        return 0
+    
+    try:
+        # Find all matching predictions for this game (check both orientations for neutral site games)
+        predictions = CFBPredictionLog.query.filter(
+            CFBPredictionLog.week == str(week),
+            CFBPredictionLog.game_completed == True
+        ).filter(
+            db.or_(
+                db.and_(CFBPredictionLog.home_team == home_team, CFBPredictionLog.away_team == away_team),
+                db.and_(CFBPredictionLog.home_team == away_team, CFBPredictionLog.away_team == home_team)
+            )
+        ).all()
+        
+        predictions_reset = 0
+        
+        for prediction in predictions:
+            # Reset prediction back to pending
+            prediction.game_completed = False
+            prediction.actual_winner = None
+            prediction.actual_margin = None
+            prediction.actual_total = None
+            prediction.winner_correct = None
+            prediction.margin_error = None
+            prediction.total_error = None
+            prediction.result_date = None
+            
+            predictions_reset += 1
+        
+        # Commit all updates
+        db.session.commit()
+        
+        if predictions_reset > 0:
+            flash(f'🤖 ML Tracking: Reset {predictions_reset} prediction(s) back to pending', 'info')
+        
+        return predictions_reset
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"🤖 Error resetting predictions: {e}")
+        return 0
+
+
 def log_game_result_to_ml(home_team, away_team, home_score, away_score, week, is_overtime=False):
     """Enhanced game result logging with over/under tracking"""
     if not CFB_ML_ENABLED:
@@ -9350,6 +9397,12 @@ def remove_game(game_id):
             scheduled_game.overtime = False
             print(f"✅ Reset scheduled game back to uncompleted: {scheduled_game.home_team} vs {scheduled_game.away_team}")
         
+        
+        # NEW: Reset ML predictions back to pending
+        if CFB_ML_ENABLED:
+            reset_prediction_to_pending(home_team, away_team, week)
+
+
         # Reverse team stats for both teams
         reverse_team_stats_in_db(home_team, away_team, home_score, away_score, True, is_neutral, is_overtime)
         reverse_team_stats_in_db(away_team, home_team, away_score, home_score, False, is_neutral, is_overtime)
