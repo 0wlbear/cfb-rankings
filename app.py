@@ -2002,8 +2002,17 @@ def log_game_result_to_ml(home_team, away_team, home_score, away_score, week, is
             
             # Calculate accuracy metrics
             
-            # Winner correct?
-            prediction.winner_correct = (prediction.predicted_winner == actual_winner)
+            # FIXED: Sports betting spread logic
+            predicted_spread = prediction.predicted_margin if prediction.predicted_margin else 0
+            actual_margin_for_predicted_winner = actual_margin
+
+            # If we predicted the wrong winner, it's automatically wrong
+            if prediction.predicted_winner != actual_winner:
+                prediction.winner_correct = False
+            else:
+                # Winner is correct, now check if they covered the spread
+                # If actual margin >= predicted margin, the prediction was correct
+                prediction.winner_correct = (actual_margin_for_predicted_winner >= predicted_spread)
             
             # Margin error
             if prediction.predicted_margin is not None:
@@ -8442,7 +8451,21 @@ def log_game_result_to_ml(home_team, away_team, home_score, away_score, week, is
             prediction.result_date = datetime.utcnow()
             
             # Calculate accuracy metrics
+            # Existing line (don't change this)
             prediction.winner_correct = (prediction.predicted_winner == actual_winner)
+
+            # New spread-aware logic
+            predicted_spread = prediction.predicted_margin if prediction.predicted_margin else 0
+            actual_spread = actual_margin
+            spread_error = abs(predicted_spread - actual_spread)
+
+            # 25% tolerance of predicted spread (minimum 3 points)
+            tolerance = max(3.0, predicted_spread * 0.25)
+
+            winner_right = (prediction.predicted_winner == actual_winner)
+            spread_accurate = (spread_error <= tolerance)
+            prediction.winner_correct = winner_right and spread_accurate
+
             
             # Margin error
             if prediction.predicted_margin is not None:
@@ -8474,94 +8497,196 @@ def log_game_result_to_ml(home_team, away_team, home_score, away_score, week, is
 @app.route('/admin/ml/reprocess_week_results/<int:week>')
 @login_required
 def reprocess_week_results(week):
-    """Re-log all game results for a specific week to update predictions"""
+    """Re-log all game results with flexible team matching for neutral site games"""
     try:
-        # Get all completed games for this week
+        # Reset predictions back to incomplete
+        predictions_to_reset = CFBPredictionLog.query.filter(
+            CFBPredictionLog.week == str(week),
+            CFBPredictionLog.game_completed == True
+        ).all()
+        
+        for pred in predictions_to_reset:
+            pred.game_completed = False
+            pred.actual_winner = None
+            pred.actual_margin = None
+            pred.winner_correct = None
+        
+        db.session.commit()
+        
+        # Get all games for this week
         week_games = Game.query.filter_by(week=str(week)).all()
         
         results_updated = 0
         for game in week_games:
-            # Re-log each game result
-            updated = log_game_result_to_ml(
-                game.home_team, 
-                game.away_team, 
-                game.home_score, 
-                game.away_score, 
-                game.week, 
-                game.overtime
-            )
-            results_updated += updated
-        
-        flash(f'Re-processed {len(week_games)} games, updated {results_updated} predictions', 'success')
-        return redirect(url_for('cfb_ml_dashboard'))
-        
-    except Exception as e:
-        flash(f'Error reprocessing week results: {e}', 'error')
-        return redirect(url_for('cfb_ml_dashboard'))
-
-
-@app.route('/admin/ml/predict_completed_week/<int:week>')
-@login_required
-def predict_completed_week(week):
-    """Create predictions for already-completed games"""
-    try:
-        completed_games = ScheduledGame.query.filter(
-            ScheduledGame.week == str(week),
-            ScheduledGame.completed == True
-        ).all()
-        
-        predictions_created = 0
-        for scheduled_game in completed_games:
-            # Check if prediction already exists
-            existing = CFBPredictionLog.query.filter(
-                CFBPredictionLog.home_team == scheduled_game.home_team,
-                CFBPredictionLog.away_team == scheduled_game.away_team,
-                CFBPredictionLog.week == str(week)
-            ).first()
+            # Find predictions for this game (check both orientations)
+            predictions = CFBPredictionLog.query.filter(
+                CFBPredictionLog.week == str(week),
+                CFBPredictionLog.game_completed == False
+            ).filter(
+                db.or_(
+                    db.and_(CFBPredictionLog.home_team == game.home_team, CFBPredictionLog.away_team == game.away_team),
+                    db.and_(CFBPredictionLog.home_team == game.away_team, CFBPredictionLog.away_team == game.home_team)
+                )
+            ).all()
             
-            if existing:
-                continue
-            
-            # Generate prediction
-            location = 'neutral' if scheduled_game.neutral else 'home'
-            prediction_result = predict_matchup_ultra_enhanced(  # Change back to original function
-                scheduled_game.home_team,
-                scheduled_game.away_team,
-                location
-            )
-            
-            # Create prediction log entry
-            prediction_log = CFBPredictionLog()
-            prediction_log.season_year = 2025
-            prediction_log.week = str(week)
-            prediction_log.home_team = scheduled_game.home_team
-            prediction_log.away_team = scheduled_game.away_team
-            prediction_log.prediction_type = 'automated'
-            
-            prediction_log.predicted_winner = prediction_result['winner']
-            prediction_log.predicted_margin = float(abs(prediction_result['final_margin']))
-            prediction_log.win_probability = float(prediction_result['win_probability'])
-            prediction_log.confidence_level = str(prediction_result['confidence'])
-            
-            adjustments = prediction_result.get('adjustments', {})
-            prediction_log.base_strength_diff = float(prediction_result.get('base_margin', 0))
-            prediction_log.schedule_strength_factor = float(adjustments.get('Enhanced Schedule Strength', 0))
-            prediction_log.momentum_factor = float(adjustments.get('Recent Momentum Edge', 0))
-            prediction_log.location_factor = float(adjustments.get('Enhanced Home Field', 0))
-            
-            prediction_log.game_completed = False
-            
-            db.session.add(prediction_log)
-            predictions_created += 1
+            # Update each matching prediction
+            for prediction in predictions:
+                if game.home_score > game.away_score:
+                    actual_winner = game.home_team
+                    actual_margin = game.home_score - game.away_score
+                else:
+                    actual_winner = game.away_team
+                    actual_margin = game.away_score - game.home_score
+                
+                prediction.actual_winner = actual_winner
+                prediction.actual_margin = actual_margin
+                prediction.game_completed = True
+                
+                # Apply your new spread logic
+                predicted_spread = prediction.predicted_margin if prediction.predicted_margin else 0
+                if prediction.predicted_winner != actual_winner:
+                    prediction.winner_correct = False
+                else:
+                    prediction.winner_correct = (actual_margin >= predicted_spread)
+                
+                results_updated += 1
         
         db.session.commit()
-        flash(f'Created {predictions_created} predictions from {len(completed_games)} completed scheduled games', 'success')
+        flash(f'Re-processed {len(week_games)} games, updated {results_updated} predictions', 'success')
         return redirect(url_for('cfb_ml_dashboard'))
         
     except Exception as e:
         db.session.rollback()
         flash(f'Error: {e}', 'error')
         return redirect(url_for('cfb_ml_dashboard'))
+
+@app.route('/admin/ml/predict_completed_week/<int:week>')
+@login_required
+def predict_completed_week(week):
+    """Create predictions for already-completed games with full debugging"""
+    try:
+        completed_games = ScheduledGame.query.filter(
+            ScheduledGame.week == str(week),
+            ScheduledGame.completed == True
+        ).all()
+        
+        print(f"DEBUG: Found {len(completed_games)} completed games for week {week}")
+        
+        predictions_created = 0
+        errors = []
+        
+        for i, scheduled_game in enumerate(completed_games):
+            try:
+                print(f"DEBUG: Processing game {i+1}: {scheduled_game.home_team} vs {scheduled_game.away_team}")
+                
+                # Check if prediction already exists
+                existing = CFBPredictionLog.query.filter(
+                    CFBPredictionLog.home_team == scheduled_game.home_team,
+                    CFBPredictionLog.away_team == scheduled_game.away_team,
+                    CFBPredictionLog.week == str(week)
+                ).first()
+                
+                if existing:
+                    print(f"DEBUG: Skipping - prediction already exists")
+                    continue
+                
+                # Generate prediction
+                location = 'neutral' if scheduled_game.neutral else 'home'
+                print(f"DEBUG: Calling predict_matchup_ultra_enhanced with location: {location}")
+                
+                prediction_result = predict_matchup_ultra_enhanced(
+                    scheduled_game.home_team,
+                    scheduled_game.away_team, 
+                    location
+                )
+                
+                print(f"DEBUG: Prediction result keys: {list(prediction_result.keys())}")
+                print(f"DEBUG: Winner: {prediction_result.get('winner')} (type: {type(prediction_result.get('winner'))})")
+                print(f"DEBUG: Final margin: {prediction_result.get('final_margin')} (type: {type(prediction_result.get('final_margin'))})")
+                print(f"DEBUG: Win probability: {prediction_result.get('win_probability')} (type: {type(prediction_result.get('win_probability'))})")
+                print(f"DEBUG: Confidence: {prediction_result.get('confidence')} (type: {type(prediction_result.get('confidence'))})")
+                
+                # Create prediction log entry
+                prediction_log = CFBPredictionLog()
+                prediction_log.season_year = 2025
+                prediction_log.week = str(week)
+                prediction_log.home_team = scheduled_game.home_team
+                prediction_log.away_team = scheduled_game.away_team
+                prediction_log.prediction_type = 'automated'
+                
+                print(f"DEBUG: About to assign prediction values...")
+                
+                prediction_log.predicted_winner = prediction_result['winner']
+                print(f"DEBUG: Assigned winner")
+                
+                prediction_log.predicted_margin = abs(prediction_result['final_margin'])
+                print(f"DEBUG: Assigned margin")
+                
+                prediction_log.win_probability = prediction_result['win_probability']
+                print(f"DEBUG: Assigned win probability")
+                
+                prediction_log.confidence_level = prediction_result['confidence']
+                print(f"DEBUG: Assigned confidence")
+                
+                prediction_log.game_completed = False
+                print(f"DEBUG: About to add to session...")
+                
+                db.session.add(prediction_log)
+                print(f"DEBUG: Added to session, about to commit...")
+                
+                db.session.commit()
+                print(f"DEBUG: Committed successfully")
+                
+                predictions_created += 1
+                
+            except Exception as e:
+                error_msg = f"Game {i+1} ({scheduled_game.home_team} vs {scheduled_game.away_team}): {str(e)}"
+                errors.append(error_msg)
+                print(f"DEBUG ERROR: {error_msg}")
+                db.session.rollback()
+                
+                # Print the full traceback for this specific error
+                import traceback
+                print(f"DEBUG TRACEBACK: {traceback.format_exc()}")
+                continue
+        
+        if errors:
+            print(f"DEBUG: All errors encountered:")
+            for error in errors:
+                print(f"  - {error}")
+        
+        flash(f'Created {predictions_created} predictions. {len(errors)} errors occurred.', 'warning' if errors else 'success')
+        return redirect(url_for('cfb_ml_dashboard'))
+        
+    except Exception as e:
+        print(f"DEBUG: Major error in outer try block: {str(e)}")
+        import traceback
+        print(f"DEBUG: Full traceback: {traceback.format_exc()}")
+        flash(f'Error: {e}', 'error')
+        return redirect(url_for('cfb_ml_dashboard'))
+
+@app.route('/admin/ml/debug_week/<int:week>')
+@login_required
+def debug_week_games(week):
+    """Debug what games exist for a week"""
+    
+    all_games = ScheduledGame.query.filter(ScheduledGame.week == str(week)).all()
+    completed_games = [g for g in all_games if g.completed]
+    
+    game_list = []
+    for game in all_games:
+        status = "COMPLETED" if game.completed else "SCHEDULED"
+        game_list.append(f"{game.home_team} vs {game.away_team} - {status}")
+    
+    return f"""
+    <h2>Week {week} Games Debug</h2>
+    <p>Total games: {len(all_games)}</p>
+    <p>Completed games: {len(completed_games)}</p>
+    <ul>
+    {''.join(f'<li>{game}</li>' for game in game_list)}
+    </ul>
+    <a href="/admin/ml">Back</a>
+    """
 
 
 
@@ -8880,49 +9005,49 @@ def debug_predictions():
         # Get ALL predictions regardless of filters
         all_preds = CFBPredictionLog.query.all()
         
-        # Get predictions with winner_correct set
-        winner_correct_preds = CFBPredictionLog.query.filter(
-            CFBPredictionLog.winner_correct.isnot(None)
-        ).all()
-        
-        # Get predictions for current year
-        current_year_preds = CFBPredictionLog.query.filter(
-            CFBPredictionLog.season_year == datetime.now().year
-        ).all()
-        
-        # Get sample prediction to see its actual structure
+        # Get first prediction to see its structure
         sample_pred = CFBPredictionLog.query.first()
         
         debug_info = {
             'total_predictions': len(all_preds),
-            'predictions_with_winner_correct': len(winner_correct_preds),
-            'current_year_predictions': len(current_year_preds),
-            'current_year': datetime.now().year,
+            'sample_prediction_type': type(sample_pred).__name__ if sample_pred else 'None'
         }
         
         if sample_pred:
-            # Only access attributes that we know exist
-            debug_info['sample_prediction'] = {
-                'id': sample_pred.id,
-                'week': sample_pred.week,
-                'season_year': sample_pred.season_year,
-                'winner_correct': sample_pred.winner_correct,
-                'team1_name': getattr(sample_pred, 'team1_name', 'N/A'),
-                'team2_name': getattr(sample_pred, 'team2_name', 'N/A'),
-                'predicted_winner': getattr(sample_pred, 'predicted_winner', 'N/A'),
-                'actual_winner': getattr(sample_pred, 'actual_winner', 'N/A'),
-                'prediction_type': getattr(sample_pred, 'prediction_type', 'N/A')
-            }
-            
-            # Show ALL attributes that actually exist
-            debug_info['all_attributes'] = [attr for attr in dir(sample_pred) if not attr.startswith('_')]
+            # Show available attributes
+            debug_info['sample_attributes'] = [attr for attr in dir(sample_pred) if not attr.startswith('_')]
+            debug_info['has_automated'] = hasattr(sample_pred, 'automated')
+            debug_info['prediction_type'] = getattr(sample_pred, 'prediction_type', 'N/A')
         
         return f"<pre>{json.dumps(debug_info, indent=2, default=str)}</pre><br><a href='/admin/ml'>Back</a>"
         
     except Exception as e:
-        return f"Error: {str(e)}<br><a href='/admin/ml'>Back</a>"
+        return f"Debug Error: {str(e)}<br><a href='/admin/ml'>Back</a>"
 
-
+@app.route('/admin/ml/create_test_prediction')
+@login_required
+def create_test_prediction():
+    """Create a dummy prediction to test ML dashboard"""
+    try:
+        test_pred = CFBPredictionLog()
+        test_pred.season_year = 2025
+        test_pred.week = "1"
+        test_pred.home_team = "Alabama"
+        test_pred.away_team = "Georgia"
+        test_pred.prediction_type = "automated"
+        test_pred.predicted_winner = "Alabama"
+        test_pred.predicted_margin = 7.0
+        test_pred.win_probability = 65.0
+        test_pred.confidence_level = "Medium"
+        test_pred.game_completed = False
+        
+        db.session.add(test_pred)
+        db.session.commit()
+        
+        return "Test prediction created! <a href='/admin/ml'>Try ML Dashboard</a>"
+        
+    except Exception as e:
+        return f"Error creating test prediction: {e}"
 
 # Add these routes to your app.py for deleting predictions
 
