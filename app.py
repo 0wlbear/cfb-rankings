@@ -2053,13 +2053,14 @@ def log_game_result_to_ml(home_team, away_team, home_score, away_score, week, is
             predicted_spread = prediction.predicted_margin if prediction.predicted_margin else 0
             actual_margin_for_predicted_winner = actual_margin
 
-            # If we predicted the wrong winner, it's automatically wrong
-            if prediction.predicted_winner != actual_winner:
-                prediction.winner_correct = False
+            # FIXED: Sports betting spread logic
+            if prediction.predicted_winner == actual_winner:
+                # Winner predicted correctly, check if they covered the spread
+                predicted_spread = prediction.predicted_margin if prediction.predicted_margin else 0
+                prediction.winner_correct = (actual_margin >= predicted_spread)
             else:
-                # Winner is correct, now check if they covered the spread
-                # If actual margin >= predicted margin, the prediction was correct
-                prediction.winner_correct = (actual_margin_for_predicted_winner >= predicted_spread)
+                # Wrong winner predicted = automatically wrong
+                prediction.winner_correct = False
             
             # Margin error
             if prediction.predicted_margin is not None:
@@ -8538,7 +8539,7 @@ def add_game():
 
 
 def log_game_result_to_ml(home_team, away_team, home_score, away_score, week, is_overtime=False):
-    """Enhanced game result logging with over/under tracking"""
+    """Enhanced game result logging with correct point spread logic"""
     if not CFB_ML_ENABLED:
         print("🤖 ML tracking disabled")
         return
@@ -8571,6 +8572,7 @@ def log_game_result_to_ml(home_team, away_team, home_score, away_score, week, is
         
         for prediction in predictions:
             print(f"🤖 Updating prediction ID {prediction.id}: {prediction.home_team} vs {prediction.away_team}")
+            
             # Update actual results
             prediction.actual_winner = actual_winner
             prediction.actual_margin = actual_margin
@@ -8578,22 +8580,15 @@ def log_game_result_to_ml(home_team, away_team, home_score, away_score, week, is
             prediction.game_completed = True
             prediction.result_date = datetime.utcnow()
             
-            # Calculate accuracy metrics
-            # Existing line (don't change this)
-            prediction.winner_correct = (prediction.predicted_winner == actual_winner)
-
-            # New spread-aware logic
+            # CORRECT: Point spread logic
             predicted_spread = prediction.predicted_margin if prediction.predicted_margin else 0
-            actual_spread = actual_margin
-            spread_error = abs(predicted_spread - actual_spread)
-
-            # 25% tolerance of predicted spread (minimum 3 points)
-            tolerance = max(3.0, predicted_spread * 0.25)
-
-            winner_right = (prediction.predicted_winner == actual_winner)
-            spread_accurate = (spread_error <= tolerance)
-            prediction.winner_correct = winner_right and spread_accurate
-
+            
+            if prediction.predicted_winner == actual_winner:
+                # Winner predicted correctly, check if they covered the spread
+                prediction.winner_correct = (actual_margin >= predicted_spread)
+            else:
+                # Wrong winner predicted = automatically wrong
+                prediction.winner_correct = False
             
             # Margin error
             if prediction.predicted_margin is not None:
@@ -8618,7 +8613,6 @@ def log_game_result_to_ml(home_team, away_team, home_score, away_score, week, is
         db.session.rollback()
         print(f"🤖 Enhanced ML tracking error: {e}")
         return 0
-
 
 
 
