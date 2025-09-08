@@ -273,6 +273,20 @@ function addGameRow() {
     
     // Show remove buttons if more than 1 game
     updateRemoveButtons();
+    
+    // AUTO-SCROLL TO THE NEW GAME - THIS IS THE NEW PART!
+    setTimeout(() => {
+        gameRow.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+        });
+        
+        // Optional: Focus on the away team dropdown for immediate use
+        const firstSelect = gameRow.querySelector('select[name*="away_team"]');
+        if (firstSelect) {
+            firstSelect.focus();
+        }
+    }, 100); // Small delay to ensure DOM is fully updated
 }
 
 function removeGameRow(index) {
