@@ -4825,21 +4825,20 @@ def predict_matchup_enhanced(team1_name, team2_name, location='neutral'):
         }
     }
 
-@track_prediction('ultra_enhanced_matchup')  # <-- ADD THIS DECORATOR
+@track_prediction('ultra_enhanced_matchup')
 def predict_matchup_ultra_enhanced(team1_name, team2_name, location='neutral'):
     """
     ULTRA-ENHANCED matchup prediction using all 8 analytical modules
-    NOW WITH ML TRACKING for prediction accuracy optimization
+    NOW WITH REALISTIC POINT SPREAD CAPS
     """
     try:
-
-        # Handle FCS matchups first - FCS should never be predicted to win
+        # Handle FCS matchups first
         if team1_name == 'FCS' and team2_name == 'FCS':
             return {
-                'base_margin': 0.0,  # Changed from 0 to 0.0
+                'base_margin': 0.0,
                 'adjustments': {},
-                'final_margin': 3.0,  # Changed from 3 to 3.0
-                'win_probability': 55.0,  # Changed from 55 to 55.0
+                'final_margin': 3.0,
+                'win_probability': 55.0,
                 'winner': team1_name,
                 'confidence': 'Low',
                 'confidence_score': 0.3,
@@ -4847,10 +4846,10 @@ def predict_matchup_ultra_enhanced(team1_name, team2_name, location='neutral'):
             }
         elif team1_name == 'FCS':
             return {
-                'base_margin': 20.0,  # Changed from 20 to 20.0
+                'base_margin': 20.0,
                 'adjustments': {'FCS Opponent': 'Auto-loss'},
-                'final_margin': 20.0,  # Changed from 20 to 20.0
-                'win_probability': 85.0,  # Changed from 85 to 85.0
+                'final_margin': 20.0,
+                'win_probability': 85.0,
                 'winner': team2_name,
                 'confidence': 'High',
                 'confidence_score': 0.85,
@@ -4858,83 +4857,110 @@ def predict_matchup_ultra_enhanced(team1_name, team2_name, location='neutral'):
             }
         elif team2_name == 'FCS':
             return {
-                'base_margin': 20.0,  # Changed from 20 to 20.0
+                'base_margin': 20.0,
                 'adjustments': {'FCS Opponent': 'Auto-win'},
-                'final_margin': 20.0,  # Changed from 20 to 20.0
-                'win_probability': 85.0,  # Changed from 85 to 85.0
+                'final_margin': 20.0,
+                'win_probability': 85.0,
                 'winner': team1_name,
                 'confidence': 'High',
                 'confidence_score': 0.85,
                 'prediction_methodology': 'FCS Auto-Win'
             }
 
-
-
-
-        # Get enhanced scientific rankings from Module 6
+        # Get enhanced scientific rankings
         team1_enhanced = calculate_enhanced_scientific_ranking(team1_name)
         team2_enhanced = calculate_enhanced_scientific_ranking(team2_name)
         
-        # Base strength differential
+        # ✅ FIXED: Much smaller base multiplier
         strength_diff = team1_enhanced['total_score'] - team2_enhanced['total_score']
-        base_prediction = strength_diff * 2.2
+        base_prediction = strength_diff * 0.85  # Changed from 2.2 to 0.85
         
-        # Enhanced adjustments using new modules
+        # Cap base prediction before adjustments
+        base_prediction = max(-21, min(21, base_prediction))
+        
+        # Enhanced adjustments
         adjustments = {}
         
-        # Module 1: Enhanced schedule strength comparison
+        # Module 1: Schedule strength (keep existing)
         try:
             team1_schedule_strength = calculate_strength_of_schedule_rating(team1_name)
             team2_schedule_strength = calculate_strength_of_schedule_rating(team2_name)
-            schedule_diff = (team1_schedule_strength - team2_schedule_strength) * 0.8
+            schedule_diff = (team1_schedule_strength - team2_schedule_strength) * 0.6  # Reduced from 0.8
             if abs(schedule_diff) > 0.5:
                 adjustments['Enhanced Schedule Strength'] = round(schedule_diff, 1)
         except:
             pass
         
-        # Module 2: Enhanced victory value comparison
+        # Module 2: Victory value comparison (reduced impact)
         team1_games = max(1, team1_enhanced['basic_stats']['total_games'])
         team2_games = max(1, team2_enhanced['basic_stats']['total_games'])
         team1_victory_avg = team1_enhanced['components']['adjusted_victory_value'] / team1_games
         team2_victory_avg = team2_enhanced['components']['adjusted_victory_value'] / team2_games
-        victory_diff = (team1_victory_avg - team2_victory_avg) * 1.5
+        victory_diff = (team1_victory_avg - team2_victory_avg) * 1.0  # Reduced from 1.5
         if abs(victory_diff) > 0.8:
             adjustments['Victory Quality Edge'] = round(victory_diff, 1)
         
-        # Module 4: Enhanced momentum comparison
+        # Module 4: Momentum (reduced impact)
         team1_momentum = team1_enhanced['components']['temporal_adjustment']
         team2_momentum = team2_enhanced['components']['temporal_adjustment']
-        momentum_diff = (team1_momentum - team2_momentum) * 1.5
+        momentum_diff = (team1_momentum - team2_momentum) * 1.0  # Reduced from 1.5
         if abs(momentum_diff) > 0.3:
             adjustments['Recent Momentum Edge'] = round(momentum_diff, 1)
         
-        # Module 5: Consistency comparison
+        # Module 5: Consistency (keep as is)
         team1_consistency = team1_enhanced['components']['consistency_factor']
         team2_consistency = team2_enhanced['components']['consistency_factor']
         consistency_diff = (team1_consistency - team2_consistency) * 2.0
         if abs(consistency_diff) > 0.2:
             adjustments['Consistency Advantage'] = round(consistency_diff, 1)
         
-        # Enhanced location advantage
+        # Enhanced location advantage (cap at reasonable values)
         location_adj = calculate_enhanced_location_advantage(team1_name, team2_name, location)
+        location_adj = max(-4.5, min(4.5, location_adj))  # Cap home field at ±4.5
         if location_adj != 0:
             adjustments['Enhanced Home Field'] = round(location_adj, 1)
         
-        # Enhanced common opponents (if the function exists)
+        # Enhanced common opponents
         try:
             common_analysis = analyze_common_opponents_enhanced(team1_name, team2_name)
             if common_analysis['has_common'] and common_analysis['games_count'] >= 2:
-                common_adj = common_analysis['advantage'] * min(0.5, common_analysis['games_count'] * 0.2)
+                common_adj = common_analysis['advantage'] * min(0.4, common_analysis['games_count'] * 0.15)  # Reduced from 0.5
                 adjustments['Enhanced Common Opponents'] = round(common_adj, 1)
         except:
-            # Fallback to original common opponents if enhanced version doesn't exist
             common_analysis = analyze_common_opponents(team1_name, team2_name)
             if common_analysis['has_common']:
-                adjustments['Common Opponents'] = round(common_analysis['advantage'] * 0.3, 1)
+                adjustments['Common Opponents'] = round(common_analysis['advantage'] * 0.25, 1)  # Reduced from 0.3
         
         # Calculate final prediction
         total_adjustment = sum(adjustments.values())
-        final_margin = base_prediction + total_adjustment
+        raw_final_margin = base_prediction + total_adjustment
+        
+        # ✅ NEW: Apply realistic caps based on conference matchup
+        team1_conf = get_team_conference(team1_name)
+        team2_conf = get_team_conference(team2_name)
+        
+        # Determine matchup type for capping
+        p4_conferences = ['SEC', 'Big Ten', 'Big XII', 'ACC', 'Pac 12']
+        team1_p4 = team1_conf in p4_conferences or team1_name == 'Notre Dame'
+        team2_p4 = team2_conf in p4_conferences or team2_name == 'Notre Dame'
+        
+        # Set realistic caps
+        if team1_p4 and team2_p4:
+            max_spread = 21  # P4 vs P4
+        elif team1_p4 or team2_p4:
+            max_spread = 28  # P4 vs G5
+        else:
+            max_spread = 24  # G5 vs G5
+        
+        # Apply cap
+        final_margin = max(-max_spread, min(max_spread, raw_final_margin))
+        
+        # Additional dampening for anything over 14 points
+        if abs(final_margin) > 14:
+            sign = 1 if final_margin > 0 else -1
+            excess = abs(final_margin) - 14
+            dampened_excess = excess * 0.7  # Reduce large spreads by 30%
+            final_margin = sign * (14 + dampened_excess)
         
         # Enhanced confidence calculation
         confidence_factors = calculate_ultra_enhanced_confidence(
@@ -4956,11 +4982,10 @@ def predict_matchup_ultra_enhanced(team1_name, team2_name, location='neutral'):
                 'team1_enhanced': team1_enhanced,
                 'team2_enhanced': team2_enhanced
             },
-            'prediction_methodology': 'Ultra-Enhanced 8-Module Analysis with ML Tracking'
+            'prediction_methodology': 'Ultra-Enhanced Analysis with Realistic Caps'
         }
         
     except Exception as e:
-        # Fallback to basic prediction if enhanced version fails
         print(f"Enhanced prediction failed: {e}")
         return predict_matchup_basic_fallback(team1_name, team2_name, location)
 
