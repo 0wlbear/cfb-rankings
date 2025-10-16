@@ -9971,7 +9971,7 @@ def analyze_fcs_games():
 
 @app.route('/bowl_projections')
 def bowl_projections():
-    """Bowl projections with proper debugging and simple bowl creation"""
+    """Bowl projections with proper conference tie-ins"""
     cache_key = 'bowl_projections_data'
     
     # Check cache first (5 minute cache)
@@ -9984,7 +9984,7 @@ def bowl_projections():
         # Get all teams with proper ranking
         all_teams_stats = get_all_team_stats_bulk()
         
-        # Find teams with 6+ wins AND show more debug info
+        # Find teams with 4+ wins (early season adjustment)
         bowl_eligible = []
         teams_with_games = []
         
@@ -9992,41 +9992,10 @@ def bowl_projections():
             total_games = team['total_wins'] + team['total_losses']
             if total_games > 0:
                 teams_with_games.append(team)
-                if team['total_wins'] >= 6:
+                if team['total_wins'] >= 4:  # Using 4+ for early season
                     bowl_eligible.append(team)
         
-        print(f"BOWL DEBUG: {len(teams_with_games)} teams have played games")
-        print(f"BOWL DEBUG: Found {len(bowl_eligible)} teams with 6+ wins out of {len(all_teams_stats)} total teams")
-        
-        # Show top 15 teams by wins for debugging
-        sorted_by_wins = sorted(teams_with_games, key=lambda x: x['total_wins'], reverse=True)
-        print("BOWL DEBUG: Top 15 teams by wins:")
-        for i, team in enumerate(sorted_by_wins[:15]):
-            print(f"  {i+1}. {team['team']}: {team['total_wins']}-{team['total_losses']}")
-        
-        # If very few bowl eligible teams, lower the threshold to show SOMETHING
-        if len(bowl_eligible) < 20:
-            print("BOWL DEBUG: Very few 6+ win teams. Using 4+ wins for projections...")
-            bowl_eligible = [team for team in teams_with_games if team['total_wins'] >= 4]
-            print(f"BOWL DEBUG: With 4+ wins: {len(bowl_eligible)} teams available")
-        
-        # If still no teams, use teams with any wins
-        if len(bowl_eligible) == 0:
-            print("BOWL DEBUG: No teams with 4+ wins. Using all teams with wins...")
-            bowl_eligible = [team for team in teams_with_games if team['total_wins'] > 0]
-            print(f"BOWL DEBUG: Teams with any wins: {len(bowl_eligible)}")
-        
-        # If STILL no teams, something is seriously wrong
-        if len(bowl_eligible) == 0:
-            print("BOWL DEBUG: NO TEAMS HAVE ANY WINS! Showing first 10 teams:")
-            for i, team in enumerate(all_teams_stats[:10]):
-                print(f"  {i+1}. {team['team']}: {team['total_wins']}-{team['total_losses']}")
-            
-            # Return with empty data but proper structure
-            return render_template('bowl_projections.html',
-                                 cfp_bracket={'first_round_byes': [], 'all_teams': [], 'automatic_qualifiers': [], 'first_round_games': []},
-                                 bowls_by_tier={'NY6': [], 'Major': [], 'Conference': [], 'G5': [], 'Championship': []},
-                                 total_bowl_teams=0)
+        print(f"BOWL DEBUG: Found {len(bowl_eligible)} teams with 4+ wins")
         
         # Generate CFP bracket (top 12 teams)
         cfp_teams = all_teams_stats[:12] if len(all_teams_stats) >= 12 else all_teams_stats
@@ -10045,80 +10014,26 @@ def bowl_projections():
         cfp_team_names = {team['team'] for team in cfp_teams}
         non_cfp_bowl_eligible = [team for team in bowl_eligible if team['team'] not in cfp_team_names]
         
-        print(f"BOWL DEBUG: After removing {len(cfp_teams)} CFP teams, {len(non_cfp_bowl_eligible)} teams available for bowls")
+        print(f"BOWL DEBUG: After removing CFP teams, {len(non_cfp_bowl_eligible)} teams available for bowls")
         
-        # Create simple bowl structure that matches template expectations
-        bowls_by_tier = {}
+        # Group teams by conference for tie-in assignments
+        teams_by_conference = {}
+        for team in non_cfp_bowl_eligible:
+            conf = team['conference']
+            if conf not in teams_by_conference:
+                teams_by_conference[conf] = []
+            teams_by_conference[conf].append(team)
         
-        # NY6 Bowls (6 bowls, 2 teams each = 12 teams)
-        ny6_bowls = []
-        ny6_teams = non_cfp_bowl_eligible[:12]  # Take first 12 teams
-        bowl_names = ['Rose Bowl', 'Sugar Bowl', 'Orange Bowl', 'Cotton Bowl', 'Fiesta Bowl', 'Peach Bowl']
+        # Sort teams within each conference by ranking
+        for conf in teams_by_conference:
+            teams_by_conference[conf].sort(key=lambda x: x['adjusted_total'], reverse=True)
         
-        for i, bowl_name in enumerate(bowl_names):
-            bowl = {
-                'name': bowl_name,
-                'location': 'TBD',
-                'payout': '$4M',
-                'tie_ins': ['At-Large'],
-                'teams': []
-            }
-            
-            # Add 2 teams per bowl
-            start_idx = i * 2
-            for j in range(2):
-                team_idx = start_idx + j
-                if team_idx < len(ny6_teams):
-                    team = ny6_teams[team_idx]
-                    bowl['teams'].append({
-                        'team': team['team'],
-                        'wins': team['total_wins'],
-                        'losses': team['total_losses'],
-                        'conference': team['conference']
-                    })
-            
-            if bowl['teams']:  # Only add if has teams
-                ny6_bowls.append(bowl)
+        print(f"BOWL DEBUG: Teams by conference:")
+        for conf, teams in teams_by_conference.items():
+            print(f"  {conf}: {len(teams)} teams")
         
-        bowls_by_tier['NY6'] = ny6_bowls
-        
-        # Major Bowls (next 12 teams)
-        major_bowls = []
-        major_teams = non_cfp_bowl_eligible[12:24]
-        major_bowl_names = ['Citrus Bowl', 'Outback Bowl', 'Alamo Bowl', 'Holiday Bowl', 'Gator Bowl', 'Sun Bowl']
-        
-        for i, bowl_name in enumerate(major_bowl_names):
-            bowl = {
-                'name': bowl_name,
-                'location': 'TBD',
-                'payout': '$2M',
-                'tie_ins': ['At-Large'],
-                'teams': []
-            }
-            
-            start_idx = i * 2
-            for j in range(2):
-                team_idx = start_idx + j
-                if team_idx < len(major_teams):
-                    team = major_teams[team_idx]
-                    bowl['teams'].append({
-                        'team': team['team'],
-                        'wins': team['total_wins'],
-                        'losses': team['total_losses'],
-                        'conference': team['conference']
-                    })
-            
-            if bowl['teams']:
-                major_bowls.append(bowl)
-        
-        bowls_by_tier['Major'] = major_bowls
-        
-        # Conference and G5 bowls (simplified)
-        bowls_by_tier['Conference'] = []  # Empty for now
-        bowls_by_tier['G5'] = []  # Empty for now
-        bowls_by_tier['Championship'] = []  # Empty for now
-        
-        print(f"BOWL DEBUG: Created {len(ny6_bowls)} NY6 bowls and {len(major_bowls)} Major bowls")
+        # Create bowls with proper tie-ins using your BOWL_GAMES data
+        bowls_by_tier = create_bowls_with_tieins(teams_by_conference, non_cfp_bowl_eligible)
         
         template_data = {
             'cfp_bracket': cfp_bracket,
@@ -10141,6 +10056,110 @@ def bowl_projections():
                              cfp_bracket={'first_round_byes': [], 'all_teams': [], 'automatic_qualifiers': [], 'first_round_games': []},
                              bowls_by_tier={'NY6': [], 'Major': [], 'Conference': [], 'G5': [], 'Championship': []},
                              total_bowl_teams=0)
+
+def create_bowls_with_tieins(teams_by_conference, all_available_teams):
+    """Create bowls using proper conference tie-ins from BOWL_GAMES"""
+    
+    # Track which teams have been assigned
+    assigned_teams = set()
+    
+    # Organize bowls by tier
+    bowls_by_tier = {'NY6': [], 'Major': [], 'Conference': [], 'G5': [], 'Championship': []}
+    
+    # Get bowls sorted by selection order and tier
+    sorted_bowls = []
+    for bowl_id, bowl_info in BOWL_GAMES.items():
+        if bowl_info.get('tier') != 'CFP':  # Skip CFP bowls
+            sorted_bowls.append((bowl_id, bowl_info))
+    
+    # Sort by tier priority and selection order
+    tier_priority = {'NY6': 1, 'Major': 2, 'Conference': 3, 'G5': 4}
+    sorted_bowls.sort(key=lambda x: (
+        tier_priority.get(x[1].get('tier', 'G5'), 5),
+        x[1].get('selection_order', 999)
+    ))
+    
+    print(f"BOWL DEBUG: Processing {len(sorted_bowls)} bowls")
+    
+    for bowl_id, bowl_info in sorted_bowls:
+        bowl = {
+            'name': bowl_info['name'],
+            'location': bowl_info['location'],
+            'payout': bowl_info['payout'],
+            'tie_ins': bowl_info.get('primary_tie_ins', []),
+            'teams': []
+        }
+        
+        teams_needed = bowl_info.get('teams', 2)
+        tier = bowl_info.get('tier', 'G5')
+        
+        print(f"BOWL DEBUG: Filling {bowl['name']} (needs {teams_needed} teams)")
+        
+        # Try to fill based on tie-ins
+        for tie_in in bowl_info.get('primary_tie_ins', []):
+            if teams_needed <= 0:
+                break
+            
+            print(f"  Looking for {tie_in} team...")
+            
+            # Find best available team from this conference
+            if tie_in in teams_by_conference:
+                available_teams = [t for t in teams_by_conference[tie_in] 
+                                 if t['team'] not in assigned_teams]
+                if available_teams:
+                    selected_team = available_teams[0]  # Best team from conference
+                    bowl['teams'].append({
+                        'team': selected_team['team'],
+                        'wins': selected_team['total_wins'],
+                        'losses': selected_team['total_losses'],
+                        'conference': selected_team['conference']
+                    })
+                    assigned_teams.add(selected_team['team'])
+                    teams_needed -= 1
+                    print(f"    Assigned {selected_team['team']} ({selected_team['conference']})")
+                else:
+                    print(f"    No available teams from {tie_in}")
+            else:
+                print(f"    No teams from {tie_in} conference")
+        
+        # Fill remaining spots with best available at-large teams
+        while teams_needed > 0:
+            best_available = None
+            best_rating = -999
+            
+            for team in all_available_teams:
+                if team['team'] not in assigned_teams and team['adjusted_total'] > best_rating:
+                    best_available = team
+                    best_rating = team['adjusted_total']
+            
+            if best_available:
+                bowl['teams'].append({
+                    'team': best_available['team'],
+                    'wins': best_available['total_wins'],
+                    'losses': best_available['total_losses'],
+                    'conference': best_available['conference']
+                })
+                assigned_teams.add(best_available['team'])
+                teams_needed -= 1
+                print(f"    Assigned {best_available['team']} (at-large)")
+            else:
+                print(f"    No more teams available")
+                break
+        
+        # Add bowl to appropriate tier if it has teams
+        if bowl['teams']:
+            bowls_by_tier[tier].append(bowl)
+            print(f"  Added {bowl['name']} to {tier} with {len(bowl['teams'])} teams")
+        
+        # Stop if we've assigned most teams
+        if len(assigned_teams) >= min(60, len(all_available_teams)):
+            break
+    
+    print(f"BOWL DEBUG: Final bowl counts:")
+    for tier, bowls in bowls_by_tier.items():
+        print(f"  {tier}: {len(bowls)} bowls")
+    
+    return bowls_by_tier
 
 def create_simple_first_round_games(cfp_teams):
     """Create simple first round matchups"""
