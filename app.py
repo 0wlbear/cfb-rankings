@@ -9971,7 +9971,7 @@ def analyze_fcs_games():
 
 @app.route('/bowl_projections')
 def bowl_projections():
-    """Fast bowl projections with caching"""
+    """Bowl projections with proper debugging and simple bowl creation"""
     cache_key = 'bowl_projections_data'
     
     # Check cache first (5 minute cache)
@@ -9981,33 +9981,144 @@ def bowl_projections():
             return render_template('bowl_projections.html', **cached_data)
     
     try:
-        # Use our new fast bulk loading
+        # Get all teams with proper ranking
         all_teams_stats = get_all_team_stats_bulk()
         
-        # Fast CFP bracket (using pre-calculated stats)
-        cfp_teams = all_teams_stats[:12]  # Top 12 teams
+        # Find teams with 6+ wins AND show more debug info
+        bowl_eligible = []
+        teams_with_games = []
+        
+        for team in all_teams_stats:
+            total_games = team['total_wins'] + team['total_losses']
+            if total_games > 0:
+                teams_with_games.append(team)
+                if team['total_wins'] >= 6:
+                    bowl_eligible.append(team)
+        
+        print(f"BOWL DEBUG: {len(teams_with_games)} teams have played games")
+        print(f"BOWL DEBUG: Found {len(bowl_eligible)} teams with 6+ wins out of {len(all_teams_stats)} total teams")
+        
+        # Show top 15 teams by wins for debugging
+        sorted_by_wins = sorted(teams_with_games, key=lambda x: x['total_wins'], reverse=True)
+        print("BOWL DEBUG: Top 15 teams by wins:")
+        for i, team in enumerate(sorted_by_wins[:15]):
+            print(f"  {i+1}. {team['team']}: {team['total_wins']}-{team['total_losses']}")
+        
+        # If very few bowl eligible teams, lower the threshold to show SOMETHING
+        if len(bowl_eligible) < 20:
+            print("BOWL DEBUG: Very few 6+ win teams. Using 4+ wins for projections...")
+            bowl_eligible = [team for team in teams_with_games if team['total_wins'] >= 4]
+            print(f"BOWL DEBUG: With 4+ wins: {len(bowl_eligible)} teams available")
+        
+        # If still no teams, use teams with any wins
+        if len(bowl_eligible) == 0:
+            print("BOWL DEBUG: No teams with 4+ wins. Using all teams with wins...")
+            bowl_eligible = [team for team in teams_with_games if team['total_wins'] > 0]
+            print(f"BOWL DEBUG: Teams with any wins: {len(bowl_eligible)}")
+        
+        # If STILL no teams, something is seriously wrong
+        if len(bowl_eligible) == 0:
+            print("BOWL DEBUG: NO TEAMS HAVE ANY WINS! Showing first 10 teams:")
+            for i, team in enumerate(all_teams_stats[:10]):
+                print(f"  {i+1}. {team['team']}: {team['total_wins']}-{team['total_losses']}")
+            
+            # Return with empty data but proper structure
+            return render_template('bowl_projections.html',
+                                 cfp_bracket={'first_round_byes': [], 'all_teams': [], 'automatic_qualifiers': [], 'first_round_games': []},
+                                 bowls_by_tier={'NY6': [], 'Major': [], 'Conference': [], 'G5': [], 'Championship': []},
+                                 total_bowl_teams=0)
+        
+        # Generate CFP bracket (top 12 teams)
+        cfp_teams = all_teams_stats[:12] if len(all_teams_stats) >= 12 else all_teams_stats
         for i, team in enumerate(cfp_teams):
             team['seed'] = i + 1
         
         cfp_bracket = {
             'first_round_byes': cfp_teams[:4],
             'all_teams': cfp_teams,
-            'automatic_qualifiers': cfp_teams[:5],  # Simplified
+            'automatic_qualifiers': cfp_teams[:5],
             'first_round_games': create_simple_first_round_games(cfp_teams),
-            'conference_champions': {}  # Simplified for speed
+            'conference_champions': {}
         }
         
-        # Fast bowl eligible teams (6+ wins)
-        bowl_eligible = [team for team in all_teams_stats if team['total_wins'] >= 6]
+        # Remove CFP teams from bowl pool
+        cfp_team_names = {team['team'] for team in cfp_teams}
+        non_cfp_bowl_eligible = [team for team in bowl_eligible if team['team'] not in cfp_team_names]
         
-        # Simple bowl projections (avoid complex matching logic)
-        bowls_by_tier = {
-            'NY6': bowl_eligible[:12],  # Top 12 for NY6 bowls
-            'Major': bowl_eligible[12:24],  # Next 12 for major bowls  
-            'Conference': bowl_eligible[24:48],  # Conference tie-ins
-            'G5': bowl_eligible[48:72],  # G5 bowls
-            'Championship': []  # Simplified
-        }
+        print(f"BOWL DEBUG: After removing {len(cfp_teams)} CFP teams, {len(non_cfp_bowl_eligible)} teams available for bowls")
+        
+        # Create simple bowl structure that matches template expectations
+        bowls_by_tier = {}
+        
+        # NY6 Bowls (6 bowls, 2 teams each = 12 teams)
+        ny6_bowls = []
+        ny6_teams = non_cfp_bowl_eligible[:12]  # Take first 12 teams
+        bowl_names = ['Rose Bowl', 'Sugar Bowl', 'Orange Bowl', 'Cotton Bowl', 'Fiesta Bowl', 'Peach Bowl']
+        
+        for i, bowl_name in enumerate(bowl_names):
+            bowl = {
+                'name': bowl_name,
+                'location': 'TBD',
+                'payout': '$4M',
+                'tie_ins': ['At-Large'],
+                'teams': []
+            }
+            
+            # Add 2 teams per bowl
+            start_idx = i * 2
+            for j in range(2):
+                team_idx = start_idx + j
+                if team_idx < len(ny6_teams):
+                    team = ny6_teams[team_idx]
+                    bowl['teams'].append({
+                        'team': team['team'],
+                        'wins': team['total_wins'],
+                        'losses': team['total_losses'],
+                        'conference': team['conference']
+                    })
+            
+            if bowl['teams']:  # Only add if has teams
+                ny6_bowls.append(bowl)
+        
+        bowls_by_tier['NY6'] = ny6_bowls
+        
+        # Major Bowls (next 12 teams)
+        major_bowls = []
+        major_teams = non_cfp_bowl_eligible[12:24]
+        major_bowl_names = ['Citrus Bowl', 'Outback Bowl', 'Alamo Bowl', 'Holiday Bowl', 'Gator Bowl', 'Sun Bowl']
+        
+        for i, bowl_name in enumerate(major_bowl_names):
+            bowl = {
+                'name': bowl_name,
+                'location': 'TBD',
+                'payout': '$2M',
+                'tie_ins': ['At-Large'],
+                'teams': []
+            }
+            
+            start_idx = i * 2
+            for j in range(2):
+                team_idx = start_idx + j
+                if team_idx < len(major_teams):
+                    team = major_teams[team_idx]
+                    bowl['teams'].append({
+                        'team': team['team'],
+                        'wins': team['total_wins'],
+                        'losses': team['total_losses'],
+                        'conference': team['conference']
+                    })
+            
+            if bowl['teams']:
+                major_bowls.append(bowl)
+        
+        bowls_by_tier['Major'] = major_bowls
+        
+        # Conference and G5 bowls (simplified)
+        bowls_by_tier['Conference'] = []  # Empty for now
+        bowls_by_tier['G5'] = []  # Empty for now
+        bowls_by_tier['Championship'] = []  # Empty for now
+        
+        print(f"BOWL DEBUG: Created {len(ny6_bowls)} NY6 bowls and {len(major_bowls)} Major bowls")
         
         template_data = {
             'cfp_bracket': cfp_bracket,
@@ -10021,13 +10132,15 @@ def bowl_projections():
         return render_template('bowl_projections.html', **template_data)
         
     except Exception as e:
-        return f"""
-        <html><body style="font-family: Arial; margin: 40px;">
-        <h1>Bowl Projections Temporarily Unavailable</h1>
-        <p><strong>Error:</strong> {e}</p>
-        <p><a href="/">Back to Home</a> | <a href="/admin">Admin Panel</a></p>
-        </body></html>
-        """
+        print(f"BOWL ERROR: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        # Return with empty but valid structure
+        return render_template('bowl_projections.html',
+                             cfp_bracket={'first_round_byes': [], 'all_teams': [], 'automatic_qualifiers': [], 'first_round_games': []},
+                             bowls_by_tier={'NY6': [], 'Major': [], 'Conference': [], 'G5': [], 'Championship': []},
+                             total_bowl_teams=0)
 
 def create_simple_first_round_games(cfp_teams):
     """Create simple first round matchups"""
