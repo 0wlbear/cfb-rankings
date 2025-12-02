@@ -5479,29 +5479,45 @@ def parse_schedule_text(schedule_text, week, team_clarifications=None):
     def resolve_team_name(team_name):
         """Resolve team name using clarifications or existing mappings"""
         original_name = team_name
+        
+        # ADD THIS DEBUG BLOCK
+        print(f"\n{'='*60}")
+        print(f"DEBUG RESOLVE: Input = '{original_name}'")
+        print(f"DEBUG RESOLVE: Input repr = {repr(original_name)}")
+        
         team_name = clean_team_name(team_name)
-        print(f"DEBUG: Resolving '{original_name}' -> cleaned: '{team_name}'")
-
+        
+        print(f"DEBUG RESOLVE: After clean_team_name = '{team_name}'")
+        print(f"DEBUG RESOLVE: After clean repr = {repr(team_name)}")
+        
         # First check if we have a clarification for this session
         if team_clarifications and team_name in team_clarifications:
-            
-            return team_clarifications[team_name]
+            result = team_clarifications[team_name]
+            print(f"DEBUG RESOLVE: Found in clarifications = '{result}'")
+            print(f"{'='*60}\n")
+            return result
         
         # Check if it's a known FBS team
         if team_name in TEAMS:
-            print(f"DEBUG: Found '{team_name}' in TEAMS")
+            print(f"DEBUG RESOLVE: Found '{team_name}' in TEAMS - SUCCESS!")
+            print(f"{'='*60}\n")
             return team_name
         else:
-            print(f"DEBUG: '{team_name}' NOT found in TEAMS")
+            print(f"DEBUG RESOLVE: '{team_name}' NOT found in TEAMS")
+            # Print first few teams from TEAMS that contain 'Miami'
+            miami_teams = [t for t in TEAMS if 'Miami' in t or 'miami' in t.lower()]
+            print(f"DEBUG RESOLVE: Teams with 'Miami' in TEAMS: {miami_teams}")
             
         # Check common variations
         for standard_name, variants in TEAM_VARIATIONS.items():
             if team_name in variants:
-                
+                print(f"DEBUG RESOLVE: Found in TEAM_VARIATIONS = '{standard_name}'")
+                print(f"{'='*60}\n")
                 return standard_name
         
         # If we get here, it's unknown
-        
+        print(f"DEBUG RESOLVE: UNKNOWN TEAM - adding to unknown_teams")
+        print(f"{'='*60}\n")
         unknown_teams.add(team_name)
         return team_name  # Return as-is for now
     
@@ -5694,11 +5710,22 @@ def parse_schedule_text(schedule_text, week, team_clarifications=None):
             
             # Format 1: "Team A vs Team B (location)" - neutral site
             if (' vs ' in line_clean or ' vs. ' in line_clean) and '(' in line_clean:
-                parts = line_clean.split(' vs ')
-                print(f"DEBUG: Split on 'vs' gives: team1='{parts[0]}' team2='{parts[1]}'")
-                teams_part = line_clean.split('(')[0].strip()
-                location = line_clean.split('(')[1].split(')')[0].strip()
+                # Find the LAST occurrence of (location) pattern
+                # Pattern: (in City, State) or (City, State)
+                import re
+                location_match = re.search(r'\(in [^)]+\)$', line_clean)
+                if location_match:
+                    location = location_match.group(0)[1:-1]  # Remove parentheses
+                    # Get teams part by removing the location
+                    teams_part = line_clean[:location_match.start()].strip()
+                else:
+                    # Fallback: assume last parentheses is location
+                    last_paren_idx = line_clean.rfind('(')
+                    teams_part = line_clean[:last_paren_idx].strip()
+                    location = line_clean[last_paren_idx+1:].rstrip(')')
+                
                 team1, team2 = [t.strip() for t in teams_part.split(' vs ')]
+                print(f"DEBUG: Split on 'vs' gives: team1='{team1}' team2='{team2}'")  # <-- Moved here after split
                 
                 team1_resolved = resolve_team_name(team1)
                 team2_resolved = resolve_team_name(team2)
@@ -5715,7 +5742,7 @@ def parse_schedule_text(schedule_text, week, team_clarifications=None):
                     'game_date': current_date,
                     'game_time': game_time,
                     'tv_network': tv_network,
-                    'bowl_game_name': current_bowl_game  # NEW: Use tracked bowl game
+                    'bowl_game_name': current_bowl_game
                 }
             
             # Format 2: "Team A at Team B" - Team B is home
