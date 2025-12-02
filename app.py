@@ -6,7 +6,6 @@ import time
 import hashlib
 import signal
 import sys
-import re
 from datetime import date, datetime, timedelta
 from collections import defaultdict
 from functools import wraps
@@ -5479,45 +5478,25 @@ def parse_schedule_text(schedule_text, week, team_clarifications=None):
     def resolve_team_name(team_name):
         """Resolve team name using clarifications or existing mappings"""
         original_name = team_name
-        
-        # ADD THIS DEBUG BLOCK
-        print(f"\n{'='*60}")
-        print(f"DEBUG RESOLVE: Input = '{original_name}'")
-        print(f"DEBUG RESOLVE: Input repr = {repr(original_name)}")
-        
         team_name = clean_team_name(team_name)
-        
-        print(f"DEBUG RESOLVE: After clean_team_name = '{team_name}'")
-        print(f"DEBUG RESOLVE: After clean repr = {repr(team_name)}")
-        
+
         # First check if we have a clarification for this session
         if team_clarifications and team_name in team_clarifications:
-            result = team_clarifications[team_name]
-            print(f"DEBUG RESOLVE: Found in clarifications = '{result}'")
-            print(f"{'='*60}\n")
-            return result
+            
+            return team_clarifications[team_name]
         
         # Check if it's a known FBS team
         if team_name in TEAMS:
-            print(f"DEBUG RESOLVE: Found '{team_name}' in TEAMS - SUCCESS!")
-            print(f"{'='*60}\n")
             return team_name
-        else:
-            print(f"DEBUG RESOLVE: '{team_name}' NOT found in TEAMS")
-            # Print first few teams from TEAMS that contain 'Miami'
-            miami_teams = [t for t in TEAMS if 'Miami' in t or 'miami' in t.lower()]
-            print(f"DEBUG RESOLVE: Teams with 'Miami' in TEAMS: {miami_teams}")
-            
+        
         # Check common variations
         for standard_name, variants in TEAM_VARIATIONS.items():
             if team_name in variants:
-                print(f"DEBUG RESOLVE: Found in TEAM_VARIATIONS = '{standard_name}'")
-                print(f"{'='*60}\n")
+                
                 return standard_name
         
         # If we get here, it's unknown
-        print(f"DEBUG RESOLVE: UNKNOWN TEAM - adding to unknown_teams")
-        print(f"{'='*60}\n")
+        
         unknown_teams.add(team_name)
         return team_name  # Return as-is for now
     
@@ -5658,10 +5637,7 @@ def parse_schedule_text(schedule_text, week, team_clarifications=None):
                 print(f"SKIPPING (no game indicators): {line}")
                 continue
 
-            # DEBUG: Let's see what we're trying to parse
-            print(f"DEBUG: Trying to parse game line: '{line}'")
             
-                
             game = None
             
             # Look ahead to next line for time/TV info
@@ -5693,39 +5669,15 @@ def parse_schedule_text(schedule_text, week, team_clarifications=None):
                 line_clean = line_clean.split('\t')[0].strip()
 
             line_clean = re.sub(r'\s+', ' ', line_clean).strip()
-            print(f"DEBUG: Processing game line: '{line}'")
-            print(f"DEBUG: After cleaning: '{line_clean}'")
-            print(f"DEBUG: Contains 'at'? {'at' in line_clean}")
-            print(f"DEBUG: After all cleaning: '{line_clean}'")
-            print(f"DEBUG: Does line contain 'vs'? {' vs ' in line_clean}")
-            print(f"DEBUG: Does line contain '('? {'(' in line_clean}")
-            print(f"DEBUG: Searching for 'vs' in line: {repr(line_clean)}")
-            if 'vs' in line_clean:
-                vs_index = line_clean.find('vs')
-                before_vs = line_clean[vs_index-2:vs_index+2] if vs_index >= 2 else line_clean[:vs_index+2]
-                after_vs = line_clean[vs_index:vs_index+4] if vs_index+4 <= len(line_clean) else line_clean[vs_index:]
-                print(f"DEBUG: Characters around 'vs': before='{before_vs}' after='{after_vs}'")
 
             
             
             # Format 1: "Team A vs Team B (location)" - neutral site
             if (' vs ' in line_clean or ' vs. ' in line_clean) and '(' in line_clean:
-                # Find the LAST occurrence of (location) pattern
-                # Pattern: (in City, State) or (City, State)
-                import re
-                location_match = re.search(r'\(in [^)]+\)$', line_clean)
-                if location_match:
-                    location = location_match.group(0)[1:-1]  # Remove parentheses
-                    # Get teams part by removing the location
-                    teams_part = line_clean[:location_match.start()].strip()
-                else:
-                    # Fallback: assume last parentheses is location
-                    last_paren_idx = line_clean.rfind('(')
-                    teams_part = line_clean[:last_paren_idx].strip()
-                    location = line_clean[last_paren_idx+1:].rstrip(')')
-                
+                parts = line_clean.split(' vs ')
+                teams_part = line_clean.split('(')[0].strip()
+                location = line_clean.split('(')[1].split(')')[0].strip()
                 team1, team2 = [t.strip() for t in teams_part.split(' vs ')]
-                print(f"DEBUG: Split on 'vs' gives: team1='{team1}' team2='{team2}'")  # <-- Moved here after split
                 
                 team1_resolved = resolve_team_name(team1)
                 team2_resolved = resolve_team_name(team2)
@@ -5742,7 +5694,7 @@ def parse_schedule_text(schedule_text, week, team_clarifications=None):
                     'game_date': current_date,
                     'game_time': game_time,
                     'tv_network': tv_network,
-                    'bowl_game_name': current_bowl_game
+                    'bowl_game_name': current_bowl_game  # NEW: Use tracked bowl game
                 }
             
             # Format 2: "Team A at Team B" - Team B is home
@@ -5768,19 +5720,14 @@ def parse_schedule_text(schedule_text, week, team_clarifications=None):
             
             # Format 3: "Team A vs Team B" - Check if it's a bowl game (neutral) or regular game (Team A home)
             elif ' vs ' in line_clean or ' vs. ' in line_clean:
-                # DEBUG: Let's see what the split produces
                 split_parts = line_clean.split(' vs ')
-                print(f"DEBUG: Splitting '{line_clean}' on ' vs ' gives: {split_parts}")
                 if len(split_parts) < 2:
                     # Try splitting on ' vs. ' instead
                     split_parts = line_clean.split(' vs. ')
-                    print(f"DEBUG: Splitting '{line_clean}' on ' vs. ' gives: {split_parts}")
 
                 if len(split_parts) >= 2:
                     team1, team2 = [t.strip() for t in split_parts]
-                    print(f"DEBUG: team1='{team1}' team2='{team2}'")
                 else:
-                    print(f"DEBUG: Split failed, skipping line")
                     continue
                 
                 team1_resolved = resolve_team_name(team1)
@@ -5812,10 +5759,7 @@ def parse_schedule_text(schedule_text, week, team_clarifications=None):
                 
             
             if game:
-                print(f"DEBUG: Successfully created game: {game['away_team']} vs {game['home_team']}")
                 games.append(game)
-            else:
-                print(f"DEBUG: No game created for line: '{line}'")
                 
         except Exception as e:
             print(f"Error parsing line '{line}': {e}")
@@ -5951,7 +5895,6 @@ def get_current_week_from_snapshots():
             return '1'  # Default to Week 1 if no snapshots exist
         
         week_name = latest_snapshot.week_name  # e.g., "Week 5"
-        print(f"Latest snapshot: {week_name}")
         
         # Handle standard week format: "Week N"
         if week_name.startswith('Week '):
@@ -6239,8 +6182,6 @@ def compare_teams():
         
     except Exception as e:
         print(f"ERROR in compare_teams: {e}")
-        import traceback
-        traceback.print_exc()
         flash(f'Error comparing teams: {str(e)}', 'error')
         return redirect(url_for('team_compare'))
 
@@ -6618,10 +6559,6 @@ def weekly_movement():
         
         current_rankings = current_snapshot.rankings[:25]   # Week 2 top 25
         previous_rankings = previous_snapshot.rankings[:25] # Week 1 top 25
-        
-        print(f"DEBUG: Comparing {current_snapshot.week_name} vs {previous_snapshot.week_name}")
-        print(f"DEBUG: Current rankings count: {len(current_rankings)}")
-        print(f"DEBUG: Previous rankings count: {len(previous_rankings)}")
         
         # Calculate movement
         movement_data = calculate_ranking_movement(current_rankings, previous_rankings)
@@ -7019,7 +6956,6 @@ def public_team_detail(team_name):
                 
                 if team_data:
                     adjusted_total = team_data['adjusted_total']
-                    print(f"Using bulk data for {decoded_team_name}: {adjusted_total}")
                     total_teams_ranked = len(all_teams_stats)
                     
                     # Get detailed breakdown for components
@@ -7027,7 +6963,6 @@ def public_team_detail(team_name):
                         enhanced_scientific = calculate_enhanced_scientific_ranking(decoded_team_name)
                         components = enhanced_scientific.get('components', {})
                     except Exception as e:
-                        print(f"Component calculation failed: {e}")
                         components = {}
                     
                     scientific_result = {
@@ -7041,7 +6976,6 @@ def public_team_detail(team_name):
                     }
                 else:
                     # Fallback if not found in bulk data
-                    print(f"Team {decoded_team_name} not found in bulk data, using individual calculation")
                     comprehensive_stats = calculate_comprehensive_stats(decoded_team_name)
                     adjusted_total = comprehensive_stats['adjusted_total']
                     current_rank = 'NR'
@@ -7497,7 +7431,6 @@ def scoreboard(week=None):
     
     if not week:
         week = get_current_week_from_snapshots()
-        print(f"Auto-selected current week: {week}")
 
     # Get all unique weeks from DATABASE instead of games_data
     all_games = get_games_data()  # Use our database function
@@ -7908,7 +7841,6 @@ def fetch_all_polls():
         # Strategy 2: Use the working pattern that found June 2, 2025
         if not external_timestamp:
             page_text = soup.get_text()
-            print(f"DEBUG: Searching page text for month dates...")
             
             # Use the same pattern that worked in the debug for all months
             months = ['January', 'February', 'March', 'April', 'May', 'June', 
@@ -7921,7 +7853,6 @@ def fetch_all_polls():
                 matches = re.findall(pattern, page_text, re.IGNORECASE)
                 if matches:
                     all_found_dates.extend(matches)
-                    print(f"DEBUG: Found {month} dates: {matches}")
             
             # Use the first valid recent date found
             if all_found_dates:
@@ -7931,14 +7862,12 @@ def fetch_all_polls():
                         test_date = datetime.strptime(date_str, '%B %d, %Y')
                         if 2024 <= test_date.year <= 2025:
                             external_timestamp = date_str
-                            print(f"DEBUG: Using date: {external_timestamp}")
                             break
                     except:
                         continue
         
         # Strategy 3: Look for "Updated" or "Last updated" with more flexible patterns
         if not external_timestamp:
-            print("DEBUG: Looking for 'Updated' patterns...")
             
             # Look for text around "updated" keywords
             updated_patterns = [
@@ -7955,7 +7884,6 @@ def fetch_all_polls():
                             test_date = datetime.strptime(match, '%B %d, %Y')
                             if 2024 <= test_date.year <= 2025:
                                 external_timestamp = match
-                                print(f"DEBUG: Found updated date: {external_timestamp}")
                                 break
                         except:
                             continue
@@ -7965,7 +7893,6 @@ def fetch_all_polls():
         # Fallback: Use current date with note
         if not external_timestamp:
             external_timestamp = f"~{datetime.now().strftime('%B %d, %Y')}"
-            print(f"DEBUG: Using fallback date: {external_timestamp}")
         
         polls['external_polls_updated'] = external_timestamp
         print(f"✅ Final external polls timestamp: {external_timestamp}")
@@ -8140,44 +8067,54 @@ def fetch_all_polls():
     try:
         print("🏈 Fetching CFP Rankings...")
         
-        cfp_url = "https://www.espn.com/college-football/rankings/_/poll/21/seasontype/2"
+        # CFP Rankings are published on the College Football Playoff website
+        cfp_url = "https://www.collegefootballplayoff.com/sports/2017/10/16/rankings.aspx"
+        
         response = requests.get(cfp_url, headers=headers, timeout=15)
         soup = BeautifulSoup(response.content, 'html.parser')
         
         cfp_teams = []
         
-        # Get table rows (skip header row)
-        rank_rows = soup.find_all('tr')[1:26]  # Rows 1-25
+        # Method 1: Try to find rankings table
+        rankings_table = soup.find('table')
+        if rankings_table:
+            rows = rankings_table.find_all('tr')[1:]  # Skip header
+            for row in rows[:25]:  # Top 25
+                cols = row.find_all('td')
+                if len(cols) >= 2:
+                    rank = cols[0].get_text(strip=True)
+                    team = cols[1].get_text(strip=True)
+                    
+                    # Clean up team name
+                    team = apply_team_variations(team)
+                    
+                    cfp_teams.append({
+                        'rank': int(rank) if rank.isdigit() else len(cfp_teams) + 1,
+                        'team': team
+                    })
         
-        for idx, row in enumerate(rank_rows):
-            cells = row.find_all('td')
+        # Method 2: Try alternative structure with divs/spans
+        if not cfp_teams:
+            ranking_items = soup.find_all(['div', 'article', 'li'], class_=lambda x: x and ('rank' in x.lower() or 'team' in x.lower()))
             
-            if len(cells) >= 2:
-                team_cell = cells[1]
+            for idx, item in enumerate(ranking_items[:25]):
+                team_name = item.get_text(strip=True)
                 
-                # Find the span with class "hide-mobile" which has the full team name
-                team_span = team_cell.find('span', class_='hide-mobile')
+                # Clean up team name
+                team_name = apply_team_variations(team_name)
                 
-                if team_span:
-                    team_link = team_span.find('a')
-                    if team_link:
-                        team_name = team_link.get_text(strip=True)
-                        
-                        # Clean up team name with your variations
-                        team_name = apply_team_variations(team_name)
-                        
-                        cfp_teams.append({
-                            'rank': idx + 1,
-                            'team': team_name
-                        })
+                # Filter out non-team text
+                if len(team_name) > 3 and team_name not in ['Rank', 'Team', 'Record', 'Previous']:
+                    cfp_teams.append({
+                        'rank': idx + 1,
+                        'team': team_name
+                    })
         
         polls['cfp_poll'] = cfp_teams
         print(f"✅ CFP Rankings: {len(cfp_teams)} teams")
         
     except Exception as e:
         print(f"❌ CFP Rankings failed: {e}")
-        import traceback
-        traceback.print_exc()
         polls['cfp_poll'] = []
 
     return polls
@@ -8287,8 +8224,6 @@ def team_leaders():
         return render_template('team_leaders.html', leaders=leaders)
         
     except Exception as e:
-        import traceback
-        traceback.print_exc()
         flash(f'Error loading team leaders: {e}', 'error')
         return render_template('team_leaders.html', leaders={})
 
@@ -10163,8 +10098,6 @@ def bowl_projections():
         
     except Exception as e:
         print(f"BOWL ERROR: {e}")
-        import traceback
-        traceback.print_exc()
         
         # Return with empty but valid structure
         return render_template('bowl_projections.html',
@@ -10833,5 +10766,3 @@ if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5001)), debug=False)
     
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5001)), debug=False)
-
-
