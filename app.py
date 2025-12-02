@@ -8187,8 +8187,15 @@ def fetch_all_polls():
 def team_leaders():
     """Team statistical leaders page"""
     try:
+        import time
+        start_time = time.time()
+        
+        print(f"🕐 Starting team_leaders route...")
+        
         # Get all team stats using our bulk loading function
+        t = time.time()
         all_teams_stats = get_all_team_stats_bulk()
+        print(f"✅ get_all_team_stats_bulk: {time.time() - t:.2f}s")
         
         # Filter out teams with no games
         teams_with_games = [team for team in all_teams_stats if team['total_wins'] + team['total_losses'] > 0]
@@ -8201,39 +8208,87 @@ def team_leaders():
         leaders = {}
         
         # OFFENSIVE LEADERS
+        t = time.time()
         leaders['highest_scoring'] = calculate_points_per_game_leaders(teams_with_games, 'offense')
+        print(f"✅ highest_scoring: {time.time() - t:.2f}s")
+        
+        t = time.time()
         leaders['most_total_points'] = sorted(teams_with_games, key=lambda x: x['points_fielded'], reverse=True)[:10]
+        print(f"✅ most_total_points: {time.time() - t:.2f}s")
         
         # DEFENSIVE LEADERS  
+        t = time.time()
         leaders['best_defense'] = calculate_points_per_game_leaders(teams_with_games, 'defense')
+        print(f"✅ best_defense: {time.time() - t:.2f}s")
+        
+        t = time.time()
         leaders['fewest_total_points'] = sorted(teams_with_games, key=lambda x: x['points_allowed'])[:10]
+        print(f"✅ fewest_total_points: {time.time() - t:.2f}s")
         
         # RECORD LEADERS
+        t = time.time()
         leaders['best_record'] = calculate_best_records(teams_with_games)
+        print(f"✅ best_record: {time.time() - t:.2f}s")
+        
+        t = time.time()
         leaders['most_wins'] = sorted(teams_with_games, key=lambda x: x['total_wins'], reverse=True)[:10]
+        print(f"✅ most_wins: {time.time() - t:.2f}s")
+        
+        t = time.time()
         leaders['best_road_record'] = calculate_road_leaders(teams_with_games)
+        print(f"✅ best_road_record: {time.time() - t:.2f}s")
+        
+        t = time.time()
         leaders['best_home_record'] = calculate_home_leaders(teams_with_games)
+        print(f"✅ best_home_record: {time.time() - t:.2f}s")
         
         # MARGIN LEADERS
+        t = time.time()
         leaders['best_margin'] = calculate_margin_leaders(teams_with_games)
+        print(f"✅ best_margin: {time.time() - t:.2f}s")
+        
+        t = time.time()
         leaders['worst_margin'] = calculate_margin_leaders(teams_with_games, reverse=True)
+        print(f"✅ worst_margin: {time.time() - t:.2f}s")
         
         # STRENGTH LEADERS
+        t = time.time()
         leaders['toughest_schedule'] = sorted(teams_with_games, key=lambda x: x['strength_of_schedule'], reverse=True)[:10]
+        print(f"✅ toughest_schedule: {time.time() - t:.2f}s")
+        
+        t = time.time()
         leaders['easiest_schedule'] = sorted(teams_with_games, key=lambda x: x['strength_of_schedule'])[:10]
+        print(f"✅ easiest_schedule: {time.time() - t:.2f}s")
         
         # INDIVIDUAL GAME RECORDS
+        t = time.time()
         leaders['biggest_wins'] = get_biggest_wins()
+        print(f"✅ biggest_wins: {time.time() - t:.2f}s")
+        
+        t = time.time()
         leaders['biggest_losses'] = get_biggest_losses()
+        print(f"✅ biggest_losses: {time.time() - t:.2f}s")
+        
+        t = time.time()
         leaders['highest_scoring_games'] = get_highest_scoring_games()
+        print(f"✅ highest_scoring_games: {time.time() - t:.2f}s")
         
         # QUALITY METRICS
+        t = time.time()
         leaders['best_ranking'] = teams_with_games[:10]  # Top 10 by ranking
+        print(f"✅ best_ranking: {time.time() - t:.2f}s")
+        
+        t = time.time()
         leaders['most_improved'] = calculate_improvement_leaders(teams_with_games)
+        print(f"✅ most_improved: {time.time() - t:.2f}s")
+        
+        print(f"🏁 TOTAL team_leaders time: {time.time() - start_time:.2f}s")
         
         return render_template('team_leaders.html', leaders=leaders)
         
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         flash(f'Error loading team leaders: {e}', 'error')
         return render_template('team_leaders.html', leaders={})
 
@@ -8392,12 +8447,16 @@ def calculate_margin_leaders(teams, reverse=False):
     return sorted(leaders, key=lambda x: x['avg_margin'], reverse=not reverse)[:10]
 
 def get_biggest_wins():
-    """Get the biggest margin of victory games"""
+    """Get the biggest margin of victory games (excluding FCS games)"""
     biggest_wins = []
     
     all_games = get_games_data()
     
     for game in all_games:
+        # Skip games involving FCS teams
+        if game['home_team'] == 'FCS' or game['away_team'] == 'FCS':
+            continue
+            
         home_margin = game['home_score'] - game['away_score']
         away_margin = game['away_score'] - game['home_score']
         
@@ -8428,12 +8487,16 @@ def get_biggest_losses():
     return get_biggest_wins()  # For now, same as biggest wins but could be enhanced
 
 def get_highest_scoring_games():
-    """Get the highest total point games"""
+    """Get the highest total point games (excluding FCS games)"""
     high_scoring = []
     
     all_games = get_games_data()
     
     for game in all_games:
+        # Skip games involving FCS teams
+        if game['home_team'] == 'FCS' or game['away_team'] == 'FCS':
+            continue
+            
         total_points = game['home_score'] + game['away_score']
         
         high_scoring.append({
@@ -8448,27 +8511,10 @@ def get_highest_scoring_games():
     return sorted(high_scoring, key=lambda x: x['total_points'], reverse=True)[:10]
 
 def calculate_improvement_leaders(teams):
-    """Calculate most improved teams (simplified version)"""
-    # This would need temporal data to work properly
-    # For now, return teams with best recent form
-    improved = []
-    
-    for team in teams:
-        try:
-            enhanced_result = calculate_enhanced_scientific_ranking(team['team'])
-            temporal_adj = enhanced_result['components'].get('temporal_adjustment', 0)
-            
-            if temporal_adj > 0:  # Positive temporal adjustment = improving
-                improved.append({
-                    'team': team['team'],
-                    'conference': team['conference'],
-                    'improvement_score': round(temporal_adj, 2),
-                    'record': f"{team['total_wins']}-{team['total_losses']}"
-                })
-        except:
-            continue
-    
-    return sorted(improved, key=lambda x: x['improvement_score'], reverse=True)[:10]
+    """Calculate most improved teams (DISABLED - too expensive)"""
+    # This was taking 173+ seconds to calculate
+    # Disabled until we implement a more efficient version
+    return []
 
 
 @app.route('/add_game', methods=['GET', 'POST'])
