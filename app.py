@@ -6,6 +6,7 @@ import time
 import hashlib
 import signal
 import sys
+import re
 from datetime import date, datetime, timedelta
 from collections import defaultdict
 from functools import wraps
@@ -8108,8 +8109,49 @@ def fetch_all_polls():
         print(f"❌ ESPN FPI failed: {e}")
         polls['espn_poll'] = []
 
-    # CFP Poll (placeholder)
-    polls['cfp_poll'] = []
+    # CFP Poll
+    try:
+        print("🏈 Fetching CFP Rankings...")
+        
+        cfp_url = "https://www.espn.com/college-football/rankings/_/poll/21/seasontype/2"
+        response = requests.get(cfp_url, headers=headers, timeout=15)
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        cfp_teams = []
+        
+        # Get table rows (skip header row)
+        rank_rows = soup.find_all('tr')[1:26]  # Rows 1-25
+        
+        for idx, row in enumerate(rank_rows):
+            cells = row.find_all('td')
+            
+            if len(cells) >= 2:
+                team_cell = cells[1]
+                
+                # Find the span with class "hide-mobile" which has the full team name
+                team_span = team_cell.find('span', class_='hide-mobile')
+                
+                if team_span:
+                    team_link = team_span.find('a')
+                    if team_link:
+                        team_name = team_link.get_text(strip=True)
+                        
+                        # Clean up team name with your variations
+                        team_name = apply_team_variations(team_name)
+                        
+                        cfp_teams.append({
+                            'rank': idx + 1,
+                            'team': team_name
+                        })
+        
+        polls['cfp_poll'] = cfp_teams
+        print(f"✅ CFP Rankings: {len(cfp_teams)} teams")
+        
+    except Exception as e:
+        print(f"❌ CFP Rankings failed: {e}")
+        import traceback
+        traceback.print_exc()
+        polls['cfp_poll'] = []
 
     return polls
 
