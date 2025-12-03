@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}Make Your Picks - Bowl Pick'em{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>🏈 Make Your Picks</h2>
+                <div>
+                    <a href="{{ url_for('bowl_pickem.home') }}" class="btn btn-outline-secondary">
+                        ← Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('bowl_pickem.make_picks') }}">
+        {% if unlocked_games %}
+        <!-- Unlocked Games Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h4 class="mb-0">✅ Games You Can Still Pick ({{ unlocked_games|length }})</h4>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-4">
+                            <strong>Select a winner for each game.</strong> You can change your picks anytime before the game starts!
+                        </p>
+                        
+                        {% for game_data in unlocked_games %}
+                        <div class="card mb-3 border-success">
+                            <div class="card-body">
+                                <div class="row align-items-center">
+                                    <!-- Game Info -->
+                                    <div class="col-lg-5 mb-3 mb-lg-0">
+                                        {% if game_data.game.bowl_game_name %}
+                                        <h5 class="text-primary mb-2">{{ game_data.game.bowl_game_name }}</h5>
+                                        {% endif %}
+                                        <div class="d-flex align-items-center mb-2">
+                                            <strong class="me-2">📅</strong>
+                                            {{ game_data.game.game_date.strftime('%a, %b %d') if game_data.game.game_date else 'TBD' }}
+                                        </div>
+                                        <div class="d-flex align-items-center">
+                                            <strong class="me-2">🕐</strong>
+                                            {{ game_data.game.game_time if game_data.game.game_time else 'TBD' }}
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Pick Selection -->
+                                    <div class="col-lg-7">
+                                        <div class="row g-2">
+                                            <div class="col-md-6">
+                                                <div class="form-check p-3 border rounded 
+                                                    {% if game_data.pick and game_data.pick.picked_team == game_data.game.away_team %}
+                                                        border-primary bg-light
+                                                    {% endif %}">
+                                                    <input class="form-check-input" type="radio" 
+                                                           name="pick_{{ game_data.game.id }}" 
+                                                           id="away_{{ game_data.game.id }}"
+                                                           value="{{ game_data.game.away_team }}"
+                                                           {% if game_data.pick and game_data.pick.picked_team == game_data.game.away_team %}
+                                                               checked
+                                                           {% endif %}>
+                                                    <label class="form-check-label w-100" for="away_{{ game_data.game.id }}">
+                                                        <strong>{{ game_data.game.away_team }}</strong>
+                                                        <small class="text-muted d-block">Away</small>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="col-md-6">
+                                                <div class="form-check p-3 border rounded
+                                                    {% if game_data.pick and game_data.pick.picked_team == game_data.game.home_team %}
+                                                        border-primary bg-light
+                                                    {% endif %}">
+                                                    <input class="form-check-input" type="radio" 
+                                                           name="pick_{{ game_data.game.id }}" 
+                                                           id="home_{{ game_data.game.id }}"
+                                                           value="{{ game_data.game.home_team }}"
+                                                           {% if game_data.pick and game_data.pick.picked_team == game_data.game.home_team %}
+                                                               checked
+                                                           {% endif %}>
+                                                    <label class="form-check-label w-100" for="home_{{ game_data.game.id }}">
+                                                        <strong>{{ game_data.game.home_team }}</strong>
+                                                        <small class="text-muted d-block">Home</small>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        {% if not game_data.pick or not game_data.pick.picked_team %}
+                                        <small class="text-danger d-block mt-2">
+                                            ⚠️ No pick made yet
+                                        </small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        
+                        <!-- Submit Button -->
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                💾 Save All Picks
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            <strong>All games have started!</strong> No more picks can be made at this time.
+        </div>
+        {% endif %}
+    </form>
+
+    {% if locked_games %}
+    <!-- Locked Games Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h4 class="mb-0">🔒 Your Locked Picks ({{ locked_games|length }})</h4>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">
+                        These games have already started. Picks cannot be changed.
+                    </p>
+                    
+                    {% for game_data in locked_games %}
+                    <div class="card mb-3 border-secondary">
+                        <div class="card-body">
+                            <div class="row">
+                                <!-- Game Info -->
+                                <div class="col-lg-4 mb-3 mb-lg-0">
+                                    {% if game_data.game.bowl_game_name %}
+                                    <h6 class="text-primary mb-2">{{ game_data.game.bowl_game_name }}</h6>
+                                    {% endif %}
+                                    <div class="mb-1">
+                                        <small class="text-muted">
+                                            {{ game_data.game.game_date.strftime('%a, %b %d') if game_data.game.game_date else 'TBD' }}
+                                            @ {{ game_data.game.game_time if game_data.game.game_time else 'TBD' }}
+                                        </small>
+                                    </div>
+                                    {% if game_data.game.completed %}
+                                    <span class="badge bg-success">Final</span>
+                                    {% else %}
+                                    <span class="badge bg-warning">In Progress</span>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Matchup & Score -->
+                                <div class="col-lg-5 mb-3 mb-lg-0">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <strong>{{ game_data.game.away_team }}</strong>
+                                        {% if game_data.game.completed %}
+                                        <span class="badge bg-dark">{{ game_data.game.final_away_score }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>{{ game_data.game.home_team }}</strong>
+                                        {% if game_data.game.completed %}
+                                        <span class="badge bg-dark">{{ game_data.game.final_home_score }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <!-- Your Pick & Result -->
+                                <div class="col-lg-3">
+                                    {% if game_data.pick and game_data.pick.picked_team %}
+                                        <div class="text-center p-2 rounded
+                                            {% if game_data.pick.is_correct == True %}
+                                                bg-success text-white
+                                            {% elif game_data.pick.is_correct == False %}
+                                                bg-danger text-white
+                                            {% else %}
+                                                bg-light
+                                            {% endif %}">
+                                            <small>Your Pick:</small>
+                                            <div><strong>{{ game_data.pick.picked_team }}</strong></div>
+                                            {% if game_data.pick.is_correct == True %}
+                                                <div class="mt-1">✅ Correct!</div>
+                                            {% elif game_data.pick.is_correct == False %}
+                                                <div class="mt-1">❌ Incorrect</div>
+                                            {% elif game_data.game.completed %}
+                                                <div class="mt-1">⏳ Scoring...</div>
+                                            {% endif %}
+                                        </div>
+                                    {% else %}
+                                        <div class="text-center p-2 rounded bg-light">
+                                            <small class="text-muted">No pick made</small>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Back Button -->
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <a href="{{ url_for('bowl_pickem.home') }}" class="btn btn-outline-secondary btn-lg">
+                ← Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Custom styling for pick cards */
+.form-check-input:checked ~ .form-check-label {
+    font-weight: bold;
+}
+
+.form-check {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.form-check:hover {
+    background-color: #f8f9fa !important;
+    border-color: #0d6efd !important;
+}
+
+.card {
+    transition: all 0.2s ease;
+}
+
+.card:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+</style>
+{% endblock %}

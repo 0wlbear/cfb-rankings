@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Users - Bowl Pick'em{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>🔧 Manage Bowl Pick'em Users</h2>
+                <a href="/admin" class="btn btn-outline-secondary">← Back to Admin</a>
+            </div>
+        </div>
+    </div>
+
+    {% if users %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0">All Users ({{ users|length }})</h4>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Code</th>
+                                    <th>Email</th>
+                                    <th>Total Picks</th>
+                                    <th>Correct</th>
+                                    <th>Registered</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                <tr>
+                                    <td><strong>{{ user.name }}</strong></td>
+                                    <td><code>{{ user.user_code }}</code></td>
+                                    <td>{{ user.email if user.email else '—' }}</td>
+                                    <td>{{ user.total_picks }}</td>
+                                    <td><span class="badge bg-success">{{ user.correct_picks }}</span></td>
+                                    <td>{{ user.created_at.strftime('%b %d, %Y') }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-danger" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#deleteModal{{ user.id }}">
+                                            🗑️ Delete
+                                        </button>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Delete Confirmation Modal -->
+                                <div class="modal fade" id="deleteModal{{ user.id }}" tabindex="-1">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header bg-danger text-white">
+                                                <h5 class="modal-title">Delete User?</h5>
+                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p><strong>Are you sure you want to delete this user?</strong></p>
+                                                <ul>
+                                                    <li>Name: <strong>{{ user.name }}</strong></li>
+                                                    <li>Code: <code>{{ user.user_code }}</code></li>
+                                                    <li>Picks: {{ user.total_picks }}</li>
+                                                </ul>
+                                                <div class="alert alert-danger">
+                                                    This will permanently delete the user and all their picks!
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                <form method="POST" action="{{ url_for('bowl_pickem.admin_delete_user', user_id=user.id) }}" style="display: inline;">
+                                                    <button type="submit" class="btn btn-danger">Delete User</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        No users registered yet.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

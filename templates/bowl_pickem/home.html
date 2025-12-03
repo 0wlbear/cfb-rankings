@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Bowl Pick'em - CFB Rankings{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    {% if not logged_in %}
+        <!-- Registration Form -->
+        <div class="row justify-content-center">
+            <div class="col-lg-6 col-md-8">
+                <div class="card shadow-lg">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="mb-0">🏈 Bowl Pick'em</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <strong>Welcome to Bowl Pick'em!</strong><br>
+                            Pick the winners of all bowl games and CFP playoff games. Get 1 point for each correct pick!
+                        </div>
+                        
+                        <h5 class="mb-3">Register to Start Picking</h5>
+                        <form method="POST" action="{{ url_for('bowl_pickem.register') }}">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Your Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="name" name="name" required 
+                                       placeholder="Enter your name">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email (Optional)</label>
+                                <input type="email" class="form-control" id="email" name="email" 
+                                       placeholder="your@email.com">
+                                <small class="form-text text-muted">We'll only use this to contact you if you win!</small>
+                            </div>
+                            
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    Register & Get My Code
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <hr class="my-4">
+                        
+                        <div class="text-center">
+                            <p class="mb-2">Already have a code?</p>
+                            <a href="{{ url_for('bowl_pickem.login') }}" class="btn btn-outline-secondary">
+                                Login with Code
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    {% else %}
+        <!-- User Dashboard -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                        <h3 class="mb-0">🏈 Bowl Pick'em Dashboard</h3>
+                        <span class="badge bg-light text-dark">{{ user.name }}</span>
+                    </div>
+                    <div class="card-body">
+                        <!-- User Code Display -->
+                        <div class="alert alert-warning mb-4">
+                            <strong>⚠️ Save Your Code:</strong> 
+                            <code class="fs-5 mx-2">{{ user.user_code }}</code>
+                            <small class="d-block mt-2">You'll need this code to access your picks from any device!</small>
+                        </div>
+                        
+                        <!-- Stats Grid -->
+                        <div class="row text-center g-3">
+                            <div class="col-md-3 col-sm-6">
+                                <div class="card bg-light h-100">
+                                    <div class="card-body">
+                                        <h2 class="mb-0 text-primary">{{ user_picks }}</h2>
+                                        <small class="text-muted">Picks Made</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3 col-sm-6">
+                                <div class="card bg-light h-100">
+                                    <div class="card-body">
+                                        <h2 class="mb-0 text-success">{{ user_score }}</h2>
+                                        <small class="text-muted">Correct Picks</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3 col-sm-6">
+                                <div class="card bg-light h-100">
+                                    <div class="card-body">
+                                        <h2 class="mb-0 text-info">{{ locked_picks }}</h2>
+                                        <small class="text-muted">Games Locked</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3 col-sm-6">
+                                <div class="card bg-light h-100">
+                                    <div class="card-body">
+                                        <h2 class="mb-0 text-warning">{{ user_percentage }}%</h2>
+                                        <small class="text-muted">Accuracy</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Quick Actions -->
+                        <div class="row mt-4 g-3">
+                            <div class="col-md-4">
+                                <a href="{{ url_for('bowl_pickem.make_picks') }}" class="btn btn-primary btn-lg w-100">
+                                    📝 Make/Edit Picks
+                                </a>
+                            </div>
+                            <div class="col-md-4">
+                                <a href="{{ url_for('bowl_pickem.leaderboard') }}" class="btn btn-success btn-lg w-100">
+                                    🏆 View Leaderboard
+                                </a>
+                            </div>
+                            <div class="col-md-4">
+                                <a href="{{ url_for('bowl_pickem.logout') }}" class="btn btn-outline-secondary btn-lg w-100">
+                                    🚪 Logout
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <!-- Game Status -->
+                        <div class="mt-4">
+                            <div class="progress" style="height: 30px;">
+                                {% set progress = (locked_picks / total_games * 100) | round | int if total_games > 0 else 0 %}
+                                <div class="progress-bar bg-success" role="progressbar" 
+                                     style="width: {{ progress }}%;" 
+                                     aria-valuenow="{{ progress }}" aria-valuemin="0" aria-valuemax="100">
+                                    {{ locked_picks }} of {{ total_games }} games completed
+                                </div>
+                            </div>
+                            <small class="text-muted d-block mt-2 text-center">
+                                {{ unlocked_games }} games still available to pick
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- How to Play Section -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">ℹ️ How to Play</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="mb-0">
+                            <li><strong>Make your picks</strong> before each game starts</li>
+                            <li><strong>Games lock</strong> when kickoff time arrives - no changes after that!</li>
+                            <li><strong>Earn 1 point</strong> for each correct pick</li>
+                            <li><strong>All picks are hidden</strong> until each game locks</li>
+                            <li><strong>Check the leaderboard</strong> to see how you rank against others</li>
+                            <li><strong>Save your code ({{ user.user_code }})</strong> to access picks from anywhere!</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

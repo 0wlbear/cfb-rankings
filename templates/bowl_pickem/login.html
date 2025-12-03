@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+
+{% block title %}Leaderboard - Bowl Pick'em{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>🏆 Bowl Pick'em Leaderboard</h2>
+                <div>
+                    <a href="{{ url_for('bowl_pickem.home') }}" class="btn btn-outline-secondary">
+                        ← Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if leaderboard %}
+    <!-- Leaderboard Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">📊 Current Standings</h4>
+                    <span class="badge bg-light text-dark">{{ leaderboard|length }} Participants</span>
+                </div>
+                <div class="card-body">
+                    <!-- Top 3 Podium (only show if games have started) -->
+                    {% if leaderboard[0].locked_picks > 0 %}
+                    <div class="row mb-4 text-center">
+                        {% for entry in leaderboard[:3] %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 
+                                {% if loop.index == 1 %}border-warning bg-light{% endif %}
+                                {% if loop.index == 2 %}border-secondary{% endif %}
+                                {% if loop.index == 3 %}border-info{% endif %}">
+                                <div class="card-body">
+                                    <div class="display-1 mb-2">
+                                        {% if loop.index == 1 %}🥇{% endif %}
+                                        {% if loop.index == 2 %}🥈{% endif %}
+                                        {% if loop.index == 3 %}🥉{% endif %}
+                                    </div>
+                                    <h5 class="card-title">{{ entry.name }}</h5>
+                                    <h2 class="text-success mb-0">{{ entry.correct_picks }}</h2>
+                                    <small class="text-muted">Correct Picks</small>
+                                    <div class="mt-2">
+                                        <span class="badge bg-primary">{{ entry.percentage }}% Accuracy</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <hr>
+                    {% endif %}
+                    
+                    <!-- Full Leaderboard Table -->
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover" id="leaderboardTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th class="sortable-header" onclick="sortTable(0, true)">
+                                        Rank <span class="sort-indicator"></span>
+                                    </th>
+                                    <th class="sortable-header" onclick="sortTable(1, false)">
+                                        Name <span class="sort-indicator"></span>
+                                    </th>
+                                    <th class="sortable-header" onclick="sortTable(2, true)">
+                                        Correct <span class="sort-indicator"></span>
+                                    </th>
+                                    <th class="sortable-header" onclick="sortTable(3, true)">
+                                        Total Picks <span class="sort-indicator"></span>
+                                    </th>
+                                    <th class="sortable-header" onclick="sortTable(4, true)">
+                                        Locked Games <span class="sort-indicator"></span>
+                                    </th>
+                                    <th class="sortable-header" onclick="sortTable(5, true)">
+                                        Accuracy <span class="sort-indicator"></span>
+                                    </th>
+                                    <th>Code</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for entry in leaderboard %}
+                                <tr {% if current_user and entry.user.id == current_user.id %}class="table-primary"{% endif %}>
+                                    <td>
+                                        <strong>
+                                            {% if entry.rank == 1 %}🥇{% endif %}
+                                            {% if entry.rank == 2 %}🥈{% endif %}
+                                            {% if entry.rank == 3 %}🥉{% endif %}
+                                            {{ entry.rank }}
+                                        </strong>
+                                    </td>
+                                    <td>
+                                        <strong>{{ entry.name }}</strong>
+                                        {% if current_user and entry.user.id == current_user.id %}
+                                            <span class="badge bg-info ms-2">You</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success fs-6">{{ entry.correct_picks }}</span>
+                                    </td>
+                                    <td>{{ entry.total_picks }}</td>
+                                    <td>{{ entry.locked_picks }}</td>
+                                    <td>
+                                        {% if entry.percentage >= 70 %}
+                                            <span class="badge bg-success">{{ entry.percentage }}%</span>
+                                        {% elif entry.percentage >= 50 %}
+                                            <span class="badge bg-warning text-dark">{{ entry.percentage }}%</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ entry.percentage }}%</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <code>{{ entry.user_code }}</code>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Stats Summary -->
+                    <div class="alert alert-light mt-4">
+                        <div class="row text-center">
+                            <div class="col-md-3">
+                                <strong class="d-block text-muted">Total Participants</strong>
+                                <h4>{{ leaderboard|length }}</h4>
+                            </div>
+                            <div class="col-md-3">
+                                <strong class="d-block text-muted">Total Picks Made</strong>
+                                <h4>{{ leaderboard | sum(attribute='total_picks') }}</h4>
+                            </div>
+                            <div class="col-md-3">
+                                <strong class="d-block text-muted">Games Locked</strong>
+                                <h4>{{ leaderboard[0].locked_picks if leaderboard else 0 }}</h4>
+                            </div>
+                            <div class="col-md-3">
+                                <strong class="d-block text-muted">Avg Accuracy</strong>
+                                <h4>
+                                    {% set total_percentage = leaderboard | sum(attribute='percentage') %}
+                                    {% if leaderboard|length > 0 %}
+                                        {{ (total_percentage / leaderboard|length) | round(1) }}%
+                                    {% else %}
+                                        0%
+                                    {% endif %}
+                                </h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% else %}
+    <!-- No Participants Yet -->
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h4>No participants yet!</h4>
+                <p class="mb-0">Be the first to register and start making picks!</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- How Scoring Works -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">ℹ️ How Scoring Works</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li><strong>1 point</strong> for each correct pick</li>
+                        <li>Rankings based on <strong>total correct picks</strong></li>
+                        <li>Ties broken by <strong>accuracy percentage</strong></li>
+                        <li>Only <strong>locked games</strong> count toward accuracy</li>
+                        <li>Picks are <strong>hidden until games lock</strong></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Back Button -->
+    <div class="row my-4">
+        <div class="col-12 text-center">
+            <a href="{{ url_for('bowl_pickem.home') }}" class="btn btn-outline-secondary btn-lg">
+                ← Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+// Override the sortTable function to work with leaderboardTable
+function sortTable(columnIndex, isNumeric = false) {
+    const table = document.getElementById('leaderboardTable');
+    const tbody = table.getElementsByTagName('tbody')[0];
+    const rows = Array.from(tbody.getElementsByTagName('tr'));
+    
+    // Get current header and determine sort direction
+    const currentHeader = table.getElementsByTagName('th')[columnIndex];
+    const currentlyAscending = currentHeader.classList.contains('sort-asc');
+    const currentlyDescending = currentHeader.classList.contains('sort-desc');
+    
+    // Determine new sort direction
+    let isAscending;
+    if (!currentlyAscending && !currentlyDescending) {
+        // First click - default to descending for numeric, ascending for text
+        isAscending = !isNumeric;
+    } else if (currentlyAscending) {
+        isAscending = false;
+    } else {
+        isAscending = true;
+    }
+    
+    // Clear all sort indicators
+    const headers = table.getElementsByTagName('th');
+    for (let header of headers) {
+        header.classList.remove('sort-asc', 'sort-desc');
+        const indicator = header.querySelector('.sort-indicator');
+        if (indicator) indicator.textContent = '';
+    }
+    
+    // Set new sort indicator
+    const indicator = currentHeader.querySelector('.sort-indicator');
+    if (indicator) {
+        indicator.textContent = isAscending ? '↑' : '↓';
+        currentHeader.classList.add(isAscending ? 'sort-asc' : 'sort-desc');
+    }
+    
+    // Sort rows
+    rows.sort((a, b) => {
+        let aVal = a.getElementsByTagName('td')[columnIndex].textContent.trim();
+        let bVal = b.getElementsByTagName('td')[columnIndex].textContent.trim();
+        
+        // Remove emojis from rank column
+        if (columnIndex === 0) {
+            aVal = aVal.replace(/[^\d]/g, '');
+            bVal = bVal.replace(/[^\d]/g, '');
+        }
+        
+        // Remove % from percentage column
+        if (columnIndex === 5) {
+            aVal = aVal.replace('%', '');
+            bVal = bVal.replace('%', '');
+        }
+        
+        if (isNumeric) {
+            aVal = parseFloat(aVal) || 0;
+            bVal = parseFloat(bVal) || 0;
+            return isAscending ? aVal - bVal : bVal - aVal;
+        } else {
+            return isAscending ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        }
+    });
+    
+    // Re-append sorted rows
+    rows.forEach((row) => {
+        tbody.appendChild(row);
+    });
+}
+</script>
+
+<style>
+/* Highlight current user's row */
+.table-primary {
+    background-color: rgba(13, 110, 253, 0.1) !important;
+}
+
+/* Podium cards styling */
+.border-warning {
+    border-width: 3px !important;
+}
+
+.border-secondary {
+    border-width: 2px !important;
+}
+
+.border-info {
+    border-width: 2px !important;
+}
+</style>
+{% endblock %}

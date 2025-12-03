@@ -112,6 +112,82 @@
         </div>
     </div>
 </div>
+<!-- Bowl Pick'em Management -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">🏈 Bowl Pick'em Management</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title">📊 Calculate Scores</h6>
+                                <p class="card-text">Update scores for all users based on completed games.</p>
+                                <form method="POST" action="{{ url_for('bowl_pickem.auto_score') }}">
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        Calculate All Scores
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title">📦 Archive Season</h6>
+                                <p class="card-text">Save 2024 season data before resetting for 2025.</p>
+                                <form method="POST" action="{{ url_for('bowl_pickem.admin_archive_season') }}">
+                                    <button type="submit" class="btn btn-info w-100">
+                                        Archive 2024 Season
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100 border-danger">
+                            <div class="card-body">
+                                <h6 class="card-title text-danger">🗑️ Reset Season</h6>
+                                <p class="card-text">Delete all users and picks. Archive first!</p>
+                                <button class="btn btn-danger w-100" data-bs-toggle="modal" data-bs-target="#resetPickemModal">
+                                    Reset Pick'em
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="card-title">👥 Manage Users</h6>
+                            <p class="card-text">View and delete individual users.</p>
+                            <a href="{{ url_for('bowl_pickem.admin_manage_users') }}" class="btn btn-outline-warning w-100">
+                                Manage Users
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info mb-0 mt-3">
+                    <strong>🔔 End of Season Workflow:</strong>
+                    <ol class="mb-0">
+                        <li>Calculate final scores after all bowl games complete</li>
+                        <li>Archive the 2024 season to preserve data</li>
+                        <li>Reset pick'em to clear for 2025</li>
+                        <li>Update <code>CURRENT_SEASON</code> in <code>app/bowl_pickem/utils.py</code> to 2025</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 
                 <!-- ADD THIS NEW SECTION RIGHT HERE (after the existing Action Buttons section): -->
 

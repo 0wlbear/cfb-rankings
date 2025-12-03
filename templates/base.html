@@ -609,9 +609,9 @@
             <div class="navbar-nav mx-auto d-flex justify-content-center">
                 <a class="nav-link modern-nav-link" href="{{ url_for('rankings') }}">Rankings</a>
                 <a class="nav-link modern-nav-link" href="{{ url_for('scoreboard') }}">Scoreboard</a>
-                <a class="nav-link modern-nav-link" href="{{ url_for('ai_ask') }}">
+                <!-- <a class="nav-link modern-nav-link" href="{{ url_for('ai_ask') }}">
                       <i class="fas fa-robot"></i> Ask AI
-                    </a>
+                    </a> -->
                 
                 <!-- FIXED: Desktop-only Playoffs & Bowls Dropdown -->
                 <div class="nav-item dropdown desktop-dropdown">
@@ -621,6 +621,7 @@
                     <ul class="dropdown-menu dropdown-menu-dark modern-dropdown" aria-labelledby="playoffsDropdown">
                         <li><a class="dropdown-item modern-dropdown-item" href="{{ url_for('cfp_bracket') }}">CFP Bracket</a></li>
                         <li><a class="dropdown-item modern-dropdown-item" href="{{ url_for('bowl_projections') }}">Bowl Projections</a></li>
+                        <li><a class="dropdown-item modern-dropdown-item" href="{{ url_for('bowl_pickem.home') }}">Bowl Pick'em</a></li>
                     </ul>
                 </div>
                 
@@ -646,11 +647,12 @@
                 <div class="mobile-nav-links">
                     <a class="nav-link modern-nav-link" href="{{ url_for('rankings') }}">Rankings</a>
                     <a class="nav-link modern-nav-link" href="{{ url_for('scoreboard') }}">Scoreboard</a>
-                    <a class="nav-link modern-nav-link" href="{{ url_for('ai_ask') }}">
+                    <!-- <a class="nav-link modern-nav-link" href="{{ url_for('ai_ask') }}">
                         <i class="fas fa-robot"></i> Ask AI
-                    </a>
+                    </a> -->
                     <a class="nav-link modern-nav-link" href="{{ url_for('cfp_bracket') }}">CFP Bracket</a>
                     <a class="nav-link modern-nav-link" href="{{ url_for('bowl_projections') }}">Bowl Projections</a>
+                    <a class="nav-link modern-nav-link" href="{{ url_for('bowl_pickem.home') }}">Bowl Pick'em</a>
                     <a class="nav-link modern-nav-link" href="{{ url_for('team_leaders') }}">Team Leaders</a>
                     <a class="nav-link modern-nav-link" href="{{ url_for('poll_comparison') }}">Poll Comparison</a>
                     <a class="nav-link modern-nav-link" href="/weekly_movement">Weekly Movement</a>

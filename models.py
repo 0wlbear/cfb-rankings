@@ -431,3 +431,177 @@ class ExternalPoll(db.Model):
     def get_rankings(self):
         """Helper method to get rankings as Python list"""
         return json.loads(self.rankings_json) if self.rankings_json else []
+
+
+
+# ============================================================================
+# BOWL PICK'EM MODELS
+# ============================================================================
+
+class PickEmUser(db.Model):
+    """
+    User model for Bowl Pick'em - cookie-based authentication
+    """
+    __tablename__ = 'pickem_users'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    season_year = db.Column(db.Integer, nullable=False, default=2024, index=True)
+    email = db.Column(db.String(120), nullable=True)  # Optional
+    user_code = db.Column(db.String(20), nullable=False, index=True)  # BOWL-XXXXXX
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    
+    # Relationship to picks
+    picks = db.relationship('BowlPick', backref='user', lazy='dynamic', cascade='all, delete-orphan')
+    
+    # Unique constraint: one user code per season
+    __table_args__ = (
+        db.UniqueConstraint('user_code', 'season_year', name='unique_user_code_season'),
+    )
+    
+    def __repr__(self):
+        return f'<PickEmUser {self.name} ({self.user_code}) - {self.season_year}>'
+    
+    def get_score(self):
+        """Calculate user's total score"""
+        return self.picks.filter_by(is_correct=True).count()
+    
+    def get_total_picks(self):
+        """Get total number of picks made"""
+        return self.picks.filter(BowlPick.picked_team.isnot(None)).count()
+    
+    def get_locked_picks(self):
+        """Get number of locked picks (games that have started)"""
+        locked_count = 0
+        for pick in self.picks:
+            if pick.game and pick.game.game_date and pick.game.game_time:
+                try:
+                    game_datetime = datetime.combine(
+                        pick.game.game_date, 
+                        datetime.strptime(pick.game.game_time, '%I:%M %p').time()
+                    )
+                    if game_datetime <= datetime.now():
+                        locked_count += 1
+                except:
+                    pass
+        return locked_count
+    
+    def get_percentage_correct(self):
+        """Get percentage of correct picks"""
+        locked = self.get_locked_picks()
+        if locked == 0:
+            return 0
+        return round((self.get_score() / locked) * 100, 1)
+
+
+class BowlPick(db.Model):
+    """
+    Individual bowl game pick by a user
+    """
+    __tablename__ = 'bowl_picks'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('pickem_users.id'), nullable=False, index=True)
+    season_year = db.Column(db.Integer, nullable=False, default=2024, index=True)
+    game_id = db.Column(db.Integer, db.ForeignKey('cfb_scheduled_games.id'), nullable=False, index=True)
+    
+    # The team the user picked (should match home_team or away_team from ScheduledGame)
+    picked_team = db.Column(db.String(100), nullable=True)  # Nullable until user makes a pick
+    
+    # Scoring fields
+    is_correct = db.Column(db.Boolean, nullable=True)  # Null until game completes
+    points = db.Column(db.Integer, default=0, nullable=False)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    # Relationship to game
+    game = db.relationship('ScheduledGame', backref='picks', lazy='joined')
+    
+    # Unique constraint: one pick per user per game per season
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'game_id', 'season_year', name='unique_user_game_season_pick'),
+    )
+    
+    def __repr__(self):
+        return f'<BowlPick user_id={self.user_id} game_id={self.game_id} picked={self.picked_team} ({self.season_year})>'
+    
+    def is_locked(self):
+        """Check if this game is locked (game time has passed)"""
+        if not self.game or not self.game.game_time or not self.game.game_date:
+            return False
+        try:
+            game_datetime = datetime.combine(
+                self.game.game_date, 
+                datetime.strptime(self.game.game_time, '%I:%M %p').time()
+            )
+            return game_datetime <= datetime.now()
+        except:
+            return False
+    
+    def get_winner(self):
+        """Get the winning team if game is completed"""
+        if not self.game or not self.game.completed:
+            return None
+        
+        if self.game.final_home_score > self.game.final_away_score:
+            return self.game.home_team
+        elif self.game.final_away_score > self.game.final_home_score:
+            return self.game.away_team
+        else:
+            return None  # Tie - no winner
+    
+    def calculate_result(self):
+        """
+        Calculate if pick is correct and assign points
+        Returns True if scoring was updated, False if game not completed
+        """
+        if not self.game or not self.game.completed or not self.picked_team:
+            return False
+        
+        winner = self.get_winner()
+        
+        if winner is None:
+            # Tie game - no points awarded
+            self.is_correct = False
+            self.points = 0
+        elif winner == self.picked_team:
+            # Correct pick
+            self.is_correct = True
+            self.points = 1
+        else:
+            # Incorrect pick
+            self.is_correct = False
+            self.points = 0
+        
+        return True
+
+
+class PickEmArchive(db.Model):
+    """Archive of completed Bowl Pick'em seasons"""
+    __tablename__ = 'pickem_archives'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    season_year = db.Column(db.Integer, nullable=False, unique=True, index=True)
+    archived_date = db.Column(db.DateTime, default=datetime.utcnow)
+    total_users = db.Column(db.Integer, default=0)
+    total_picks = db.Column(db.Integer, default=0)
+    total_games = db.Column(db.Integer, default=0)
+    winner_name = db.Column(db.String(100), nullable=True)
+    winner_code = db.Column(db.String(20), nullable=True)
+    winner_score = db.Column(db.Integer, default=0)
+    
+    # Store complete data as JSON
+    archive_data_json = db.Column(db.Text)
+    
+    def __repr__(self):
+        return f'<PickEmArchive {self.season_year} - Winner: {self.winner_name}>'
+    
+    def get_archive_data(self):
+        """Get the archived data as a dictionary"""
+        return json.loads(self.archive_data_json) if self.archive_data_json else {}
+    
+    def set_archive_data(self, data):
+        """Set the archived data from a dictionary"""
+        self.archive_data_json = json.dumps(data)

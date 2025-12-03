@@ -30,6 +30,9 @@ from models import (
     ExternalPoll
 )
 
+# Bowl Pick'em Blueprint
+from app.bowl_pickem import bp as bowl_pickem_bp
+
 # Local imports - CFB ML tracking (with error handling)
 CFB_ML_ENABLED = False
 try:
@@ -181,6 +184,9 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 }
 
 db.init_app(app)
+
+# Register Bowl Pick'em Blueprint
+app.register_blueprint(bowl_pickem_bp)
 
 # Conference Teams
 ACC_TEAMS = [
@@ -956,15 +962,22 @@ BOWL_GAMES_DETECTION = {
     'First Responder Bowl': ['first responder bowl', 'servpro first responder bowl'],
     'Birmingham Bowl': ['birmingham bowl', 'ticketsmarter birmingham bowl'],
     'Independence Bowl': ['independence bowl', 'radiance technologies independence bowl'],
-    'Guaranteed Rate Bowl': ['guaranteed rate bowl', 'arizona bowl'],
+    'Rate Bowl': ['guaranteed rate bowl', 'rate bowl'],
     'Hawaii Bowl': ['hawaii bowl', 'eia hawaii bowl'],
     'Bahamas Bowl': ['bahamas bowl', 'makers wanted bahamas bowl'],
     'Famous Toastery Bowl': ['famous toastery bowl', 'toastery bowl'],
     'Myrtle Beach Bowl': ['myrtle beach bowl', 'championship myrtle beach bowl'],
+    'Potato Bowl': ['potato bowl', 'famous idaho potato bowl'],
+    'Sports Bowl': ['potato bowl', 'famous idaho potato bowl'],
+    'Pop-Tarts Bowl': ['pop-tarts bowl', 'pop tarts bowl'],
+    'Arizona Bowl': ['arizona bowl', 'snoop dogg arizona bowl'],
+
     
     # CFP Related
     'CFP National Championship': ['cfp national championship', 'national championship', 'championship game'],
-    'CFP Semifinal': ['cfp semifinal', 'playoff semifinal', 'college football playoff'],
+    'CFP Semifinal': ['cfp semifinal', 'playoff semifinal', 'college football playoff semifinal'],
+    'CFP Quarterfinal': ['cfp quaterfinal', 'playoff quarterfinal', 'college football playoff quarterfinal'],
+    'CFP First Round': ['cfp first round', 'playoff first round', 'cfp first-round'],
     
     # Generic Detection
     'Bowl Game': ['bowl', 'bowl game'],  # Fallback for any unspecified bowl
@@ -980,6 +993,9 @@ SCHEDULE_MANIPULATION_PENALTIES = {
 def detect_bowl_game(line_text):
     """Detect bowl game name from a line of text"""
     line_lower = line_text.lower().strip()
+
+    # ADD THIS ONE LINE:
+    print(f"  DEBUG: Testing '{line}' -> 'at' found: {'at' in line_lower}")
     
     # Check for specific bowl games first (most specific to least specific)
     for bowl_name, variations in BOWL_GAMES_DETECTION.items():
@@ -5551,13 +5567,18 @@ def parse_schedule_text(schedule_text, week, team_clarifications=None):
         line_lower = line.lower().strip()
         
         # Check if this line is just a bowl name (no teams)
-        if 'bowl' in line_lower and not any(indicator in line_lower for indicator in ['vs', 'at', '@']):
+        # Use word boundaries to avoid matching "at" in "Raton", etc.
+        import re
+        has_vs = bool(re.search(r'\bvs\b', line_lower))
+        has_at = bool(re.search(r'\bat\b', line_lower))
+        has_atsign = '@' in line_lower
+        
+        if 'bowl' in line_lower and not (has_vs or has_at or has_atsign):
             # This might be a bowl name line
             # Clean up common prefixes/suffixes
             cleaned = line.strip()
             
             # Remove common words that appear with bowl names
-            import re
             cleaned = re.sub(r'\b(game|championship|presented by|sponsored by)\b', '', cleaned, flags=re.IGNORECASE)
             cleaned = re.sub(r'\s+', ' ', cleaned).strip()
             
@@ -5565,6 +5586,31 @@ def parse_schedule_text(schedule_text, week, team_clarifications=None):
                 return cleaned
         
         return None
+
+    def detect_cfp_designation(line):
+        """Detect CFP designation lines like 'CFP Semifinal', 'CFP Quarterfinal'"""
+        line_lower = line.lower().strip()
+        
+        # Remove hyphens for more flexible matching
+        line_normalized = line_lower.replace('-', ' ')
+        
+        cfp_designations = [
+            'cfp semifinal',
+            'cfp quarterfinal', 
+            'cfp championship',
+            'cfp national championship',
+            'cfp first round',
+            'cfp first round game',  # Add this
+            'national championship'
+        ]
+        
+        for designation in cfp_designations:
+            if designation in line_normalized:
+                # Return cleaned version
+                return line.strip()
+        
+        return None
+
     
     def extract_time_and_tv(line):
         """Extract time and TV info from game line"""
@@ -5629,12 +5675,20 @@ def parse_schedule_text(schedule_text, week, team_clarifications=None):
             bowl_name = detect_bowl_game_line(line)
             if bowl_name:
                 current_bowl_game = bowl_name
-                
                 continue
-            
-            # Skip lines that don't have game indicators
-            if not any(indicator in line_lower for indicator in ['vs', 'at', '@']):
-                print(f"SKIPPING (no game indicators): {line}")
+
+            # NEW: Check if this line is a CFP designation
+            cfp_designation = detect_cfp_designation(line)
+            print(f"DEBUG CFP: Testing '{line}' -> Result: {cfp_designation}")
+            if cfp_designation:
+                if current_bowl_game:
+                    # Append to existing bowl game (e.g., "Peach Bowl (CFP Semifinal)")
+                    current_bowl_game = f"{current_bowl_game} ({cfp_designation})"
+                    print(f"DEBUG CFP: Appended to bowl, now: {current_bowl_game}")
+                else:
+                    # No bowl game, so this IS the game name (e.g., "CFP First Round")
+                    current_bowl_game = cfp_designation
+                    print(f"DEBUG CFP: Set as game name: {current_bowl_game}")
                 continue
 
             
