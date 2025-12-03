@@ -31,7 +31,7 @@ from models import (
 )
 
 # Bowl Pick'em Blueprint
-from app.bowl_pickem import bp as bowl_pickem_bp
+from blueprints.bowl_pickem import bp as bowl_pickem_bp
 
 # Local imports - CFB ML tracking (with error handling)
 CFB_ML_ENABLED = False
