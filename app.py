@@ -971,6 +971,7 @@ BOWL_GAMES_DETECTION = {
     'Sports Bowl': ['potato bowl', 'famous idaho potato bowl'],
     'Pop-Tarts Bowl': ['pop-tarts bowl', 'pop tarts bowl'],
     'Arizona Bowl': ['arizona bowl', 'snoop dogg arizona bowl'],
+    'Ventures Bowl': ['ventures bowl', 'venture bowl'],
 
     
     # CFP Related
