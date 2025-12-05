@@ -972,6 +972,8 @@ BOWL_GAMES_DETECTION = {
     'Pop-Tarts Bowl': ['pop-tarts bowl', 'pop tarts bowl'],
     'Arizona Bowl': ['arizona bowl', 'snoop dogg arizona bowl'],
     'Ventures Bowl': ['ventures bowl', 'venture bowl'],
+    'LA Bowl': ['la bowl', 'los angeles bowl'],
+    'Xbox Bowl': ['xbox bowl', 'x-box bowl'],
 
     
     # CFP Related
