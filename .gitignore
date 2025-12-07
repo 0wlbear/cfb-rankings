@@ -46,3 +46,4 @@ app.log
 # Security - just in case
 *.pem
 *.key
+app/
