@@ -5729,8 +5729,8 @@ def parse_schedule_text(schedule_text, week, team_clarifications=None):
 
             
             
-            # Format 1: "Team A vs Team B (location)" - neutral site
-            if (' vs ' in line_clean or ' vs. ' in line_clean) and '(' in line_clean:
+            # Format 1: "Team A vs Team B (in City, ST)" - neutral site with location
+            if (' vs ' in line_clean or ' vs. ' in line_clean) and '(in ' in line_clean.lower():
                 parts = line_clean.split(' vs ')
                 teams_part = line_clean.split('(')[0].strip()
                 location = line_clean.split('(')[1].split(')')[0].strip()
