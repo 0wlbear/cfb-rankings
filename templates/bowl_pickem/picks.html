@@ -126,11 +126,11 @@
         <div class="col-12">
             <div class="card shadow-sm">
                 <div class="card-header bg-secondary text-white">
-                    <h4 class="mb-0">🔒 Your Locked Picks ({{ locked_games|length }})</h4>
+                    <h4 class="mb-0">🔒 Locked Games ({{ locked_games|length }})</h4>
                 </div>
                 <div class="card-body">
                     <p class="text-muted mb-4">
-                        These games have already started. Picks cannot be changed.
+                        These games have started. Picks are now visible to everyone!
                     </p>
                     
                     {% for game_data in locked_games %}
@@ -138,7 +138,7 @@
                         <div class="card-body">
                             <div class="row">
                                 <!-- Game Info -->
-                                <div class="col-lg-4 mb-3 mb-lg-0">
+                                <div class="col-lg-3 mb-3 mb-lg-0">
                                     {% if game_data.game.bowl_game_name %}
                                     <h6 class="text-primary mb-2">{{ game_data.game.bowl_game_name }}</h6>
                                     {% endif %}
@@ -156,25 +156,26 @@
                                 </div>
                                 
                                 <!-- Matchup & Score -->
-                                <div class="col-lg-5 mb-3 mb-lg-0">
+                                <div class="col-lg-4 mb-3 mb-lg-0">
                                     <div class="d-flex justify-content-between align-items-center mb-2">
                                         <strong>{{ game_data.game.away_team }}</strong>
                                         {% if game_data.game.completed %}
-                                        <span class="badge bg-dark">{{ game_data.game.final_away_score }}</span>
+                                        <span class="badge bg-dark fs-6">{{ game_data.game.final_away_score }}</span>
                                         {% endif %}
                                     </div>
                                     <div class="d-flex justify-content-between align-items-center">
                                         <strong>{{ game_data.game.home_team }}</strong>
                                         {% if game_data.game.completed %}
-                                        <span class="badge bg-dark">{{ game_data.game.final_home_score }}</span>
+                                        <span class="badge bg-dark fs-6">{{ game_data.game.final_home_score }}</span>
                                         {% endif %}
                                     </div>
                                 </div>
                                 
-                                <!-- Your Pick & Result -->
-                                <div class="col-lg-3">
+                                <!-- Your Pick -->
+                                <div class="col-lg-2 mb-3 mb-lg-0">
+                                    <small class="text-muted d-block mb-1">Your Pick:</small>
                                     {% if game_data.pick and game_data.pick.picked_team %}
-                                        <div class="text-center p-2 rounded
+                                        <div class="p-2 rounded text-center
                                             {% if game_data.pick.is_correct == True %}
                                                 bg-success text-white
                                             {% elif game_data.pick.is_correct == False %}
@@ -182,21 +183,74 @@
                                             {% else %}
                                                 bg-light
                                             {% endif %}">
-                                            <small>Your Pick:</small>
-                                            <div><strong>{{ game_data.pick.picked_team }}</strong></div>
+                                            <strong>{{ game_data.pick.picked_team }}</strong>
                                             {% if game_data.pick.is_correct == True %}
-                                                <div class="mt-1">✅ Correct!</div>
+                                                <div class="mt-1">✅</div>
                                             {% elif game_data.pick.is_correct == False %}
-                                                <div class="mt-1">❌ Incorrect</div>
-                                            {% elif game_data.game.completed %}
-                                                <div class="mt-1">⏳ Scoring...</div>
+                                                <div class="mt-1">❌</div>
                                             {% endif %}
                                         </div>
                                     {% else %}
-                                        <div class="text-center p-2 rounded bg-light">
-                                            <small class="text-muted">No pick made</small>
+                                        <div class="p-2 rounded bg-light text-center">
+                                            <small class="text-muted">No pick</small>
                                         </div>
                                     {% endif %}
+                                </div>
+                                
+                                <!-- Everyone's Picks -->
+                                <div class="col-lg-3">
+                                    <small class="text-muted d-block mb-1">Everyone's Picks:</small>
+                                    <button class="btn btn-sm btn-outline-primary w-100" 
+                                            type="button" 
+                                            data-bs-toggle="collapse" 
+                                            data-bs-target="#picks-{{ game_data.game.id }}">
+                                        View All Picks
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Collapsible Picks Section -->
+                            <div class="collapse mt-3" id="picks-{{ game_data.game.id }}">
+                                <hr>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6>{{ game_data.game.away_team }} 
+                                            <span class="badge bg-secondary">
+                                                {{ game_data.game.picks|selectattr('picked_team', 'equalto', game_data.game.away_team)|list|length }}
+                                            </span>
+                                        </h6>
+                                        <ul class="list-unstyled">
+                                            {% for pick in game_data.game.picks %}
+                                                {% if pick.picked_team == game_data.game.away_team and pick.user %}
+                                                    <li class="mb-1">
+                                                        <span class="{% if pick.is_correct %}text-success fw-bold{% elif pick.is_correct == False %}text-danger{% endif %}">
+                                                            {{ pick.user.name }}
+                                                            {% if pick.is_correct %}✅{% elif pick.is_correct == False %}❌{% endif %}
+                                                        </span>
+                                                    </li>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6>{{ game_data.game.home_team }}
+                                            <span class="badge bg-secondary">
+                                                {{ game_data.game.picks|selectattr('picked_team', 'equalto', game_data.game.home_team)|list|length }}
+                                            </span>
+                                        </h6>
+                                        <ul class="list-unstyled">
+                                            {% for pick in game_data.game.picks %}
+                                                {% if pick.picked_team == game_data.game.home_team and pick.user %}
+                                                    <li class="mb-1">
+                                                        <span class="{% if pick.is_correct %}text-success fw-bold{% elif pick.is_correct == False %}text-danger{% endif %}">
+                                                            {{ pick.user.name }}
+                                                            {% if pick.is_correct %}✅{% elif pick.is_correct == False %}❌{% endif %}
+                                                        </span>
+                                                    </li>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
                                 </div>
                             </div>
                         </div>
