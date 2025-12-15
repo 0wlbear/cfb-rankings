@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+
+{% block title %}Grid View - Bowl Pick'em{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                <h2>📊 Bowl Pick'em Grid</h2>
+                <div>
+                    <a href="{{ url_for('bowl_pickem.leaderboard') }}" class="btn btn-outline-primary me-2">
+                        🏆 Leaderboard
+                    </a>
+                    <a href="{{ url_for('bowl_pickem.home') }}" class="btn btn-outline-secondary">
+                        ← Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if games and grid_data %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">All Picks - {{ games|length }} Games, {{ grid_data|length }} Participants</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered table-hover mb-0 grid-table">
+                            <thead class="table-dark sticky-top">
+                                <tr>
+                                    <th class="player-col sticky-left">Player</th>
+                                    {% for game in games %}
+                                    <th class="game-col text-center" style="min-width: 80px;">
+                                        <div class="game-header">
+                                            {% if game.bowl_game_name %}
+                                                <small class="d-block text-truncate" title="{{ game.bowl_game_name }}">
+                                                    {{ game.bowl_game_name|truncate(20, True, '...') }}
+                                                </small>
+                                            {% endif %}
+                                            <small class="d-block">
+                                                <strong>{{ game.away_team|truncate(10, True, '') }}</strong>
+                                                <br>@<br>
+                                                <strong>{{ game.home_team|truncate(10, True, '') }}</strong>
+                                            </small>
+                                            <small class="d-block text-muted">
+                                                {{ game.game_date.strftime('%m/%d') if game.game_date else 'TBD' }}
+                                            </small>
+                                        </div>
+                                    </th>
+                                    {% endfor %}
+                                    <th class="points-col text-center sticky-right">Points</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in grid_data %}
+                                <tr class="{% if current_user and row.user.id == current_user.id %}table-primary{% endif %}">
+                                    <td class="player-col sticky-left">
+                                        <strong>{{ row.user.name }}</strong>
+                                        {% if current_user and row.user.id == current_user.id %}
+                                            <span class="badge bg-info ms-1">You</span>
+                                        {% endif %}
+                                        <br>
+                                        <small class="text-muted">{{ row.total_picks }}/{{ games|length }}</small>
+                                    </td>
+                                    
+                                    {% for game in games %}
+                                    <td class="pick-cell text-center p-1">
+                                        {% set pick = row.picks.get(game.id) %}
+                                        {% if pick and pick.picked_team %}
+                                            {% if pick.is_locked() %}
+                                                {# Game has started - show pick with result #}
+                                                {% if pick.is_correct == True %}
+                                                    <div class="pick-box pick-correct" title="Correct: {{ pick.picked_team }}">
+                                                        <strong>{{ pick.picked_team|truncate(8, True, '') }}</strong>
+                                                        <div>✅</div>
+                                                    </div>
+                                                {% elif pick.is_correct == False %}
+                                                    <div class="pick-box pick-wrong" title="Wrong: {{ pick.picked_team }}">
+                                                        <strong>{{ pick.picked_team|truncate(8, True, '') }}</strong>
+                                                        <div>❌</div>
+                                                    </div>
+                                                {% else %}
+                                                    {# Locked but not scored yet #}
+                                                    <div class="pick-box pick-pending" title="In Progress: {{ pick.picked_team }}">
+                                                        <strong>{{ pick.picked_team|truncate(8, True, '') }}</strong>
+                                                        <div>⏳</div>
+                                                    </div>
+                                                {% endif %}
+                                            {% else %}
+                                                {# Game hasn't started - hide pick #}
+                                                <div class="pick-box pick-hidden" title="Pick made (hidden until game starts)">
+                                                    <strong>🔒</strong>
+                                                </div>
+                                            {% endif %}
+                                        {% else %}
+                                            {# No pick made #}
+                                            <div class="pick-box pick-none" title="No pick">
+                                                <span class="text-muted">—</span>
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    {% endfor %}
+                                    
+                                    <td class="points-col text-center sticky-right">
+                                        <strong class="fs-5">{{ row.total_correct }}</strong>
+                                        <br>
+                                        <small class="text-muted">
+                                            {% if row.locked_picks > 0 %}
+                                                {{ ((row.total_correct / row.locked_picks) * 100)|round(0)|int }}%
+                                            {% else %}
+                                                0%
+                                            {% endif %}
+                                        </small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="row mt-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="mb-3">Legend:</h6>
+                    <div class="row">
+                        <div class="col-md-3 mb-2">
+                            <span class="pick-box pick-correct d-inline-block me-2">Team ✅</span> = Correct Pick
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <span class="pick-box pick-wrong d-inline-block me-2">Team ❌</span> = Wrong Pick
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <span class="pick-box pick-pending d-inline-block me-2">Team ⏳</span> = In Progress
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <span class="pick-box pick-hidden d-inline-block me-2">🔒</span> = Hidden (Not Started)
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3 mb-2">
+                            <span class="pick-box pick-none d-inline-block me-2">—</span> = No Pick
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% else %}
+    <div class="alert alert-info">
+        <h5>No picks yet!</h5>
+        <p class="mb-0">Games and picks will appear here once people start making their selections.</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+/* Grid Table Styling */
+.grid-table {
+    font-size: 0.85rem;
+}
+
+/* Sticky columns */
+.sticky-left {
+    position: sticky;
+    left: 0;
+    background-color: #fff;
+    z-index: 10;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+}
+
+.sticky-right {
+    position: sticky;
+    right: 0;
+    background-color: #fff;
+    z-index: 10;
+    box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+}
+
+.sticky-top th.sticky-left,
+.sticky-top th.sticky-right {
+    z-index: 20;
+    background-color: #212529 !important;
+}
+
+/* Column widths */
+.player-col {
+    min-width: 150px;
+    max-width: 200px;
+}
+
+.points-col {
+    min-width: 80px;
+}
+
+/* Game header styling */
+.game-header {
+    font-size: 0.75rem;
+    line-height: 1.2;
+}
+
+/* Pick boxes */
+.pick-box {
+    padding: 4px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    line-height: 1.2;
+    min-height: 45px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.pick-correct {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.pick-wrong {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.pick-pending {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.pick-hidden {
+    background-color: #e2e3e5;
+    color: #383d41;
+    border: 1px solid #d6d8db;
+}
+
+.pick-none {
+    background-color: #f8f9fa;
+    color: #6c757d;
+    border: 1px solid #dee2e6;
+}
+
+/* Highlight current user */
+.table-primary td {
+    background-color: rgba(13, 110, 253, 0.1) !important;
+}
+
+.table-primary .sticky-left,
+.table-primary .sticky-right {
+    background-color: rgba(13, 110, 253, 0.15) !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .grid-table {
+        font-size: 0.7rem;
+    }
+    
+    .pick-box {
+        min-height: 35px;
+        font-size: 0.65rem;
+        padding: 2px;
+    }
+    
+    .player-col {
+        min-width: 100px;
+    }
+    
+    .game-header {
+        font-size: 0.65rem;
+    }
+}
+
+/* Smooth scrolling */
+.table-responsive {
+    scroll-behavior: smooth;
+}
+</style>
+
+<script>
+// Smooth scroll to current user's row on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const currentUserRow = document.querySelector('.table-primary');
+    if (currentUserRow) {
+        setTimeout(() => {
+            currentUserRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 500);
+    }
+});
+</script>
+{% endblock %}

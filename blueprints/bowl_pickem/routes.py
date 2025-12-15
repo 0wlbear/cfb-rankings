@@ -244,6 +244,55 @@ def leaderboard():
         current_user=user
     )
 
+@bp.route('/grid')
+def grid():
+    """
+    Grid view showing all users and all their picks - Yahoo style
+    """
+    from .utils import get_pickem_games, CURRENT_SEASON
+    
+    # Get all pick'em games
+    games = get_pickem_games()
+    
+    # Get all users for current season
+    users = PickEmUser.query.filter_by(season_year=CURRENT_SEASON).order_by(PickEmUser.name).all()
+    
+    # Build grid data structure
+    grid_data = []
+    for user in users:
+        user_row = {
+            'user': user,
+            'picks': {},
+            'total_correct': user.get_score(),
+            'total_picks': user.get_total_picks(),
+            'locked_picks': user.get_locked_picks()
+        }
+        
+        # Get all picks for this user
+        user_picks = BowlPick.query.filter_by(
+            user_id=user.id,
+            season_year=CURRENT_SEASON
+        ).all()
+        
+        # Map picks by game_id for easy lookup
+        for pick in user_picks:
+            user_row['picks'][pick.game_id] = pick
+        
+        grid_data.append(user_row)
+    
+    # Sort by total correct (descending)
+    grid_data.sort(key=lambda x: x['total_correct'], reverse=True)
+    
+    # Get current user if logged in
+    current_user = get_current_user()
+    
+    return render_template(
+        'bowl_pickem/grid.html',
+        games=games,
+        grid_data=grid_data,
+        current_user=current_user
+    )
+
 
 @bp.route('/game_picks/<int:game_id>')
 def game_picks(game_id):
