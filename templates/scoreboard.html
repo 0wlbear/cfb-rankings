@@ -92,7 +92,7 @@
             </div>
            {% if CFB_GEN_AI_ENABLED %}
 <!-- Weekly Report Section -->
-<div class="card mb-4" style="border-left: 4px solid #28a745;">
+<!-- <div class="card mb-4" style="border-left: 4px solid #28a745;">
   <div class="card-body">
     <div class="d-flex justify-content-between align-items-center">
       <div>
@@ -111,7 +111,7 @@
       </div>
     </div>
   </div>
-</div>
+</div> -->
 
 {% endif %}
         {% if weeks_with_games %}
@@ -372,11 +372,11 @@
                                                     </small>
                                                     
                                                     {% if CFB_GEN_AI_ENABLED and game.get('id') %}
-                                                        <a href="{{ url_for('ai_game_explanation', game_id=game.id) }}" 
+                                                       <!--  <a href="{{ url_for('ai_game_explanation', game_id=game.id) }}" 
                                                            class="btn btn-outline-primary btn-sm ai-analysis-link" 
                                                            title="AI Analysis of this game's ranking impact">
                                                             🤖 AI Analysis
-                                                        </a>
+                                                        </a> -->
                                                     {% endif %}
                                                 </div>
                                             </div>
