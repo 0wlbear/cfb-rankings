@@ -384,11 +384,14 @@ def admin_reset_season():
     """
     # TODO: Add your login_required decorator here
     
-    confirm = request.form.get('confirm', '').strip()
+    confirm = request.form.get('reset_confirm', '').strip()
     
-    if confirm != 'RESET':
-        flash('Reset cancelled. Type RESET to confirm.', 'warning')
-        return redirect(url_for('bowl_pickem.home'))
+    print(f"DEBUG: Received confirmation: '{confirm}'")  # Debug line
+    print(f"DEBUG: Form data: {request.form}")  # Debug line
+    
+    if confirm != 'RESET PICKEM':
+        flash(f'Reset cancelled. You typed: "{confirm}" but need to type: "RESET PICKEM"', 'warning')
+        return redirect(url_for('admin'))
     
     try:
         # Delete all picks for current season
@@ -405,7 +408,7 @@ def admin_reset_season():
         db.session.rollback()
         flash(f'Error resetting season: {e}', 'error')
     
-    return redirect(url_for('bowl_pickem.home'))
+    return redirect(url_for('admin'))
 
 @bp.route('/admin/delete_user/<int:user_id>', methods=['POST'])
 def admin_delete_user(user_id):
