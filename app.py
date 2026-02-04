@@ -62,40 +62,40 @@ except ImportError as e:
     def export_prediction_data():
         return None
 
-# Local imports - CFB Gen AI (with error handling)
-CFB_GEN_AI_ENABLED = False
-try:
-    import cfb_gen_ai
-    from cfb_gen_ai import (
-        explain_game_impact,
-        get_gen_ai_status,
-        explain_team_ranking,
-        generate_weekly_preview,
-        process_natural_language_query,
-        generate_weekly_report
-    )
-    CFB_GEN_AI_ENABLED = True
-    print("✅ CFB Gen AI module loaded")
-except ImportError as e:
-    print(f"⚠️ CFB Gen AI not available: {e}")
-    # Create dummy functions to prevent errors
-    def explain_game_impact(*args, **kwargs):
-        return "AI analysis temporarily unavailable"
+# # Local imports - CFB Gen AI (with error handling)
+# CFB_GEN_AI_ENABLED = False
+# try:
+#     import cfb_gen_ai
+#     from cfb_gen_ai import (
+#         explain_game_impact,
+#         get_gen_ai_status,
+#         explain_team_ranking,
+#         generate_weekly_preview,
+#         process_natural_language_query,
+#         generate_weekly_report
+#     )
+#     CFB_GEN_AI_ENABLED = True
+#     print("✅ CFB Gen AI module loaded")
+# except ImportError as e:
+#     print(f"⚠️ CFB Gen AI not available: {e}")
+#     # Create dummy functions to prevent errors
+#     def explain_game_impact(*args, **kwargs):
+#         return "AI analysis temporarily unavailable"
     
-    def get_gen_ai_status():
-        return {'available': False}
+#     def get_gen_ai_status():
+#         return {'available': False}
     
-    def test_gen_ai_connection():
-        return {'status': 'unavailable', 'error': 'Module not loaded'}
+#     def test_gen_ai_connection():
+#         return {'status': 'unavailable', 'error': 'Module not loaded'}
 
-    def generate_weekly_preview(*args, **kwargs):
-        return "Weekly preview temporarily unavailable"
+#     def generate_weekly_preview(*args, **kwargs):
+#         return "Weekly preview temporarily unavailable"
     
-    def explain_team_ranking(*args, **kwargs):
-        return "Ranking explanation temporarily unavailable"
+#     def explain_team_ranking(*args, **kwargs):
+#         return "Ranking explanation temporarily unavailable"
     
-    def enhance_matchup_prediction(*args, **kwargs):
-        return "Prediction analysis temporarily unavailable"
+#     def enhance_matchup_prediction(*args, **kwargs):
+#         return "Prediction analysis temporarily unavailable"
 
 
 # Simple in-memory cache (for production, use Redis)
