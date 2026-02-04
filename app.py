@@ -63,22 +63,35 @@ except ImportError as e:
         return None
 
 # Local imports - CFB Gen AI (with error handling)
+# This section replaces lines 65-99 in your app.py
+
 CFB_GEN_AI_ENABLED = False
-try:
-    import cfb_gen_ai
-    from cfb_gen_ai import (
-        explain_game_impact,
-        get_gen_ai_status,
-        explain_team_ranking,
-        generate_weekly_preview,
-        process_natural_language_query,
-        generate_weekly_report
-    )
-    CFB_GEN_AI_ENABLED = True
-    print("✅ CFB Gen AI module loaded")
-except ImportError as e:
-    print(f"⚠️ CFB Gen AI not available: {e}")
-    # Create dummy functions to prevent errors
+
+# Check environment variable to see if Gen AI should be enabled
+# Set ENABLE_GEN_AI=true in your environment to enable, otherwise it stays disabled
+ENABLE_GEN_AI = os.environ.get('ENABLE_GEN_AI', 'false').lower() == 'true'
+
+if ENABLE_GEN_AI:
+    try:
+        import cfb_gen_ai
+        from cfb_gen_ai import (
+            explain_game_impact,
+            get_gen_ai_status,
+            explain_team_ranking,
+            generate_weekly_preview,
+            process_natural_language_query,
+            generate_weekly_report
+        )
+        CFB_GEN_AI_ENABLED = True
+        print("✅ CFB Gen AI module loaded")
+    except ImportError as e:
+        print(f"⚠️ CFB Gen AI not available: {e}")
+        ENABLE_GEN_AI = False
+
+# If Gen AI is disabled or failed to load, create dummy functions
+if not ENABLE_GEN_AI:
+    print("ℹ️ CFB Gen AI is DISABLED - using dummy functions (no Bedrock calls)")
+    
     def explain_game_impact(*args, **kwargs):
         return "AI analysis temporarily unavailable"
     
@@ -86,7 +99,7 @@ except ImportError as e:
         return {'available': False}
     
     def test_gen_ai_connection():
-        return {'status': 'unavailable', 'error': 'Module not loaded'}
+        return {'status': 'unavailable', 'error': 'Module disabled'}
 
     def generate_weekly_preview(*args, **kwargs):
         return "Weekly preview temporarily unavailable"
@@ -96,6 +109,12 @@ except ImportError as e:
     
     def enhance_matchup_prediction(*args, **kwargs):
         return "Prediction analysis temporarily unavailable"
+    
+    def process_natural_language_query(*args, **kwargs):
+        return "AI query processing temporarily unavailable"
+    
+    def generate_weekly_report(*args, **kwargs):
+        return "Weekly report temporarily unavailable"
 
 
 # Simple in-memory cache (for production, use Redis)
