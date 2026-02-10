@@ -227,10 +227,6 @@ BIG_XII_TEAMS = [
     'TCU', 'Texas Tech', 'UCF', 'Utah', 'West Virginia'
 ]
 
-PAC_12_TEAMS = [
-    'Oregon State', 'Washington State'
-]
-
 SEC_TEAMS = [
     'Alabama', 'Arkansas', 'Auburn', 'Florida', 'Georgia', 'Kentucky',
     'LSU', 'Mississippi State', 'Missouri', 'Oklahoma', 'Ole Miss',
@@ -250,26 +246,31 @@ AMERICAN_TEAMS = [
 CONFERENCE_USA_TEAMS = [
     'Delaware', 'Florida Intl', 'Jacksonville State', 'Kennesaw State',
     'LA Tech', 'Liberty', 'Middle Tennessee', 'Missouri State',
-    'New Mexico St', 'Sam Houston', 'UTEP', 'Western Kentucky'
+    'New Mexico St', 'Sam Houston', 'Western Kentucky'
 ]
 
 MAC_TEAMS = [
     'Akron', 'Ball State', 'Bowling Green', 'Buffalo', 'Central Michigan',
     'Eastern Michigan', 'Kent State', 'UMass', 'Miami (OH)',
-    'Northern Illinois', 'Ohio', 'Toledo', 'Western Michigan'
+    'Ohio', 'Toledo', 'Western Michigan'
 ]
 
 MOUNTAIN_WEST_TEAMS = [
-    'Air Force', 'Boise State', 'Colorado State', 'Fresno State',
-    'Hawaii', 'Nevada', 'New Mexico', 'San Diego State',
-    'San Jose State', 'UNLV', 'Utah State', 'Wyoming'
+    'Air Force', 'Hawaii', 'Nevada', 'New Mexico', 'North Dakota State','Northern Illinois', 
+    'San Jose State', 'UNLV', 'UTEP', 'Wyoming'
+]
+
+PAC_12_TEAMS = [
+    'Boise State', 'Colorado State', 'Fresno State', 
+    'San Diego State', 'Oregon State', 'Texas State', 'Utah State',
+    'Washington State'
 ]
 
 SUN_BELT_TEAMS = [
     'Appalachian St', 'Arkansas State', 'Coastal Carolina', 'Georgia Southern',
     'Georgia State', 'James Madison', 'UL Monroe', 'Louisiana',
     'Marshall', 'Old Dominion', 'South Alabama', 'Southern Miss',
-    'Texas State', 'Troy'
+    'Troy'
 ]
 
 # ESPN Team ID mapping for logos
@@ -511,10 +512,6 @@ TEAM_VARIATIONS = {
             'Utah': ['Utah', 'Utes'],
             'West Virginia': ['West Virginia', 'WVU', 'Mountaineers'],
 
-            # Pac-12 (remaining)
-            'Oregon State': ['Oregon State', 'OSU', 'Beavers'],
-            'Washington State': ['Washington State', 'WSU', 'Cougars'],
-
             # American Athletic Conference
             'Army': ['Army', 'Black Knights'],
             'Charlotte': ['Charlotte', '49ers'],
@@ -542,7 +539,6 @@ TEAM_VARIATIONS = {
             'Missouri State': ['Missouri State', 'Bears'],
             'New Mexico St': ['New Mexico St', 'New Mexico State', 'NMSU', 'Aggies'],
             'Sam Houston': ['Sam Houston', 'Sam Houston State', 'SHSU', 'Bearkats'],
-            'UTEP': ['UTEP', 'Texas El Paso', 'Miners'],
             'Western Kentucky': ['Western Kentucky', 'WKU', 'Hilltoppers'],
 
             # MAC
@@ -555,24 +551,30 @@ TEAM_VARIATIONS = {
             'Kent State': ['Kent State', 'Golden Flashes'],
             'UMass': ['UMass', 'Massachusetts', 'Minutemen'],
             'Miami (OH)': ['Miami (OH)', 'Miami Ohio', 'Miami "Ohio"', 'Miami (Ohio)', 'RedHawks'],
-            'Northern Illinois': ['Northern Illinois', 'NIU', 'Huskies'],
             'Ohio': ['Ohio', 'Bobcats'],
             'Toledo': ['Toledo', 'Rockets'],
             'Western Michigan': ['Western Michigan', 'WMU', 'Broncos'],
 
             # Mountain West
             'Air Force': ['Air Force', 'Falcons'],
-            'Boise State': ['Boise State', 'Broncos'],
-            'Colorado State': ['Colorado State', 'CSU', 'Rams'],
-            'Fresno State': ['Fresno State', 'Bulldogs'],
             'Hawaii': ['Hawaii', 'Rainbow Warriors'],
             'Nevada': ['Nevada', 'Wolf Pack'],
             'New Mexico': ['New Mexico', 'UNM', 'Lobos'],
-            'San Diego State': ['San Diego State', 'SDSU', 'Aztecs'],
+            'Northern Illinois': ['Northern Illinois', 'NIU', 'Huskies'],
             'San Jose State': ['San Jose State', 'SJSU', 'Spartans'],
             'UNLV': ['UNLV', 'Rebels'],
-            'Utah State': ['Utah State', 'USU', 'Aggies'],
+            'UTEP': ['UTEP', 'Texas El Paso', 'Miners'],
             'Wyoming': ['Wyoming', 'Cowboys'],
+
+            # Pac-12 (remaining)
+            'Boise State': ['Boise State', 'Broncos'],
+            'Colorado State': ['Colorado State', 'CSU', 'Rams'],
+            'Fresno State': ['Fresno State', 'Bulldogs'],
+            'Oregon State': ['Oregon State', 'OSU', 'Beavers'],
+            'San Diego State': ['San Diego State', 'SDSU', 'Aztecs'],
+            'Texas State': ['Texas State', 'Bobcats'],
+            'Utah State': ['Utah State', 'USU', 'Aggies'],
+            'Washington State': ['Washington State', 'WSU', 'Cougars'],
 
             # Sun Belt
             'Appalachian St': ['Appalachian St', 'Appalachian State', 'App State', 'Mountaineers'],
@@ -587,7 +589,6 @@ TEAM_VARIATIONS = {
             'Old Dominion': ['Old Dominion', 'ODU', 'Monarchs'],
             'South Alabama': ['South Alabama', 'USA', 'Jaguars'],
             'Southern Miss': ['Southern Miss', 'Southern Mississippi', 'USM', 'Golden Eagles'],
-            'Texas State': ['Texas State', 'Bobcats'],
             'Troy': ['Troy', 'Trojans'],
 
             # Independents
@@ -777,10 +778,10 @@ BOWL_GAMES = {
         'payout': '$1.3M'
     },
     
-    # G5 and Lower Tier Bowls
+    # G6 and Lower Tier Bowls
     'new_mexico_bowl': {
         'name': 'New Mexico Bowl',
-        'tier': 'G5',
+        'tier': 'G6',
         'location': 'Albuquerque, NM',
         'teams': 2,
         'primary_tie_ins': ['Mountain West', 'Conference USA'],
@@ -789,7 +790,7 @@ BOWL_GAMES = {
     },
     'boca_raton_bowl': {
         'name': 'Boca Raton Bowl',
-        'tier': 'G5',
+        'tier': 'G6',
         'location': 'Boca Raton, FL',
         'teams': 2,
         'primary_tie_ins': ['American', 'MAC'],
@@ -798,7 +799,7 @@ BOWL_GAMES = {
     },
     'frisco_bowl': {
         'name': 'Frisco Bowl',
-        'tier': 'G5',
+        'tier': 'G6',
         'location': 'Frisco, TX',
         'teams': 2,
         'primary_tie_ins': ['American', 'Mountain West'],
@@ -807,7 +808,7 @@ BOWL_GAMES = {
     },
     'cure_bowl': {
         'name': 'Cure Bowl',
-        'tier': 'G5',
+        'tier': 'G6',
         'location': 'Orlando, FL',
         'teams': 2,
         'primary_tie_ins': ['American', 'Sun Belt'],
@@ -816,7 +817,7 @@ BOWL_GAMES = {
     },
     'gasparilla_bowl': {
         'name': 'Gasparilla Bowl',
-        'tier': 'G5',
+        'tier': 'G6',
         'location': 'St. Petersburg, FL',
         'teams': 2,
         'primary_tie_ins': ['American', 'ACC'],
@@ -825,7 +826,7 @@ BOWL_GAMES = {
     },
     'camellia_bowl': {
         'name': 'Camellia Bowl',
-        'tier': 'G5',
+        'tier': 'G6',
         'location': 'Montgomery, AL',
         'teams': 2,
         'primary_tie_ins': ['MAC', 'Sun Belt'],
@@ -914,7 +915,7 @@ RIVALRIES = {
     'Navy': ['Notre Dame', 'Army'],
     'Army': ['Navy'],
     
-    # G5 Major Rivalries
+    # G6 Major Rivalries
     'SMU': ['TCU', 'Rice', 'Houston'],
     'Rice': ['SMU', 'Houston'],
     'Memphis': ['UAB', 'Tulane'],
@@ -1311,8 +1312,8 @@ def calculate_victory_value_with_rivalry(game, team_name):
         conf_bonus = 0
         if team_conf in P4_CONFERENCES and opp_conf in P4_CONFERENCES:
             conf_bonus = 0.3  # P4 vs P4 bonus
-        elif team_conf in G5_CONFERENCES and opp_conf in P4_CONFERENCES:
-            conf_bonus = 0.5  # G5 beating P4 major bonus
+        elif team_conf in G6_CONFERENCES and opp_conf in P4_CONFERENCES:
+            conf_bonus = 0.5  # G6 beating P4 major bonus
     
     # 5. Rivalry Bonus (FCS can't be rivals)
     if is_fcs_game:
@@ -1352,13 +1353,13 @@ CONFERENCES = {
     'ACC': ACC_TEAMS,
     'Big Ten': BIG_TEN_TEAMS,
     'Big XII': BIG_XII_TEAMS,
-    'Pac 12': PAC_12_TEAMS,
     'SEC': SEC_TEAMS,
     'Independent': INDEPENDENT_TEAMS,
     'American': AMERICAN_TEAMS,
     'Conference USA': CONFERENCE_USA_TEAMS,
     'MAC': MAC_TEAMS,
     'Mountain West': MOUNTAIN_WEST_TEAMS,
+    'Pac 12': PAC_12_TEAMS,
     'Sun Belt': SUN_BELT_TEAMS
 }
 
@@ -1373,21 +1374,21 @@ TEAMS = (ACC_TEAMS + BIG_TEN_TEAMS + BIG_XII_TEAMS + PAC_12_TEAMS + SEC_TEAMS +
          INDEPENDENT_TEAMS + AMERICAN_TEAMS + CONFERENCE_USA_TEAMS + MAC_TEAMS + 
          MOUNTAIN_WEST_TEAMS + SUN_BELT_TEAMS)
 
-WEEKS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', 'Bowls', 'CFP']
-GAME_TYPES = ['P4', 'G5', 'None']
+WEEKS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', 'Bowls', 'CFP First Round', 'CFP Quarterfinal', 'CFP Semifinal', 'CFP Championship']
+GAME_TYPES = ['P4', 'G6', 'None']
 
-# P4 and G5 Conference Classifications
-P4_CONFERENCES = ['ACC', 'Big Ten', 'Big XII', 'Pac 12', 'SEC']
-G5_CONFERENCES = ['American', 'Conference USA', 'MAC', 'Mountain West', 'Sun Belt']
+# P4 and G6 Conference Classifications
+P4_CONFERENCES = ['ACC', 'Big Ten', 'Big XII', 'SEC']
+G6_CONFERENCES = ['American', 'Conference USA', 'MAC', 'Mountain West', 'Pac 12', 'Sun Belt']
 P4_INDEPENDENT_TEAMS = ['Notre Dame']
-G5_INDEPENDENT_TEAMS = ['Connecticut']
+G6_INDEPENDENT_TEAMS = ['Connecticut']
 NONE_INDEPENDENT_TEAMS = ['FCS']
 
 # In-memory storage for games and rankings
 games_data = []
 team_stats = defaultdict(lambda: {
     'wins': 0, 'losses': 0, 'points_for': 0, 'points_against': 0,
-    'p4_wins': 0, 'p4_losses': 0, 'g5_wins': 0, 'g5_losses': 0,
+    'p4_wins': 0, 'p4_losses': 0, 'G6_wins': 0, 'G6_losses': 0,
     'home_wins': 0, 'road_wins': 0, 'margin_of_victory_total': 0,
     'games': []
 })
@@ -1406,19 +1407,19 @@ def is_p4_team(team_name):
     conference = get_team_conference(team_name)
     return conference in P4_CONFERENCES
 
-def is_g5_team(team_name):
-    """Determine if a team is G5"""
-    if team_name in G5_INDEPENDENT_TEAMS:
+def is_G6_team(team_name):
+    """Determine if a team is G6"""
+    if team_name in G6_INDEPENDENT_TEAMS:
         return True
     conference = get_team_conference(team_name)
-    return conference in G5_CONFERENCES
+    return conference in G6_CONFERENCES
 
 def get_auto_game_type(team_name):
     """Get the automatic game type for a team"""
     if is_p4_team(team_name):
         return 'P4'
-    elif is_g5_team(team_name):
-        return 'G5'
+    elif is_G6_team(team_name):
+        return 'G6'
     else:
         return 'None'
 
@@ -1647,16 +1648,16 @@ CONFERENCE_STRENGTH_MULTIPLIERS = {
     'ACC': 0.98,           # Slightly weaker P4
     'Pac 12': 0.95,        # Weakened by departures
     
-    # Strong G5
-    'American': 0.85,      # Best G5 conference
-    'Mountain West': 0.83, # Competitive G5
+    # Strong G6
+    'American': 0.85,      # Best G6 conference
+    'Mountain West': 0.83, # Competitive G6
     
-    # Average G5
-    'Sun Belt': 0.82,      # Rising G5 conference
-    'MAC': 0.80,           # Traditional G5
+    # Average G6
+    'Sun Belt': 0.82,      # Rising G6 conference
+    'MAC': 0.80,           # Traditional G6
     
-    # Weaker G5
-    'Conference USA': 0.78, # Weakest G5
+    # Weaker G6
+    'Conference USA': 0.78, # Weakest G6
     
     # Independent
     'Independent': 1.0      # Varies by team (Notre Dame vs UConn)
@@ -1768,8 +1769,8 @@ def calculate_team_base_strength(team_name, basic_strengths_cache=None):
         if team_conf in P4_CONFERENCES:
             # P4 teams get quality floor - prevent 0-1 P4 teams from rating too low
             final_strength = max(final_strength, 4.0)
-        elif team_conf in G5_CONFERENCES:
-            # G5 teams get quality ceiling - prevent 1-0 G5 teams from rating too high  
+        elif team_conf in G6_CONFERENCES:
+            # G6 teams get quality ceiling - prevent 1-0 G6 teams from rating too high  
             final_strength = min(final_strength, 6.5)
 
     return max(1.0, min(10.0, final_strength))
@@ -1929,7 +1930,7 @@ def calculate_enhanced_victory_value(game, team_name):
     conf_bonus = 0
     if team_conf in P4_CONFERENCES and opp_conf in P4_CONFERENCES:
         conf_bonus = 0.3
-    elif team_conf in G5_CONFERENCES and opp_conf in P4_CONFERENCES:
+    elif team_conf in G6_CONFERENCES and opp_conf in P4_CONFERENCES:
         conf_bonus = 0.5
     
     # 7. Rivalry Bonus (existing)
@@ -1992,8 +1993,8 @@ def calculate_victory_value(game, team_name):
     conf_bonus = 0
     if team_conf in P4_CONFERENCES and opp_conf in P4_CONFERENCES:
         conf_bonus = 0.3  # P4 vs P4 bonus
-    elif team_conf in G5_CONFERENCES and opp_conf in P4_CONFERENCES:
-        conf_bonus = 0.5  # G5 beating P4 major bonus
+    elif team_conf in G6_CONFERENCES and opp_conf in P4_CONFERENCES:
+        conf_bonus = 0.5  # G6 beating P4 major bonus
     
     # 5. Calculate Final Victory Value
     base_value = opponent_quality * location_mult
@@ -2201,6 +2202,10 @@ def calculate_enhanced_loss_penalty(game, team_name):
     location = game['home_away']
     is_overtime = game.get('overtime', False)
     week = game.get('week', '1')
+
+    # CFP Championship losses get no penalty - you made it to the finals
+    if week == 'CFP Championship':
+        return 0.1
     
     # CATASTROPHIC FCS LOSS PENALTY (Adjusted)
     is_fcs_loss = (opponent == 'FCS' or opponent.upper() == 'FCS')
@@ -2309,6 +2314,11 @@ def calculate_loss_penalty(game, team_name):
     margin = opp_score - team_score  # How much they lost by
     location = game['home_away']
     is_overtime = game.get('overtime', False)
+    week = game.get('week', '')
+    
+    # CFP Championship losses get no penalty - you made it to the finals
+    if week == 'CFP Championship':
+        return 0.1  # Minimal penalty so math still works
     
     # ⚡ NEW: Special catastrophic penalty for FCS losses
     is_fcs_loss = (opponent == 'FCS' or opponent.upper() == 'FCS')
@@ -2702,7 +2712,7 @@ def calculate_enhanced_scientific_ranking(team_name):
     
     # Conference Multiplier (existing)
     team_conf = get_team_conference(team_name)
-    if team_conf in G5_CONFERENCES or team_name in G5_INDEPENDENT_TEAMS:
+    if team_conf in G6_CONFERENCES or team_name in G6_INDEPENDENT_TEAMS:
         conference_multiplier = 0.85
     else:
         conference_multiplier = 1.0
@@ -2835,8 +2845,8 @@ def get_all_team_stats_bulk():
                             opp_conf = get_team_conference(opponent)
                             if opp_conf in P4_CONFERENCES:
                                 opponent_quality = 4.0 + (opp_win_pct * 4.0)  # P4: 4.0-8.0 range
-                            elif opp_conf in G5_CONFERENCES:
-                                opponent_quality = 2.5 + (opp_win_pct * 4.0)  # G5: 2.5-6.5 range
+                            elif opp_conf in G6_CONFERENCES:
+                                opponent_quality = 2.5 + (opp_win_pct * 4.0)  # G6: 2.5-6.5 range
                             else:
                                 opponent_quality = 2.0 + (opp_win_pct * 6.0)  # Default/Other: 2.0-8.0 range
 
@@ -3016,7 +3026,7 @@ def calculate_fast_stats(team_name, team_data, opponent_quality_cache):
 
     # CONFERENCE MULTIPLIER HERE ←
     team_conf = get_team_conference(team_name)
-    if team_conf in G5_CONFERENCES or team_name in G5_INDEPENDENT_TEAMS:
+    if team_conf in G6_CONFERENCES or team_name in G6_INDEPENDENT_TEAMS:
         conference_multiplier = 0.85
     else:
         conference_multiplier = 1.0
@@ -3158,7 +3168,7 @@ def get_game_context_bonus(week, opponent):
     bonus = 0.0
     
     # Conference Championship Games
-    if week == '13' or week == 'Championship':
+    if week == '15' or week == 'Championship':
         bonus += 1.2  # Significant bonus for conference titles
     
     # Rivalry Week (Week 12 typically)
@@ -3173,9 +3183,15 @@ def get_game_context_bonus(week, opponent):
     elif week == 'Bowls':
         bonus += 0.5  # Bowl games are meaningful
     
-    # CFP games
-    elif week == 'CFP':
-        bonus += 1.5  # Playoff games are crucial
+    # CFP games - tiered by round
+    elif week == 'CFP First Round':
+        bonus += 5.0
+    elif week == 'CFP Quarterfinal':
+        bonus += 8.0
+    elif week == 'CFP Semifinal':
+        bonus += 12.0
+    elif week == 'CFP Championship':
+        bonus += 50.0
     
     return bonus
 
@@ -3340,7 +3356,7 @@ def calculate_schedule_quality_penalty(team_name):
     if team_conf in P4_CONFERENCES:
         penalty *= 1.2  # P4 teams held to higher standard
     else:
-        penalty *= 0.8  # G5 teams get some slack
+        penalty *= 0.8  # G6 teams get some slack
     
     return max(0.0, penalty)
 
@@ -4542,10 +4558,10 @@ def update_team_stats_simplified(team, opponent, team_score, opp_score, is_home,
             else:
                 team_stats[team]['road_wins'] += 1
         
-        # REMOVED: P4/G5 win tracking (no longer needed)
+        # REMOVED: P4/G6 win tracking (no longer needed)
     else:
         team_stats[team]['losses'] += 1
-        # REMOVED: P4/G5 loss tracking (no longer needed)
+        # REMOVED: P4/G6 loss tracking (no longer needed)
     
     # Update points
     team_stats[team]['points_for'] += team_score
@@ -4934,21 +4950,21 @@ def predict_matchup_ultra_enhanced(team1_name, team2_name, location='neutral'):
         team2_games = max(1, team2_enhanced['basic_stats']['total_games'])
         team1_victory_avg = team1_enhanced['components']['adjusted_victory_value'] / team1_games
         team2_victory_avg = team2_enhanced['components']['adjusted_victory_value'] / team2_games
-        victory_diff = (team1_victory_avg - team2_victory_avg) * 1.0  # Reduced from 1.5
+        victory_diff = (team1_victory_avg - team2_victory_avg) * 0.8
         if abs(victory_diff) > 0.8:
             adjustments['Victory Quality Edge'] = round(victory_diff, 1)
         
         # Module 4: Momentum (reduced impact)
         team1_momentum = team1_enhanced['components']['temporal_adjustment']
         team2_momentum = team2_enhanced['components']['temporal_adjustment']
-        momentum_diff = (team1_momentum - team2_momentum) * 1.0  # Reduced from 1.5
+        momentum_diff = (team1_momentum - team2_momentum) * 1.4  # Reduced from 1.5
         if abs(momentum_diff) > 0.3:
             adjustments['Recent Momentum Edge'] = round(momentum_diff, 1)
         
         # Module 5: Consistency (keep as is)
         team1_consistency = team1_enhanced['components']['consistency_factor']
         team2_consistency = team2_enhanced['components']['consistency_factor']
-        consistency_diff = (team1_consistency - team2_consistency) * 2.0
+        consistency_diff = (team1_consistency - team2_consistency) * 1.6
         if abs(consistency_diff) > 0.2:
             adjustments['Consistency Advantage'] = round(consistency_diff, 1)
         
@@ -4986,9 +5002,9 @@ def predict_matchup_ultra_enhanced(team1_name, team2_name, location='neutral'):
         if team1_p4 and team2_p4:
             max_spread = 21  # P4 vs P4
         elif team1_p4 or team2_p4:
-            max_spread = 28  # P4 vs G5
+            max_spread = 28  # P4 vs G6
         else:
-            max_spread = 24  # G5 vs G5
+            max_spread = 24  # G6 vs G6
         
         # Apply cap
         final_margin = max(-max_spread, min(max_spread, raw_final_margin))
@@ -4997,7 +5013,7 @@ def predict_matchup_ultra_enhanced(team1_name, team2_name, location='neutral'):
         if abs(final_margin) > 14:
             sign = 1 if final_margin > 0 else -1
             excess = abs(final_margin) - 14
-            dampened_excess = excess * 0.7  # Reduce large spreads by 30%
+            dampened_excess = excess * 0.85  # Reduce large spreads by 30%
             final_margin = sign * (14 + dampened_excess)
         
         # Enhanced confidence calculation
@@ -5032,11 +5048,11 @@ def calculate_enhanced_location_advantage(team1_name, team2_name, location):
     if location == 'neutral':
         return 0.0
     elif location == 'team1_home':
-        base_hfa = 3.0
+        base_hfa = 6.5  # CHANGED from 3.0 to 6.5
         team1_multiplier = STRONG_HOME_FIELD_TEAMS.get(team1_name, 1.0)
         return base_hfa * team1_multiplier
     elif location == 'team2_home':
-        base_hfa = 3.0
+        base_hfa = 6.5  # CHANGED from 3.0 to 6.5
         team2_multiplier = STRONG_HOME_FIELD_TEAMS.get(team2_name, 1.0)
         return -base_hfa * team2_multiplier
     return 0.0
@@ -5090,14 +5106,17 @@ def calculate_ultra_enhanced_confidence(team1_enhanced, team2_enhanced, adjustme
     }
 
 def calculate_ultra_enhanced_win_probability(margin, confidence_metrics):
-    """Ultra-enhanced win probability with confidence weighting"""
-    # Base probability from margin
-    base_prob = 50 + (margin * 2.0)
+    """Ultra-enhanced win probability with REALISTIC calibration"""
+    # Base probability from margin - MUCH more conservative
+    base_prob = 50 + (margin * 1.2)  # CHANGED from 2.0 to 1.2
     
-    # Confidence adjustment
-    confidence_adj = (confidence_metrics['score'] - 0.5) * 8
+    # Apply realistic caps - NEVER claim >85% or <15%
+    base_prob = max(15, min(85, base_prob))  # NEW: Hard caps
     
-    # Margin significance adjustment
+    # Reduce confidence adjustment impact
+    confidence_adj = (confidence_metrics['score'] - 0.5) * 4  # CHANGED from 8 to 4
+    
+    # Margin significance adjustment (keep as-is)
     if abs(margin) > 14:
         significance_adj = 5
     elif abs(margin) > 7:
@@ -5107,7 +5126,8 @@ def calculate_ultra_enhanced_win_probability(margin, confidence_metrics):
     
     final_prob = base_prob + confidence_adj + significance_adj
     
-    return max(5, min(95, final_prob))
+    # Final caps to prevent overconfidence
+    return max(15, min(85, final_prob))  # NEW: Enforce final caps
 
 def predict_matchup_basic_fallback(team1_name, team2_name, location):
     """Basic fallback prediction if enhanced version fails"""
@@ -5148,6 +5168,9 @@ def predict_matchup_basic_fallback(team1_name, team2_name, location):
             'confidence_score': 0.1,
             'prediction_methodology': 'Error Fallback'
         }
+
+
+
 
 
 def analyze_common_opponents_enhanced(team1_name, team2_name):
@@ -5306,21 +5329,21 @@ def calculate_conference_matchup_adjustment(team1_name, team2_name):
     team1_conf = get_team_conference(team1_name)
     team2_conf = get_team_conference(team2_name)
     
-    # P4 vs G5 adjustments based on actual performance differential
-    if team1_conf in P4_CONFERENCES and team2_conf in G5_CONFERENCES:
-        # P4 teams should have some advantage, but not as much if G5 team is strong
+    # P4 vs G6 adjustments based on actual performance differential
+    if team1_conf in P4_CONFERENCES and team2_conf in G6_CONFERENCES:
+        # P4 teams should have some advantage, but not as much if G6 team is strong
         team2_scientific = calculate_scientific_ranking(team2_name)
         base_adj = 2.5
         
-        # Reduce advantage if G5 team has high victory value
+        # Reduce advantage if G6 team has high victory value
         if team2_scientific['components']['adjusted_victory_value'] > 25:
-            base_adj = 1.5  # Strong G5 team
+            base_adj = 1.5  # Strong G6 team
         elif team2_scientific['components']['adjusted_victory_value'] > 35:
-            base_adj = 0.8  # Elite G5 team
+            base_adj = 0.8  # Elite G6 team
         
         return base_adj
         
-    elif team2_conf in P4_CONFERENCES and team1_conf in G5_CONFERENCES:
+    elif team2_conf in P4_CONFERENCES and team1_conf in G6_CONFERENCES:
         # Mirror the above logic
         team1_scientific = calculate_scientific_ranking(team1_name)
         base_adj = -2.5
@@ -5363,7 +5386,7 @@ def calculate_enhanced_home_field_advantage(team1_name, team2_name, location):
     if location == 'neutral':
         return 0
     
-    base_hfa = 3.0  # Standard home field advantage
+    base_hfa = 6.5  # Standard home field advantage
     
     if location == 'team1_home':
         # Check team1's home performance
@@ -5962,6 +5985,7 @@ def get_current_week_from_snapshots():
     """
     Determine the current week based on the most recent weekly snapshot.
     Logic: If you snapshot Week N, then Week N+1 becomes current.
+    Handles: Week 1-15, Bowls, CFP First Round, Quarterfinal, Semifinal, Championship
     """
     try:
         # Get the most recent snapshot
@@ -5970,33 +5994,39 @@ def get_current_week_from_snapshots():
         if not latest_snapshot:
             return '1'  # Default to Week 1 if no snapshots exist
         
-        week_name = latest_snapshot.week_name  # e.g., "Week 5"
+        week_name = latest_snapshot.week_name  # e.g., "Week 5", "Bowls", "CFP Semifinal"
         
-        # Handle standard week format: "Week N"
+        # Handle standard week format: "Week N" (1-15)
         if week_name.startswith('Week '):
-            try:
-                week_num = int(week_name.split(' ')[1])
+            week_parts = week_name.split(' ')
+            if len(week_parts) > 1 and week_parts[1].isdigit():
+                week_num = int(week_parts[1])
                 next_week = week_num + 1
                 
                 # Handle season progression
-                if next_week <= 15:  # Regular season goes to Week 15
+                if next_week <= 15:  # Regular season
                     return str(next_week)
                 elif next_week == 16:  # After Week 15 comes Bowls
                     return 'Bowls'
-                else:  # After Week 16+ would be CFP
-                    return 'CFP'
-                    
-            except (ValueError, IndexError):
+                else:  # Edge case
+                    return 'Bowls'
+            else:
                 print(f"Could not parse week number from: {week_name}")
-                return '1'  # Fallback to Week 1
+                return '1'
         
-        # Handle special week transitions
+        # Handle special playoff weeks - proper progression
         elif week_name == 'Bowls':
-            return 'CFP'  # After Bowls comes CFP
-        elif week_name == 'CFP':
-            return 'CFP'  # Stay on CFP (season is over)
+            return 'CFP First Round'  # After Bowls comes CFP First Round
+        elif week_name == 'CFP First Round':
+            return 'CFP Quarterfinal'
+        elif week_name == 'CFP Quarterfinal':
+            return 'CFP Semifinal'
+        elif week_name == 'CFP Semifinal':
+            return 'CFP Championship'
+        elif week_name == 'CFP Championship':
+            return 'CFP Championship'  # Stay on Championship (season is over)
         
-        # Handle other formats - try to extract number
+        # Fallback: try to extract number from unusual formats
         else:
             import re
             numbers = re.findall(r'\d+', week_name)
@@ -6768,12 +6798,16 @@ def admin():
     # NEW: Add current week information
     week_info = get_current_week_info()
     
+    # ML SNAPSHOTS: Get saved weekly snapshots for ML training
+    snapshots = get_all_snapshots()
+    
     return render_template('admin.html', 
                          comprehensive_stats=comprehensive_stats, 
                          recent_games=recent_games,
                          games_data=all_games,
                          historical_rankings=[],
-                         get_current_week_info=get_current_week_info)
+                         get_current_week_info=get_current_week_info,
+                         snapshots=snapshots)
 
 
 
@@ -6788,6 +6822,21 @@ def clear_cache_route():
         flash(f'Error clearing cache: {e}', 'error')
     
     return redirect(url_for('cache_management'))
+
+@app.route('/admin/save-snapshot', methods=['POST'])
+def handle_save_snapshot():
+    """Handle snapshot saving from admin page"""
+    week_number = request.form.get('week_number')
+    
+    if not week_number:
+        flash('Error: Week number required', 'error')
+        return redirect(url_for('admin'))  # Redirects back to admin page
+    
+    # Call the snapshot function we just added
+    success = save_weekly_snapshot(week_number)
+    
+    # Flash message is already handled in save_weekly_snapshot function
+    return redirect(url_for('admin'))  # Redirects back to admin page
 
 
 
@@ -6941,12 +6990,12 @@ def generate_fast_cfp_bracket(all_teams_stats):
         }   
 
 
-def calculate_p4_g5_records(team_name, games):
-    """Calculate P4/G5 records from games data"""
+def calculate_p4_G6_records(team_name, games):
+    """Calculate P4/G6 records from games data"""
     p4_wins = 0
     p4_losses = 0
-    g5_wins = 0
-    g5_losses = 0
+    G6_wins = 0
+    G6_losses = 0
     
     for game in games:
         opponent = game['opponent']
@@ -6964,9 +7013,9 @@ def calculate_p4_g5_records(team_name, games):
             opponent in P4_INDEPENDENT_TEAMS  # Notre Dame
         )
         
-        is_g5_opponent = (
-            opponent_conf in G5_CONFERENCES or 
-            opponent in G5_INDEPENDENT_TEAMS  # Connecticut
+        is_G6_opponent = (
+            opponent_conf in G6_CONFERENCES or 
+            opponent in G6_INDEPENDENT_TEAMS  # Connecticut
         )
         
         # Count wins/losses by opponent type
@@ -6975,17 +7024,17 @@ def calculate_p4_g5_records(team_name, games):
                 p4_wins += 1
             else:
                 p4_losses += 1
-        elif is_g5_opponent:
+        elif is_G6_opponent:
             if result == 'W':
-                g5_wins += 1
+                G6_wins += 1
             else:
-                g5_losses += 1
+                G6_losses += 1
     
     return {
         'p4_wins': p4_wins,
         'p4_losses': p4_losses,
-        'g5_wins': g5_wins,
-        'g5_losses': g5_losses
+        'G6_wins': G6_wins,
+        'G6_losses': G6_losses
     }
 
 @app.route('/team_detail/<team_name>')
@@ -7092,8 +7141,8 @@ def public_team_detail(team_name):
             'games': [],
             'p4_wins': 0,
             'p4_losses': 0,
-            'g5_wins': 0,
-            'g5_losses': 0
+            'G6_wins': 0,
+            'G6_losses': 0
         }
         scientific_result = create_default_ranking_result()
         adjusted_total = 0.0
@@ -7210,12 +7259,12 @@ def public_team_detail(team_name):
             'overtime': game.get('overtime', False)
         })
     
-    # Calculate P4/G5 records
-    p4_g5_records = calculate_p4_g5_records(decoded_team_name, basic_stats['games'])
+    # Calculate P4/G6 records
+    p4_G6_records = calculate_p4_G6_records(decoded_team_name, basic_stats['games'])
     
-    # Add P4/G5 records to basic_stats
+    # Add P4/G6 records to basic_stats
     enhanced_stats = basic_stats.copy()
-    enhanced_stats.update(p4_g5_records)
+    enhanced_stats.update(p4_G6_records)
     
     # Template data
     template_data = {
@@ -10178,7 +10227,7 @@ def bowl_projections():
         # Return with empty but valid structure
         return render_template('bowl_projections.html',
                              cfp_bracket={'first_round_byes': [], 'all_teams': [], 'automatic_qualifiers': [], 'first_round_games': []},
-                             bowls_by_tier={'NY6': [], 'Major': [], 'Conference': [], 'G5': [], 'Championship': []},
+                             bowls_by_tier={'NY6': [], 'Major': [], 'Conference': [], 'G6': [], 'Championship': []},
                              total_bowl_teams=0)
 
 def create_bowls_with_tieins(teams_by_conference, all_available_teams):
@@ -10188,7 +10237,7 @@ def create_bowls_with_tieins(teams_by_conference, all_available_teams):
     assigned_teams = set()
     
     # Organize bowls by tier
-    bowls_by_tier = {'NY6': [], 'Major': [], 'Conference': [], 'G5': [], 'Championship': []}
+    bowls_by_tier = {'NY6': [], 'Major': [], 'Conference': [], 'G6': [], 'Championship': []}
     
     # Get bowls sorted by selection order and tier
     sorted_bowls = []
@@ -10197,9 +10246,9 @@ def create_bowls_with_tieins(teams_by_conference, all_available_teams):
             sorted_bowls.append((bowl_id, bowl_info))
     
     # Sort by tier priority and selection order
-    tier_priority = {'NY6': 1, 'Major': 2, 'Conference': 3, 'G5': 4}
+    tier_priority = {'NY6': 1, 'Major': 2, 'Conference': 3, 'G6': 4}
     sorted_bowls.sort(key=lambda x: (
-        tier_priority.get(x[1].get('tier', 'G5'), 5),
+        tier_priority.get(x[1].get('tier', 'G6'), 5),
         x[1].get('selection_order', 999)
     ))
     
@@ -10215,7 +10264,7 @@ def create_bowls_with_tieins(teams_by_conference, all_available_teams):
         }
         
         teams_needed = bowl_info.get('teams', 2)
-        tier = bowl_info.get('tier', 'G5')
+        tier = bowl_info.get('tier', 'G6')
         
         print(f"BOWL DEBUG: Filling {bowl['name']} (needs {teams_needed} teams)")
         
@@ -10340,16 +10389,93 @@ def reset_data():
     
     return redirect(url_for('admin'))
 
-
 def save_weekly_snapshot(week_number):
-    """Save current rankings as a weekly snapshot - DATABASE VERSION"""
-    # Weekly snapshots are now handled through the season archive system
+    """Save current rankings as a weekly snapshot for ML training"""
     try:
-        flash(f'Weekly snapshots have been replaced with the season archive system. Use "Archive Current Season" instead.', 'info')
+        from models import WeeklySnapshot
+        import json
+        
+        week_name = f"Week {week_number}"
+        
+        # Get current rankings
+        current_rankings = calculate_all_team_rankings()
+        
+        # Check if snapshot already exists for this week
+        existing = WeeklySnapshot.query.filter_by(week_name=week_name).first()
+        if existing:
+            print(f"⚠️  Snapshot for {week_name} already exists. Updating it.")
+            existing.rankings_json = json.dumps(current_rankings)
+            existing.snapshot_date = datetime.utcnow()
+        else:
+            # Create new snapshot
+            snapshot = WeeklySnapshot(
+                week_name=week_name,
+                rankings_json=json.dumps(current_rankings)
+            )
+            db.session.add(snapshot)
+        
+        db.session.commit()
+        flash(f'Successfully saved snapshot for {week_name}!', 'success')
+        print(f"✅ Successfully saved snapshot for {week_name}")
         return True
+        
     except Exception as e:
-        print(f"Error creating weekly snapshot: {e}")
+        print(f"❌ Error saving snapshot: {e}")
+        db.session.rollback()
+        flash(f'Error saving snapshot: {e}', 'error')
         return False
+
+
+def calculate_all_team_rankings():
+    """
+    Get current rankings for ALL teams
+    Returns list of dicts with team rankings for snapshot saving
+    """
+    try:
+        all_teams = TeamStats.query.all()
+        rankings = []
+        
+        for team in all_teams:
+            try:
+                # Use your enhanced scientific ranking function
+                team_data = calculate_enhanced_scientific_ranking(team.team_name)
+                
+                rankings.append({
+                    'team': team.team_name,
+                    'rating': team_data['total_score'],
+                    'rank': 0,  # Will be set after sorting
+                    'record': f"{team.wins}-{team.losses}",
+                    'components': team_data['components']
+                })
+            except Exception as e:
+                print(f"Error calculating ranking for {team.team_name}: {e}")
+                continue
+        
+        # Sort by rating (highest first) and assign ranks
+        rankings.sort(key=lambda x: x['rating'], reverse=True)
+        for i, team in enumerate(rankings):
+            team['rank'] = i + 1
+        
+        print(f"✅ Calculated rankings for {len(rankings)} teams")
+        return rankings
+        
+    except Exception as e:
+        print(f"❌ Error calculating all team rankings: {e}")
+        return []
+
+
+def get_all_snapshots():
+    """Get all saved weekly snapshots"""
+    try:
+        from models import WeeklySnapshot
+        snapshots = WeeklySnapshot.query.order_by(
+            WeeklySnapshot.snapshot_date.desc()
+        ).all()
+        return snapshots
+    except Exception as e:
+        print(f"Error getting snapshots: {e}")
+        return []
+
 
 def save_historical_data():
     """Save historical rankings - DATABASE VERSION (simplified)"""
@@ -10727,7 +10853,7 @@ def import_csv():
                     'total_losses': int(row['Losses']),
                     'adjusted_total': float(row['Adjusted_Total']),
                     'p4_wins': int(row.get('P4_Wins', 0)) if row.get('P4_Wins', '').strip() else 0,
-                    'g5_wins': int(row.get('G5_Wins', 0)) if row.get('G5_Wins', '').strip() else 0,
+                    'G6_wins': int(row.get('G6_Wins', 0)) if row.get('G6_Wins', '').strip() else 0,
                     'strength_of_schedule': 0.500,  # Default value
                     'points_fielded': 0,  # Not available from CSV
                     'points_allowed': 0,  # Not available from CSV
@@ -10791,7 +10917,7 @@ if __name__ == '__main__':
     print("=" * 40)
     print("Templates created successfully!")
     print("Features:")
-    print("- Add games with automatic P4/G5 classification")
+    print("- Add games with automatic P4/G6 classification")
     print("- Neutral site games (no home/road win credit)")
     print("- Weekly results page to review games by week")
     print("- Comprehensive statistics and ranking calculation")
@@ -10808,19 +10934,19 @@ if __name__ == '__main__':
         classification = ""
         if conf_name in P4_CONFERENCES:
             classification = " (P4)"
-        elif conf_name in G5_CONFERENCES:
-            classification = " (G5)"
+        elif conf_name in G6_CONFERENCES:
+            classification = " (G6)"
         elif conf_name == "Independent":
-            classification = " (Notre Dame=P4, Connecticut=G5, FCS=None)"
+            classification = " (Notre Dame=P4, Connecticut=G6, FCS=None)"
         print(f"  - {conf_name}: {len(teams)} teams{classification}")
     print("\nP4 Conferences: ACC, Big Ten, Big XII, Pac 12, SEC, Notre Dame")
-    print("G5 Conferences: American, Conference USA, MAC, Mountain West, Sun Belt, Connecticut")
-    print("None Classification: FCS (for non-P4/G5 games)")
+    print("G6 Conferences: American, Conference USA, MAC, Mountain West, Sun Belt, Connecticut")
+    print("None Classification: FCS (for non-P4/G6 games)")
     print("Ready with your custom ranking formula!")
     print("\nHow game types work:")
     print("- Each team's game type reflects their OPPONENT's classification")
-    print("- Example: Boston College (P4) vs Kent State (G5)")
-    print("  → Boston College gets 'G5' game type (playing G5 opponent)")
+    print("- Example: Boston College (P4) vs Kent State (G6)")
+    print("  → Boston College gets 'G6' game type (playing G6 opponent)")
     print("  → Kent State gets 'P4' game type (playing P4 opponent)")
     print("- Neutral site games: Neither team gets home/road win credit")
     print("  → Useful for bowl games, conference championships, etc.")

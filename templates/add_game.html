@@ -52,7 +52,7 @@
                                         <option value="">Select Week</option>
                                         {% for week in weeks %}
                                             <option value="{{ week }}" {% if week == selected_week %}selected{% endif %}>
-                                                {% if week == 'Bowls' %}Bowl Games{% elif week == 'CFP' %}CFP{% else %}Week {{ week }}{% endif %}
+                                                {% if week == 'Bowls' %}Bowl Games{% elif week == 'CFP First Round' %}CFP First Round{% elif week == 'CFP Quarterfinal' %}CFP Quarterfinal{% elif week == 'CFP Semifinal' %}CFP Semifinal{% elif week == 'CFP Championship' %}CFP Championship{% else %}Week {{ week }}{% endif %}
                                             </option>
                                         {% endfor %}
                                     </select>
@@ -178,7 +178,7 @@ function addGameRow() {
                             <option value="">Select Week</option>
                             {% for week in weeks %}
                                 <option value="{{ week }}">
-                                    {% if week == 'Bowls' %}Bowl Games{% elif week == 'CFP' %}CFP{% else %}Week {{ week }}{% endif %}
+                                    {% if week == 'Bowls' %}Bowl Games{% elif week == 'CFP First Round' %}CFP First Round{% elif week == 'CFP Quarterfinal' %}CFP Quarterfinal{% elif week == 'CFP Semifinal' %}CFP Semifinal{% elif week == 'CFP Championship' %}CFP Championship{% else %}Week {{ week }}{% endif %}
                                 </option>
                             {% endfor %}
                         </select>

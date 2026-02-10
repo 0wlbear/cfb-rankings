@@ -43,7 +43,7 @@
             margin: 2px;
         }
         .tier-p4 { background: #28a745; color: white; }
-        .tier-g5 { background: #ffc107; color: black; }
+        .tier-g6 { background: #ffc107; color: black; }
         .tier-fcs { background: #6c757d; color: white; }
         .module-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -117,7 +117,7 @@
                         <div class="alert alert-info">
                             <h5><strong>What Makes This System Different:</strong></h5>
                             <ul class="mb-0">
-                                <li><strong>Subdivision-Aware Opponent Quality</strong> - P4/G5/FCS tiers with realistic quality ranges</li>
+                                <li><strong>Subdivision-Aware Opponent Quality</strong> - P4/G6/FCS tiers with realistic quality ranges</li>
                                 <li><strong>Quality-Based Margin Caps</strong> - Prevents stat-padding against weak opponents</li>
                                 <li><strong>Integrated Travel Adjustments</strong> - Rewards difficult cross-country games</li>
                                 <li><strong>Context-Aware Analysis</strong> - Understands game situations and stakes</li>
@@ -151,12 +151,12 @@
                     </ul>
                 </div>
                 <div class="col-md-4">
-                    <div class="tier-badge tier-g5">G5 CONFERENCES</div>
+                    <div class="tier-badge tier-g6">G6 CONFERENCES</div>
                     <h6>Quality Range: 2.5 - 6.5</h6>
                     <ul>
-                        <li><strong>Minimum Rating:</strong> 2.5 (even 0-12 G5 teams)</li>
-                        <li><strong>Average Rating:</strong> 4.5 (6-6 G5 teams)</li>
-                        <li><strong>Maximum Rating:</strong> 6.5 (undefeated G5 teams)</li>
+                        <li><strong>Minimum Rating:</strong> 2.5 (even 0-12 G6 teams)</li>
+                        <li><strong>Average Rating:</strong> 4.5 (6-6 G6 teams)</li>
+                        <li><strong>Maximum Rating:</strong> 6.5 (undefeated G6 teams)</li>
                         <li><strong>Formula:</strong> 2.5 + (win_pct × 4.0)</li>
                     </ul>
                 </div>
@@ -182,7 +182,7 @@
 
             <div class="warning-box">
                 <h6><strong>Why Subdivision Awareness Matters</strong></h6>
-                <p>This system prevents early season data sparsity issues (like 1-0 G5 teams rating higher than 0-1 P4 teams) while maintaining merit-based evaluation throughout the season. Accomplished teams are rewarded based on their actual performance - a 10-2 G5 team competing for their conference title rates nearly as highly as they deserve, with only minimal subdivision adjustment.</p>
+                <p>This system prevents early season data sparsity issues (like 1-0 G6 teams rating higher than 0-1 P4 teams) while maintaining merit-based evaluation throughout the season. Accomplished teams are rewarded based on their actual performance - a 10-2 G6 team competing for their conference title rates nearly as highly as they deserve, with only minimal subdivision adjustment.</p>
             </div>
         </div>
 
@@ -201,7 +201,7 @@
                         <li><strong>Location Multiplier:</strong> Home (1.0×), Away (1.3×), Neutral (1.15×)</li>
                         <li><strong>Quality-Capped Margin Bonus:</strong> Prevents stat-padding</li>
                         <li><strong>Travel Adjustment:</strong> Cross-country game bonuses</li>
-                        <li><strong>Conference Context:</strong> P4 vs P4 bonus, G5 vs P4 major bonus</li>
+                        <li><strong>Conference Context:</strong> P4 vs P4 bonus, G6 vs P4 major bonus</li>
                         <li><strong>Rivalry Bonus:</strong> Extra credit for beating traditional rivals</li>
                     </ul>
                 </div>
@@ -278,7 +278,7 @@
                     <ul>
                         <li><strong>P4 Elite Opponent (≥ 7.0):</strong> -1.5 penalty reduction</li>
                         <li><strong>P4 Good Opponent (≥ 5.5):</strong> -0.5 penalty reduction</li>
-                        <li><strong>G5 Elite Opponent (6.0+):</strong> -0.3 penalty reduction</li>
+                        <li><strong>G6 Elite Opponent (6.0+):</strong> -0.3 penalty reduction</li>
                         <li><strong>Bad Opponent (< 4.0):</strong> +2.0 penalty increase</li>
                         <li><strong>Context Matters:</strong> Same subdivision penalties</li>
                     </ul>
@@ -301,7 +301,7 @@
                 <h6><strong>Loss Penalty Examples:</strong></h6>
                 <p><strong>Alabama loses to Georgia 28-21 (Away):</strong> 3.0 - 1.5 + 0.5 - 0.3 = 1.7 penalty<br>
                 <strong>Vanderbilt loses to Alabama 42-7 (Home):</strong> 3.0 - 1.5 + 3.0 + 0.5 = 5.0 penalty<br>
-                <strong>G5 team loses to P4 team 31-21 (Away):</strong> 3.0 - 0.5 + 1.0 - 0.3 = 3.2 penalty<br>
+                <strong>G6 team loses to P4 team 31-21 (Away):</strong> 3.0 - 0.5 + 1.0 - 0.3 = 3.2 penalty<br>
                 <strong>Any team loses to FCS 17-14 (Home):</strong> 8.0 + 1.0 + 2.5 = 11.5 penalty</p>
             </div>
         </div>
@@ -408,7 +408,7 @@
                         <li><strong>Elite Schedule Bonus:</strong> 4+ elite opponents = additional bonus</li>
                         <li><strong>Strength of Schedule Rating:</strong> 1-10 scale of overall opponent quality</li>
                         <li><strong>P4 Standard:</strong> P4 teams held to higher scheduling standards</li>
-                        <li><strong>G5 Consideration:</strong> G5 teams given appropriate context</li>
+                        <li><strong>G6 Consideration:</strong> G6 teams given appropriate context</li>
                     </ul>
                 </div>
             </div>
@@ -433,7 +433,7 @@
                     <h5>Final Score Components</h5>
                     <ul>
                         <li><strong>Victory Value:</strong> Sum of all win values from Module 2</li>
-                        <li><strong>Conference Multiplier:</strong> P4 = 1.0×, G5 = 0.85×</li>
+                        <li><strong>Conference Multiplier:</strong> P4 = 1.0×, G6 = 0.85×</li>
                         <li><strong>Loss Penalties:</strong> Subtracted from Module 3</li>
                         <li><strong>Schedule Penalties:</strong> From Module 6</li>
                         <li><strong>Temporal Adjustment:</strong> From Module 4</li>
@@ -444,9 +444,9 @@
                 <div class="col-md-6">
                     <h5>Conference Treatment</h5>
                     <ul>
-                        <li><strong>Subdivision Recognition:</strong> P4/G5 competitive level difference</li>
+                        <li><strong>Subdivision Recognition:</strong> P4/G6 competitive level difference</li>
                         <li><strong>Conference Equality:</strong> All P4 conferences treated equally</li>
-                        <li><strong>G5 Fairness:</strong> Modest multiplier allows elite G5 teams to rank highly</li>
+                        <li><strong>G6 Fairness:</strong> Modest multiplier allows elite G6 teams to rank highly</li>
                         <li><strong>Merit-Based:</strong> Quality teams rewarded regardless of conference</li>
                         <li><strong>Real-Time Updates:</strong> Instant recalculation when games complete</li>
                     </ul>
@@ -463,7 +463,7 @@
 
             <div class="merit-based-highlight">
                 <h6><strong>Merit-Based Conference Treatment</strong></h6>
-                <p>The 0.85× G5 multiplier reflects the competitive reality of subdivision differences while being modest enough that exceptional G5 teams can still achieve high rankings. An undefeated G5 champion with quality wins will rank above mediocre P4 teams, ensuring merit-based evaluation.</p>
+                <p>The 0.85× G6 multiplier reflects the competitive reality of subdivision differences while being modest enough that exceptional G6 teams can still achieve high rankings. An undefeated G6 champion with quality wins will rank above mediocre P4 teams, ensuring merit-based evaluation.</p>
             </div>
         </div>
 

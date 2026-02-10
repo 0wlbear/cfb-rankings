@@ -17,7 +17,7 @@
         </div>
 
         <!-- Check if we have any bowl data -->
-        {% set total_bowls = bowls_by_tier.NY6|length + bowls_by_tier.Major|length + bowls_by_tier.Conference|length + bowls_by_tier.G5|length %}
+        {% set total_bowls = bowls_by_tier.NY6|length + bowls_by_tier.Major|length + bowls_by_tier.Conference|length + bowls_by_tier.G6|length %}
         
         {% if total_bowls == 0 %}
         <div class="alert alert-warning text-center">
@@ -273,15 +273,15 @@
         </div>
         {% endif %}
 
-        <!-- G5 and Other Bowls -->
-        {% if bowls_by_tier.G5 and bowls_by_tier.G5|length > 0 %}
+        <!-- G6 and Other Bowls -->
+        {% if bowls_by_tier.G6 and bowls_by_tier.G6|length > 0 %}
         <div class="card mb-4">
             <div class="card-header bg-secondary text-white">
-                <h3 class="mb-0">🎯 Group of 5 & Other Bowls</h3>
+                <h3 class="mb-0">🎯 Group of 6 & Other Bowls</h3>
             </div>
             <div class="card-body">
                 <div class="row">
-                    {% for bowl in bowls_by_tier.G5 %}
+                    {% for bowl in bowls_by_tier.G6 %}
                         <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
                             <div class="card h-100 border-secondary">
                                 <div class="card-header bg-secondary bg-opacity-25">

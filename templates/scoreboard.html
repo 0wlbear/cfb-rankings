@@ -78,10 +78,16 @@
                     <select class="form-select d-inline-block w-auto" id="week_selector" onchange="changeWeek()">
                         {% for week_option in all_weeks %}
                             <option value="{{ week_option }}" {% if week_option == selected_week %}selected{% endif %}>
-                                {% if week_option == 'Bowls' %}
+                               {% if week_option == 'Bowls' %}
                                     Bowl Games
-                                {% elif week_option == 'CFP' %}
-                                    CFP
+                                {% elif week_option == 'CFP First Round' %}
+                                    CFP First Round
+                                {% elif week_option == 'CFP Quarterfinal' %}
+                                    CFP Quarterfinal  
+                                {% elif week_option == 'CFP Semifinal' %}
+                                    CFP Semifinal
+                                {% elif week_option == 'CFP Championship' %}
+                                    CFP Championship
                                 {% else %}
                                     Week {{ week_option }}
                                 {% endif %}
@@ -133,8 +139,8 @@
                 <h4 class="mb-0">
                     {% if selected_week == 'Bowls' %}
                         Bowl Games Results
-                    {% elif selected_week == 'CFP' %}
-                        CFP Results
+                    {% elif selected_week.startswith('CFP') %}
+                        {{ selected_week }} Results
                     {% else %}
                         Week {{ selected_week }} Results
                     {% endif %}
@@ -392,8 +398,8 @@
                             No games scheduled for 
                             {% if selected_week == 'Bowls' %}
                                 Bowl Games
-                            {% elif selected_week == 'CFP' %}
-                                CFP
+                            {% elif selected_week.startswith('CFP') %}
+                                {{ selected_week }}
                             {% else %}
                                 Week {{ selected_week }}
                             {% endif %}
@@ -409,8 +415,8 @@
                 <h5>
                     {% if selected_week == 'Bowls' %}
                         Bowl Games Summary
-                    {% elif selected_week == 'CFP' %}
-                        CFP Summary
+                    {% elif selected_week.startswith('CFP') %}
+                        {{ selected_week }} Summary
                     {% else %}
                         Week {{ selected_week }} Summary
                     {% endif %}
@@ -464,8 +470,8 @@
                     📅 Import 
                     {% if selected_week == 'Bowls' %}
                         Bowl Games Schedule
-                    {% elif selected_week == 'CFP' %}
-                        CFP Schedule
+                    {% elif selected_week.startswith('CFP') %}
+                        {{ selected_week }} Schedule
                     {% else %}
                         Week {{ selected_week }} Schedule
                     {% endif %}
