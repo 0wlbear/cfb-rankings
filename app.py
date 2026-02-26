@@ -1,4 +1,5 @@
 # Standard library imports
+print("[DEBUG] 1/8 - Standard library imports...")
 import json
 import math
 import os
@@ -11,35 +12,42 @@ from collections import defaultdict
 from functools import wraps
 
 # Third-party imports
+print("[DEBUG] 2a - Importing Flask...", flush=True)
 from flask import Flask, render_template, request, redirect, url_for, flash, session, render_template_string
+print("[DEBUG] 2b - Importing SQLAlchemy...", flush=True)
 from sqlalchemy import text
+print("[DEBUG] 2c - Importing dotenv...", flush=True)
 from dotenv import load_dotenv
 
 # Load environment variables
+print("[DEBUG] 3/8 - Loading .env...")
 load_dotenv()
 
 # Local imports - Database models
+print("[DEBUG] 4/8 - Importing models...")
 from models import (
-    db, 
-    Game, 
-    TeamStats, 
-    ScheduledGame, 
-    ArchivedSeason, 
-    WeeklySnapshot, 
+    db,
+    Game,
+    TeamStats,
+    ScheduledGame,
+    ArchivedSeason,
+    WeeklySnapshot,
     CFBPredictionLog,
     ExternalPoll
 )
 
 # Bowl Pick'em Blueprint
+print("[DEBUG] 5/8 - Importing bowl_pickem blueprint...")
 from blueprints.bowl_pickem import bp as bowl_pickem_bp
 
 # Local imports - CFB ML tracking (with error handling)
+print("[DEBUG] 6/8 - Importing ML tracking...")
 CFB_ML_ENABLED = False
 try:
     import cfb_ml_tracking
     from cfb_ml_tracking import (
         track_prediction,
-        log_actual_result, 
+        log_actual_result,
         get_ml_dashboard_data,
         export_prediction_data
     )
@@ -188,21 +196,31 @@ def time_route(f):
         return result
     return decorated_function
 
+print("[DEBUG] 7/8 - Creating Flask app & DB config...")
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-here')
 app.permanent_session_lifetime = 86400  # Session lasts 24 hours
 
-# Database configuration
-DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://cfb_admin:CFBRankings2025!@cfb-rankings-db.c0x628i8m5pg.us-east-1.rds.amazonaws.com:5432/cfb_rankings')
+# Offseason mode - set OFFSEASON_MODE=true to skip remote DB and use local SQLite
+OFFSEASON_MODE = os.environ.get('OFFSEASON_MODE', 'false').lower() == 'true'
 
-app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_pre_ping': True,
-    'pool_recycle': 300,
-}
+if OFFSEASON_MODE:
+    print("🏈 OFFSEASON MODE - Using local SQLite database (no RDS connection)")
+    DATABASE_URL = 'sqlite:///offseason.db'
+    app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+else:
+    # Database configuration
+    DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://cfb_admin:CFBRankings2025!@cfb-rankings-db.c0x628i8m5pg.us-east-1.rds.amazonaws.com:5432/cfb_rankings')
+    app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_pre_ping': True,
+        'pool_recycle': 300,
+    }
 
 db.init_app(app)
+print("[DEBUG] 8/8 - DB initialized, registering routes...")
 
 # Register Bowl Pick'em Blueprint
 app.register_blueprint(bowl_pickem_bp)
@@ -252,7 +270,7 @@ CONFERENCE_USA_TEAMS = [
 MAC_TEAMS = [
     'Akron', 'Ball State', 'Bowling Green', 'Buffalo', 'Central Michigan',
     'Eastern Michigan', 'Kent State', 'UMass', 'Miami (OH)',
-    'Ohio', 'Toledo', 'Western Michigan'
+    'Ohio', 'Sacramento State', 'Toledo', 'Western Michigan'
 ]
 
 MOUNTAIN_WEST_TEAMS = [
@@ -396,6 +414,7 @@ TEAM_LOGOS = {
     'Miami (OH)': '193',
     'Northern Illinois': '2459',
     'Ohio': '195',
+    'Sacramento State': '0000',
     'Toledo': '2649',
     'Western Michigan': '2711',
     
@@ -407,6 +426,7 @@ TEAM_LOGOS = {
     'Hawaii': '62',
     'Nevada': '2440',
     'New Mexico': '167',
+    'North Dakota State': '0000',
     'San Diego State': '21',
     'San Jose State': '23',
     'UNLV': '2439',
@@ -552,6 +572,7 @@ TEAM_VARIATIONS = {
             'UMass': ['UMass', 'Massachusetts', 'Minutemen'],
             'Miami (OH)': ['Miami (OH)', 'Miami Ohio', 'Miami "Ohio"', 'Miami (Ohio)', 'RedHawks'],
             'Ohio': ['Ohio', 'Bobcats'],
+            'Sacramento State': ['Sacramento State', 'Hornets'],
             'Toledo': ['Toledo', 'Rockets'],
             'Western Michigan': ['Western Michigan', 'WMU', 'Broncos'],
 
@@ -560,6 +581,7 @@ TEAM_VARIATIONS = {
             'Hawaii': ['Hawaii', 'Rainbow Warriors'],
             'Nevada': ['Nevada', 'Wolf Pack'],
             'New Mexico': ['New Mexico', 'UNM', 'Lobos'],
+            'North Dakota State': ['NDSU', 'North Dakota State', 'Bisons'],
             'Northern Illinois': ['Northern Illinois', 'NIU', 'Huskies'],
             'San Jose State': ['San Jose State', 'SJSU', 'Spartans'],
             'UNLV': ['UNLV', 'Rebels'],
@@ -7325,12 +7347,16 @@ def home():
 
 @app.route('/public')
 def public_landing():
-    """Public landing page with Top 25 preview"""
-    # Get top 25 teams for preview
-    comprehensive_stats = get_all_team_stats_bulk()
-    top_25 = comprehensive_stats[:25]  # Get top 25 teams
-    
-    return render_template('public_landing.html', top_25=top_25)
+    """Offseason splash page - no database needed"""
+    return render_template('offseason.html')
+
+# ORIGINAL public_landing - uncomment when 2026 season starts:
+# @app.route('/public')
+# def public_landing():
+#     """Public landing page with Top 25 preview"""
+#     comprehensive_stats = get_all_team_stats_bulk()
+#     top_25 = comprehensive_stats[:25]
+#     return render_template('public_landing.html', top_25=top_25)
 
 @app.route('/rankings')
 @app.route('/rankings/<conference>')
@@ -10908,63 +10934,64 @@ def import_csv():
 
 
 if __name__ == '__main__':
-    
-    
-    # Load existing data
-    load_data()
-    
-    print("College Football Ranking App")
-    print("=" * 40)
-    print("Templates created successfully!")
-    print("Features:")
-    print("- Add games with automatic P4/G6 classification")
-    print("- Neutral site games (no home/road win credit)")
-    print("- Weekly results page to review games by week")
-    print("- Comprehensive statistics and ranking calculation")
-    print("- Sortable table columns (click headers to sort)")
-    print("- All FBS conferences included + FCS option")
-    print("- Team detail pages with statistics")
-    print("- Conference-organized dropdowns")
-    print("- Data persistence (automatically saved)")
-    print("- Reset data option in navigation")
-    print("- Responsive Bootstrap UI")
-    print(f"\nTotal teams: {len(TEAMS)} across {len(CONFERENCES)} conferences")
-    print("Conferences included:")
-    for conf_name, teams in CONFERENCES.items():
-        classification = ""
-        if conf_name in P4_CONFERENCES:
-            classification = " (P4)"
-        elif conf_name in G6_CONFERENCES:
-            classification = " (G6)"
-        elif conf_name == "Independent":
-            classification = " (Notre Dame=P4, Connecticut=G6, FCS=None)"
-        print(f"  - {conf_name}: {len(teams)} teams{classification}")
-    print("\nP4 Conferences: ACC, Big Ten, Big XII, Pac 12, SEC, Notre Dame")
-    print("G6 Conferences: American, Conference USA, MAC, Mountain West, Sun Belt, Connecticut")
-    print("None Classification: FCS (for non-P4/G6 games)")
-    print("Ready with your custom ranking formula!")
-    print("\nHow game types work:")
-    print("- Each team's game type reflects their OPPONENT's classification")
-    print("- Example: Boston College (P4) vs Kent State (G6)")
-    print("  → Boston College gets 'G6' game type (playing G6 opponent)")
-    print("  → Kent State gets 'P4' game type (playing P4 opponent)")
-    print("- Neutral site games: Neither team gets home/road win credit")
-    print("  → Useful for bowl games, conference championships, etc.")
-    print("\nData will be automatically saved to games_data.json and team_stats.json")
-    print("Starting Flask development server...")
 
+    if OFFSEASON_MODE:
+        print("🏈 OFFSEASON MODE - Skipping database initialization")
+        print("College Football Ranking App - Offseason")
+        print("=" * 40)
+        print("Starting Flask development server...")
+        app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5001)), debug=False)
+    else:
+        # Load existing data (connects to database)
+        load_data()
 
-    if CFB_ML_ENABLED:
-        try:
-            with app.app_context():
-                cfb_ml_tracking.setup_cfb_ml_tracking()
-                print("✅ CFB ML tracking initialized successfully")
-        except Exception as e:
-            print(f"❌ Error initializing CFB ML tracking: {e}")
-            CFB_ML_ENABLED = False
-    
-    print("College Football Ranking App")
-    # ... rest of your existing startup code ...
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5001)), debug=False)
-    
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5001)), debug=False)
+        print("College Football Ranking App")
+        print("=" * 40)
+        print("Templates created successfully!")
+        print("Features:")
+        print("- Add games with automatic P4/G6 classification")
+        print("- Neutral site games (no home/road win credit)")
+        print("- Weekly results page to review games by week")
+        print("- Comprehensive statistics and ranking calculation")
+        print("- Sortable table columns (click headers to sort)")
+        print("- All FBS conferences included + FCS option")
+        print("- Team detail pages with statistics")
+        print("- Conference-organized dropdowns")
+        print("- Data persistence (automatically saved)")
+        print("- Reset data option in navigation")
+        print("- Responsive Bootstrap UI")
+        print(f"\nTotal teams: {len(TEAMS)} across {len(CONFERENCES)} conferences")
+        print("Conferences included:")
+        for conf_name, teams in CONFERENCES.items():
+            classification = ""
+            if conf_name in P4_CONFERENCES:
+                classification = " (P4)"
+            elif conf_name in G6_CONFERENCES:
+                classification = " (G6)"
+            elif conf_name == "Independent":
+                classification = " (Notre Dame=P4, Connecticut=G6, FCS=None)"
+            print(f"  - {conf_name}: {len(teams)} teams{classification}")
+        print("\nP4 Conferences: ACC, Big Ten, Big XII, Pac 12, SEC, Notre Dame")
+        print("G6 Conferences: American, Conference USA, MAC, Mountain West, Sun Belt, Connecticut")
+        print("None Classification: FCS (for non-P4/G6 games)")
+        print("Ready with your custom ranking formula!")
+        print("\nHow game types work:")
+        print("- Each team's game type reflects their OPPONENT's classification")
+        print("- Example: Boston College (P4) vs Kent State (G6)")
+        print("  → Boston College gets 'G6' game type (playing G6 opponent)")
+        print("  → Kent State gets 'P4' game type (playing P4 opponent)")
+        print("- Neutral site games: Neither team gets home/road win credit")
+        print("  → Useful for bowl games, conference championships, etc.")
+        print("\nData will be automatically saved to games_data.json and team_stats.json")
+        print("Starting Flask development server...")
+
+        if CFB_ML_ENABLED:
+            try:
+                with app.app_context():
+                    cfb_ml_tracking.setup_cfb_ml_tracking()
+                    print("✅ CFB ML tracking initialized successfully")
+            except Exception as e:
+                print(f"❌ Error initializing CFB ML tracking: {e}")
+                CFB_ML_ENABLED = False
+
+        app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5001)), debug=False)

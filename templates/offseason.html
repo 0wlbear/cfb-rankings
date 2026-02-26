@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+
+{% block title %}CFB Rankings - See You in 2026{% endblock %}
+
+{% block content %}
+<style>
+    /* Dark field background for the offseason page */
+    .offseason-wrapper {
+        text-align: center;
+        padding: 3rem 1rem;
+        min-height: 75vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        background: linear-gradient(180deg, #0d1f0d 0%, #163316 30%, #1a3d1a 50%, #163316 70%, #0d1f0d 100%);
+        border-radius: 12px;
+        margin: -1rem -15px 0;
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+
+    /* Subtle yard lines */
+    .offseason-wrapper::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        border-radius: 12px;
+        background: repeating-linear-gradient(
+            0deg, transparent, transparent 9.5%,
+            rgba(255,255,255,0.03) 9.5%, rgba(255,255,255,0.03) 10%
+        );
+        pointer-events: none;
+    }
+
+    .offseason-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 50px;
+        padding: 0.5rem 1.25rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.7);
+        margin-bottom: 2rem;
+    }
+
+    .offseason-title {
+        font-size: clamp(2.5rem, 7vw, 4.5rem);
+        font-weight: 900;
+        line-height: 1.1;
+        margin-bottom: 0.25rem;
+        letter-spacing: -0.02em;
+    }
+
+    .offseason-highlight {
+        background: linear-gradient(135deg, #22c55e, #4ade80);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .offseason-year {
+        font-size: clamp(3.5rem, 10vw, 7rem);
+        font-weight: 900;
+        letter-spacing: -0.03em;
+        color: #ffffff;
+        line-height: 1;
+        margin-bottom: 0.5rem;
+        text-shadow: 0 0 40px rgba(34, 197, 94, 0.15);
+    }
+
+    .offseason-subtitle {
+        font-size: clamp(0.95rem, 2vw, 1.15rem);
+        color: rgba(255,255,255,0.5);
+        max-width: 500px;
+        margin: 1rem auto 0;
+        line-height: 1.7;
+    }
+
+    .offseason-divider {
+        width: 80px;
+        height: 3px;
+        background: linear-gradient(90deg, transparent, #22c55e, transparent);
+        margin: 2rem auto;
+        border-radius: 2px;
+    }
+
+    .offseason-features {
+        display: flex;
+        gap: 2rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-bottom: 2.5rem;
+    }
+
+    .offseason-feature {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: rgba(255,255,255,0.4);
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+
+    .offseason-feature-icon {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(34, 197, 94, 0.1);
+        border: 1px solid rgba(34, 197, 94, 0.2);
+        border-radius: 8px;
+        font-size: 0.9rem;
+    }
+
+    .offseason-countdown {
+        display: flex;
+        gap: 1.5rem;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .offseason-cd-item {
+        text-align: center;
+        min-width: 65px;
+    }
+
+    .offseason-cd-value {
+        font-size: clamp(1.8rem, 4vw, 2.5rem);
+        font-weight: 700;
+        color: #22c55e;
+        line-height: 1;
+    }
+
+    .offseason-cd-label {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        color: rgba(255,255,255,0.35);
+        margin-top: 0.4rem;
+        font-weight: 600;
+    }
+
+    .offseason-cd-sep {
+        font-size: 2rem;
+        color: rgba(255,255,255,0.15);
+        font-weight: 300;
+        line-height: 1;
+    }
+
+    @media (max-width: 480px) {
+        .offseason-countdown { gap: 1rem; }
+        .offseason-cd-sep { display: none; }
+        .offseason-features { gap: 1rem; }
+    }
+</style>
+
+<div class="offseason-wrapper">
+    <div class="offseason-badge">
+        🏈 Offseason Mode
+    </div>
+
+    <div>
+        <div class="offseason-title">
+            <span class="offseason-highlight">See You In</span>
+        </div>
+        <div class="offseason-year">2026</div>
+    </div>
+
+    <p class="offseason-subtitle">
+        The rankings are taking a breather this offseason.
+        We'll be back with updated rankings, predictions, and analysis when the 2026 season kicks off.
+    </p>
+
+    <div class="offseason-divider"></div>
+
+    <div class="offseason-features">
+        <div class="offseason-feature">
+            <div class="offseason-feature-icon">📊</div>
+            Rankings
+        </div>
+        <div class="offseason-feature">
+            <div class="offseason-feature-icon">🤖</div>
+            AI Analysis
+        </div>
+        <div class="offseason-feature">
+            <div class="offseason-feature-icon">🏆</div>
+            CFP Projections
+        </div>
+    </div>
+
+    <div class="offseason-countdown" id="countdown">
+        <div class="offseason-cd-item">
+            <div class="offseason-cd-value" id="cd-days">--</div>
+            <div class="offseason-cd-label">Days</div>
+        </div>
+        <div class="offseason-cd-sep">:</div>
+        <div class="offseason-cd-item">
+            <div class="offseason-cd-value" id="cd-hours">--</div>
+            <div class="offseason-cd-label">Hours</div>
+        </div>
+        <div class="offseason-cd-sep">:</div>
+        <div class="offseason-cd-item">
+            <div class="offseason-cd-value" id="cd-minutes">--</div>
+            <div class="offseason-cd-label">Minutes</div>
+        </div>
+        <div class="offseason-cd-sep">:</div>
+        <div class="offseason-cd-item">
+            <div class="offseason-cd-value" id="cd-seconds">--</div>
+            <div class="offseason-cd-label">Seconds</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Countdown to kickoff - Saturday, August 29, 2026 (adjust date as needed)
+    const KICKOFF = new Date('2026-08-29T12:00:00-04:00');
+
+    function tick() {
+        const diff = KICKOFF - new Date();
+        if (diff <= 0) return;
+
+        const d = Math.floor(diff / 86400000);
+        const h = Math.floor((diff % 86400000) / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        const s = Math.floor((diff % 60000) / 1000);
+
+        document.getElementById('cd-days').textContent = d;
+        document.getElementById('cd-hours').textContent = String(h).padStart(2, '0');
+        document.getElementById('cd-minutes').textContent = String(m).padStart(2, '0');
+        document.getElementById('cd-seconds').textContent = String(s).padStart(2, '0');
+    }
+
+    tick();
+    setInterval(tick, 1000);
+</script>
+{% endblock %}
